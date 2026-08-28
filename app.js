@@ -201,6 +201,12 @@ const DemoDB = (()=>{
     async signOut(){ try{localStorage.removeItem(KEY);}catch(e){} db=null; },
     async createProfile(p){ db=build(p); uid=db.uid; save(); },
     async fetchAll(){ return {today:db.today, me:db.me, runners:db.runners, subs:db.subs}; },
+    async rosterList(){
+      return db.runners.filter(r=>r.role==="student").map((r,i)=>({
+        email:r.name.toLowerCase()+"@example.com", house_id:r.house,
+        full_name:r.name, claimed_by:i<db.runners.length-3?r.id:null, claimed_at:null}));
+    },
+    async rosterAdd(){ throw new Error("โหมด DEMO เพิ่มรายชื่อจริงไม่ได้ ต้องต่อ Supabase ก่อน"); },
     async detail(runner){
       const my=db.subs.filter(s=>s.who===runner.name);
       const byDay={}; my.forEach(s=>{ byDay[s.day]=(byDay[s.day]||0)+1; });
@@ -327,6 +333,18 @@ const LiveDB = (()=>{
           plat:f.platform, url:f.url, ts:new Date(f.created_at).getTime()}))
       };
     },
+    /* ---- รายชื่อนักเรียน (RLS ให้เฉพาะหัวหน้าโค้ช) ---- */
+    async rosterList(){
+      const {data,error}=await sb.from("roster")
+        .select("email,house_id,full_name,claimed_by,claimed_at").order("house_id").order("email");
+      if(error) throw new Error(error.message);
+      return data||[];
+    },
+    async rosterAdd(rows){
+      const {error}=await sb.from("roster").upsert(rows,{onConflict:"email"});
+      if(error) throw new Error(error.message);
+      return rows.length;
+    },
     /* รายละเอียดของคนเดียว — ใช้ตอนเปิดโปรไฟล์หรือหน้า Status */
     async detail(runner){
       const {data}=await sb.from("submissions")
@@ -396,6 +414,7 @@ function showPage(id){
   document.querySelectorAll(".navBtn").forEach(b=>b.classList.toggle("on", b.dataset.page===id));
   if(id==="pgStatus") renderStatus();
   if(id==="pgBoard")  renderBoard();
+  if(id==="pgAdmin")  renderAdmin();
   window.scrollTo(0,0);
 }
 function ago(ts){
@@ -746,6 +765,53 @@ function canvasBlob(){
   return new Promise(res=>$("shareCanvas").toBlob(res,"image/png"));
 }
 
+/* ================= ADMIN (หัวหน้าโค้ช) ================= */
+async function renderAdmin(){
+  const demo = DB.mode==="demo";
+  $("adNote").innerHTML = demo
+    ? "โหมด DEMO — หน้านี้แสดงให้ดูหน้าตาเท่านั้น เพิ่มรายชื่อจริงไม่ได้ ต้องต่อ Supabase ก่อน"
+    : "อีเมลที่เพิ่มตรงนี้คือประตูเข้าระบบ ใครไม่มีชื่อจะสมัครไม่ได้ และหนึ่งอีเมลสมัครได้ครั้งเดียว";
+  $("adHouse").innerHTML = HOUSES.map(h=>
+    '<option value="'+h.id+'">'+h.emoji+' '+h.name+' · '+h.th+'</option>').join("");
+
+  let roster=[];
+  try{ roster=await DB.rosterList(); }
+  catch(e){ $("adNote").innerHTML += '<br><span style="color:var(--red)">อ่านรายชื่อไม่ได้: '+e.message+'</span>'; }
+
+  $("adHouses").innerHTML = HOUSES.map(h=>{
+    const rows=roster.filter(r=>r.house_id===h.id);
+    const joined=rows.filter(r=>r.claimed_by).length;
+    return '<div class="houseCard" style="border-color:'+h.color+' '+shift(h.color,-110)+' '+shift(h.color,-110)+' '+h.color+'">'
+      + '<div class="hr">'+h.emoji+'</div>'
+      + '<div class="hn" style="color:'+h.color+'">'+h.name+'</div>'
+      + '<div class="hth">'+h.th+'</div>'
+      + '<div class="hv">'+joined+'<span style="font-size:18px;color:var(--dim)">/'+rows.length+'</span></div>'
+      + '<div class="hl">สมัครแล้ว / มีชื่อทั้งหมด</div></div>';
+  }).join("");
+
+  const un=roster.filter(r=>!r.claimed_by);
+  $("adUnclaimed").innerHTML = un.length ? un.map((r,i)=>{
+    const h=houseOf(r.house_id);
+    return '<tr><td class="rk">'+String(i+1).padStart(2,"0")+'</td>'
+      + '<td style="font-family:var(--f-th)">'+r.email+'</td>'
+      + '<td style="font-family:var(--f-th);color:var(--dim)">'+(r.full_name||"—")+'</td>'
+      + '<td><span class="hs">'+h.emoji+'</span> <span style="color:'+h.color+';font-size:12px">'+h.name+'</span></td></tr>';
+  }).join("") : '<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:24px">ทุกคนสมัครครบแล้ว 🎉</td></tr>';
+
+  const behind=ranked().filter(r=>r.role!=="coach" && stats(r).pace<-5);
+  $("adBehind").innerHTML = behind.length ? behind.map((r,i)=>{
+    const s=stats(r), h=houseOf(r.house);
+    const last=[...S.subs].filter(f=>f.who===r.name).sort((a,b)=>b.ts-a.ts)[0];
+    return '<tr data-n="'+r.name+'"><td class="rk">'+String(i+1).padStart(2,"0")+'</td>'
+      + '<td class="nm" style="color:'+r.color+'">'+r.name+'</td>'
+      + '<td><span class="hs">'+h.emoji+'</span></td>'
+      + '<td class="num">'+s.contents+'</td>'
+      + '<td class="num" style="color:var(--dim)">'+s.target+'</td>'
+      + '<td class="num" style="color:var(--orange)">'+s.pace+'</td>'
+      + '<td class="hideSm" style="color:var(--dim);font-size:12px">'+(last?ago(last.ts):"ยังไม่เคยส่ง")+'</td></tr>';
+  }).join("") : '<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:24px">ไม่มีใครตามหลังเกิน 5 ชิ้น 👏</td></tr>';
+}
+
 /* ================= HUD ================= */
 function renderHud(){
   const r=meR(); if(!r) return;
@@ -762,6 +828,7 @@ function renderHud(){
     คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
   $("who").textContent=r.name;
   $("simBtn").style.display = DB.canSim?"":"none";
+  $("adminNav").style.display = (DB.mode==="demo" || r.role==="coach") ? "" : "none";
   $("outBtn").textContent = DB.mode==="live"?"SIGN OUT":"RESET DEMO";
   $("modeTag").textContent = DB.mode==="live"?"LIVE":"DEMO MODE";
   $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
@@ -893,6 +960,32 @@ $("raceFilters").onclick=e=>{ const b=e.target.closest(".fBtn"); if(b){ S.raceFi
 $("boardFilters").onclick=e=>{ const b=e.target.closest(".fBtn"); if(b){ S.boardFilter=b.dataset.f; renderFilters(); renderBoard(); } };
 $("lanes").onclick=e=>{ const l=e.target.closest(".lane"); if(l) openProfile(l.dataset.n); };
 $("board").onclick=e=>{ const t=e.target.closest("tr[data-n]"); if(t) openProfile(t.dataset.n); };
+$("adUpload").onclick=async()=>{
+  const raw=$("adEmails").value.split(/[\n\r]+/).map(x=>x.trim()).filter(Boolean);
+  const house=+$("adHouse").value;
+  const rows=[], bad=[];
+  raw.forEach(line=>{
+    const parts=line.split(",").map(x=>x.trim());
+    const em=parts[0];
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ bad.push(line); return; }
+    rows.push({email:em.toLowerCase(), house_id:house, full_name:parts.slice(1).join(", ")||null});
+  });
+  if(!rows.length) return toast("ไม่มีอีเมลที่ใช้ได้");
+  $("adUpload").disabled=true;
+  try{
+    await DB.rosterAdd(rows);
+    $("adResult").innerHTML = "เพิ่มแล้ว <b>"+rows.length+"</b> อีเมล เข้าห้อง "+houseOf(house).name
+      + (bad.length ? '<br><span style="color:var(--red)">ข้าม '+bad.length+' บรรทัดที่ไม่ใช่อีเมล</span>' : "");
+    $("adEmails").value="";
+    await renderAdmin();
+    toast("เพิ่ม "+rows.length+" อีเมลแล้ว");
+  }catch(e){
+    $("adResult").innerHTML = '<span style="color:var(--red)">'+e.message+'</span>';
+    toast(e.message);
+  }
+  $("adUpload").disabled=false;
+};
+$("adBehind").onclick=e=>{ const t=e.target.closest("tr[data-n]"); if(t) openProfile(t.dataset.n); };
 $("jumpMe").onclick=()=>{
   const el=$("row-"+S.me);
   if(el) el.scrollIntoView({block:"center",behavior:"smooth"});

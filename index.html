@@ -536,6 +536,7 @@
     <button class="navBtn on" data-page="pgRace">🏁 RACE<small>สนามแข่ง</small></button>
     <button class="navBtn" data-page="pgBoard">🏆 SCOREBOARD<small>อันดับทั้งรุ่น</small></button>
     <button class="navBtn" data-page="pgStatus">📣 MY STATUS<small>การ์ดไว้แชร์</small></button>
+    <button class="navBtn" data-page="pgAdmin" id="adminNav" style="display:none">⚙️ ADMIN<small>สำหรับหัวหน้าโค้ช</small></button>
   </nav>
 
   <!-- ===== RACE ===== -->
@@ -638,6 +639,48 @@
           <span><i style="background:linear-gradient(180deg,#191341,#0e0a29)"></i>ยังไม่ถึง</span>
           <span style="opacity:.45">แถวจาง = ไม่ได้ลงสปรินต์นี้</span>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== ADMIN (หัวหน้าโค้ชเท่านั้น) ===== -->
+  <div class="page" id="pgAdmin">
+    <section class="panel bevel">
+      <div class="titlebar"><h2>รายชื่อนักเรียน</h2><span>ใครมีชื่อในนี้ถึงจะสมัครเข้าระบบได้</span></div>
+      <div class="body">
+        <p class="lede" id="adNote"></p>
+        <div class="houseGrid" id="adHouses" style="padding:0 0 16px"></div>
+        <div class="cols">
+          <div>
+            <label>วางอีเมล บรรทัดละคน</label>
+            <textarea class="shareTxt" id="adEmails" style="min-height:180px"
+              placeholder="somchai@gmail.com&#10;malee@gmail.com, มาลี&#10;nattapong@gmail.com, ณัฐพงษ์"></textarea>
+            <div class="hint">ใส่ชื่อจริงต่อท้ายหลังเครื่องหมายจุลภาคก็ได้ ไม่ใส่ก็ได้</div>
+          </div>
+          <div>
+            <label>ลงห้องไหน</label>
+            <select id="adHouse"></select>
+            <div style="margin-top:16px"></div>
+            <button class="btn go" id="adUpload">▶ เพิ่มเข้ารายชื่อ</button>
+            <div class="tally" id="adResult" style="margin-top:14px">ยังไม่ได้อัปโหลดอะไร</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>ยังไม่มาสมัคร</h2><span>คนที่มีชื่อแต่ยังไม่เคยเข้าระบบ</span></div>
+      <div style="max-height:44vh;overflow-y:auto">
+        <table><thead><tr><th>#</th><th>EMAIL</th><th>ชื่อ</th><th>ห้อง</th></tr></thead>
+        <tbody id="adUnclaimed"></tbody></table>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>ต้องตามงาน</h2><span>คนที่ตามหลังเป้าตัวเองเกิน 5 ชิ้น</span></div>
+      <div style="max-height:44vh;overflow-y:auto">
+        <table><thead><tr><th>#</th><th>RUNNER</th><th>ห้อง</th><th>ทำได้</th><th>เป้า</th><th>ห่าง</th><th class="hideSm">ล่าสุด</th></tr></thead>
+        <tbody id="adBehind"></tbody></table>
       </div>
     </section>
   </div>
