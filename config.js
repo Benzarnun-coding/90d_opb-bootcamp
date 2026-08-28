@@ -9,15 +9,15 @@ window.CFG = {
      เอามาจาก Supabase Dashboard > Project Settings > Data API
      ถ้าเว้นว่างไว้ เว็บจะรันเป็นโหมด DEMO (ข้อมูลปลอมในเครื่อง)
      ใช้โชว์ได้ แต่ไม่ได้แชร์กันจริง                              */
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://vbbaefceiswuidylwzmp.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_8di4nOxPz_176zIy9s44Dg_spESMEqa",
 
   /* เปิดปุ่ม "เข้าด้วย Google" (ต้องตั้งค่า Google provider ใน Supabase ก่อน)
      แนะนำให้เปิด ถ้ารุ่นมีคนเยอะ เพราะไม่ต้องพึ่งอีเมลซึ่งมีลิมิตการส่ง       */
   GOOGLE_AUTH: false,
 
   /* ---- 2. ชื่อ bootcamp ที่โชว์บนหัวเว็บ -------------------- */
-  TITLE: "12-WEEK CREATOR BOOTCAMP",
+  TITLE: "90 DAY ONE PERSON BUSINESS BOOTCAMP",
 
   /* ---- 3. โครงสร้างรุ่น -------------------------------------
      ต้องตรงกับค่าในตาราง cohort ใน schema.sql
