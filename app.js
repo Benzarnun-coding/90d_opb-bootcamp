@@ -1085,7 +1085,11 @@ function drawEdit(){
 /* ================= PLEDGE PICKER ================= */
 function drawPledgePick(){
   const cw=curWeek(), me=meR(), cur=(me.pledges||{})[cw];
-  $("plPick").innerHTML=PLEDGES.map(o=>{
+  const HIDE = C.HIDE_LOCKED_PLEDGES !== false;
+  /* ซ่อนตัวเลือกที่ยังไม่ถึงสัปดาห์ปลดล็อก — เก็บไว้เป็นเซอร์ไพรส์
+     แต่ถ้าเคยรับไว้แล้วต้องยังเห็นอยู่ ไม่งั้นการ์ดจะหาย */
+  const visible = PLEDGES.filter(o => !HIDE || cw >= o.unlockWeek || o.target === cur);
+  $("plPick").innerHTML=visible.map(o=>{
     const locked = cw<o.unlockWeek ? "locked" : (cur && o.target<cur ? "locked" : "");
     const note = cw<o.unlockWeek ? `ปลดล็อกสัปดาห์ที่ ${o.unlockWeek}`
                : (cur && o.target<cur ? "ลดเป้ากลางสัปดาห์ไม่ได้" : "");
@@ -1315,9 +1319,9 @@ $("bcTitle").textContent=C.TITLE;
 $("bcTitle2").textContent=C.TITLE;
 document.title=C.TITLE;
 $("plat").innerHTML=PLATS.map(p=>`<option>${p}</option>`).join("");
-$("titleSub").innerHTML=`${WEEKS} สัปดาห์ · ${NSP} สปรินต์ · เลือกเป้าเองทุกสัปดาห์<br>
-  4 / 7 / 10 ชิ้นต่อสัปดาห์ — และ 14 เมื่อผ่านครึ่งทาง<br>
-  เป้ารวม ${FINISH} ชิ้น — ส่งเกินได้ ไม่มีเพดาน<br>
+$("titleSub").innerHTML=`${TOTAL} วัน · ${NSP} สปรินต์ · เลือกเป้าเองทุกสัปดาห์<br>
+  4 / 7 / 10 ชิ้นต่อสัปดาห์ ตามที่ไหว<br>
+  เป้ารวม ${FINISH} คอนเทนต์ — ส่งเกินได้ ไม่มีเพดาน<br>
   ส่งลิงก์แล้วนับทันที ตัวละครวิ่งเลย`;
 $("foot").innerHTML = LIVE
   ? "ข้อมูลจริงบน Supabase · เห็นตรงกันทุกเครื่องแบบเรียลไทม์"

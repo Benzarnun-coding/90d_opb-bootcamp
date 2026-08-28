@@ -54,6 +54,10 @@ window.CFG = {
      unlockWeek = เปิดให้เลือกตั้งแต่สัปดาห์ที่เท่าไหร่
      style      = หน้าตาตัวละครในสัปดาห์นั้น (normal / red / flame)
      ถ้าแก้ตรงนี้ ต้องแก้ตาราง pledge_options ในฐานข้อมูลให้ตรงกันด้วย   */
+  /* true  = ซ่อนตัวเลือกที่ยังไม่ปลดล็อกไปเลย นักเรียนจะไม่รู้ว่ามีอะไรรออยู่ (เซอร์ไพรส์)
+     false = โชว์ไว้แต่กดไม่ได้ พร้อมป้ายบอกว่าปลดล็อกสัปดาห์ไหน                      */
+  HIDE_LOCKED_PLEDGES: true,
+
   PLEDGES: [
     { target: 4,  key:"compromise",  name:"COMPROMISE",
       th:"สัปดาห์นี้งานยุ่ง เอาแค่ไม่หลุด",   unlockWeek:1, style:"normal" },
