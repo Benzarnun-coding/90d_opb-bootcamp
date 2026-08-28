@@ -327,7 +327,19 @@ const LiveDB = (()=>{
       }));
       const me=runners.find(r=>r.id===uidNow);
       if(me) (pls||[]).forEach(x=>{ me.pledges[x.week_no]=x.target; });
-      const todayIdx=todayFrom(co.start_date);
+      /* วันที่ต้องเอาจากเซิร์ฟเวอร์ เพราะมันคิดตามเวลาไทยและตัดรอบตี 4
+         ถ้าปล่อยให้เบราว์เซอร์คิดเอง คนที่ตั้งไทม์โซนไม่ตรงจะเห็นวันเหลื่อมไปหนึ่งวัน
+         แล้วเป้าสัปดาห์กับ pace จะผิดตามไปหมด */
+      let todayIdx;
+      try{
+        const {data:d0,error:e0}=await sb.rpc("today_index");
+        if(e0) throw e0;
+        todayIdx=Number(d0);
+      }catch(e){
+        console.warn("today_index RPC ไม่ตอบ ใช้เวลาเครื่องแทนชั่วคราว",e.message||e);
+        todayIdx=todayFrom(co.start_date);
+      }
+      if(!todayIdx || !isFinite(todayIdx)) todayIdx=todayFrom(co.start_date);
       const {count:todayCount}=await sb.from("submissions")
         .select("id",{count:"exact",head:true})
         .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved");
