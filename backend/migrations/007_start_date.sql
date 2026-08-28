@@ -65,7 +65,8 @@ end $fn$;
 -- ------------------------------------------------------------
 -- ให้หน้าเว็บถามได้ว่ารุ่นเริ่มหรือยัง และเหลืออีกกี่วัน
 -- ------------------------------------------------------------
-create or replace function public.cohort_status()
+drop function if exists public.cohort_status();
+create function public.cohort_status()
 returns table (started boolean, start_date date, days_until int, day_index int, week_no int)
 language sql stable as $fn$
   select public.has_started(),

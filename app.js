@@ -9,8 +9,10 @@ const PLATS   = C.PLATFORMS;
 const PLEDGES = C.PLEDGES;
 const SPD     = C.SPRINT_DAYS;
 const NSP     = SPRINTS.length;
-const TOTAL   = SPD * NSP;                 // จำนวนวันทั้งหมด
-const WEEKS   = Math.round(TOTAL / 7);
+const SPRINT_DAYS_TOTAL = SPD * NSP;       // 84 วันที่มีโครงสร้างสปรินต์
+const TOTAL   = C.COHORT_DAYS || SPD*NSP;  // ความยาวรุ่นทั้งหมด (รวมช่วงต่อเวลา)
+const OT_DAYS = TOTAL - SPRINT_DAYS_TOTAL; // จำนวนวันต่อเวลา
+const WEEKS   = Math.round((SPD * NSP) / 7);
 const FINISH  = C.GOAL_TOTAL || 7 * WEEKS; // เส้นชัย = ปล่อยครบกี่ชิ้น (ส่งเกินได้)
 const NEAR    = C.NEAR_RANGE || 3;
 const LIVE    = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY);
@@ -79,7 +81,8 @@ function runnerBox(color, px, style="normal"){
 }
 
 /* ================= MATH ================= */
-const spOf      = d => Math.floor((d-1)/SPD);
+const spOf      = d => Math.min(Math.floor((d-1)/SPD), NSP-1);   // ช่วงต่อเวลาปัดเข้าสปรินต์สุดท้าย
+const inOvertime = () => S.today > SPRINT_DAYS_TOTAL;
 const spStart   = s => s*SPD+1;
 const spEnd     = s => (s+1)*SPD;
 const weekOf    = d => Math.max(1, Math.floor((d-1)/7)+1);
@@ -240,7 +243,7 @@ const DemoDB = (()=>{
       let n=0;
       db.runners.forEach((r,i)=>{
         if(i===0 || !r.joined.includes(spOf(db.today))) return;
-        if(cw!==bw && !r.pledges[cw]){
+        if(db.today<=SPRINT_DAYS_TOTAL && cw!==bw && !r.pledges[cw]){
           const roll=Math.random();
           r.pledges[cw] = cw>=7 && roll<.15 ? 14 : roll<.25 ? 4 : roll<.8 ? 7 : 10;
         }
@@ -339,6 +342,8 @@ const LiveDB = (()=>{
         todayIdx  = Number(row.day_index);
         started   = !!row.started;
         daysUntil = Number(row.days_until) || 0;
+        if(row.total_days && Number(row.total_days) !== TOTAL)
+          console.warn("cohort.total_days ("+row.total_days+") ไม่ตรงกับ COHORT_DAYS ใน config.js ("+TOTAL+")");
       }catch(e){
         console.warn("cohort_status RPC ไม่ตอบ ใช้เวลาเครื่องแทนชั่วคราว", e.message||e);
         todayIdx = todayFrom(co.start_date);
@@ -476,11 +481,21 @@ function renderPledge(){
       + '<br><span style="color:var(--dim)">ส่งงานได้ตั้งแต่วันเปิดรุ่นเป็นต้นไป</span></div>';
     return;
   }
+  if(inOvertime() && !finished()){
+    const st=stats(r), left=Math.max(0,FINISH-st.contents), dleft=TOTAL-S.today+1;
+    $("pledgeCard").innerHTML =
+      '<div class="paceNum ' + (st.contents>=FINISH?"ahead":"behind") + '">' + dleft + '</div>'
+      + '<div class="pledgeTxt"><span class="big normal">ช่วงต่อเวลา · เหลือ ' + dleft + ' วัน</span><br>'
+      + 'สปรินต์จบครบ ' + NSP + ' อันแล้ว ไม่มีเป้ารายสัปดาห์ในช่วงนี้ ส่งเก็บให้ถึง ' + FINISH + ' ชิ้นได้เลย<br>'
+      + '<span style="color:var(--dim)">ตอนนี้ ' + st.contents + '/' + FINISH + ' ชิ้น'
+      + (left ? ' · ขาดอีก ' + left : ' · ครบเป้าแล้ว 🏆') + '</span></div>';
+    return;
+  }
   if(finished()){
     const st=stats(r), hit=st.contents>=FINISH;
     $("pledgeCard").innerHTML =
       '<div class="paceNum ' + (hit?"ahead":"on") + '">' + (hit?"🏆":"🎓") + '</div>'
-      + '<div class="pledgeTxt"><span class="big normal">จบ ' + WEEKS + ' สัปดาห์แล้ว</span><br>'
+      + '<div class="pledgeTxt"><span class="big normal">จบ ' + TOTAL + ' วันแล้ว</span><br>'
       + 'ปล่อยไปทั้งหมด ' + st.contents + ' ชิ้น'
       + (hit ? ' · ครบเป้า ' + FINISH + ' ชิ้น' : ' จากเป้า ' + FINISH)
       + '<br><span style="color:var(--dim)">ใบประกาศอยู่ที่หน้า MY STATUS กดแชร์ได้เลย</span></div>'
@@ -675,7 +690,24 @@ function mapHTML(r, byDay){
       <div class="lbl"><b>S${si+1} ${sp.e}</b><span>${sp.n}</span></div>
       <div class="days">${cells}</div>
       <div class="sc">${on?tot+" ชิ้น":"ไม่ได้ลง"}</div></div>`;
-  }).join("");
+  }).join("") + overtimeRow(r, byDay);
+}
+
+/* แถวช่วงต่อเวลา วันที่ 85-90 — ไม่มีเป้ารายสัปดาห์ เก็บตกให้ถึงเป้ารวม */
+function overtimeRow(r, byDay){
+  if(OT_DAYS <= 0) return "";
+  let cells="", tot=0;
+  for(let k=0;k<OT_DAYS;k++){
+    const d=SPRINT_DAYS_TOTAL+1+k, n=byDay[d]||0;
+    tot+=n;
+    const cls = n?" done" : (d<=S.today?" miss":"");
+    const bg = n?`style="background:linear-gradient(180deg,${shift(r.color,50)},${r.color} 55%,${shift(r.color,-50)});border-color:${shift(r.color,40)} ${shift(r.color,-70)} ${shift(r.color,-70)} ${shift(r.color,40)}"`:"";
+    cells+=`<div class="cell${cls}" ${bg} title="วันที่ ${d} · ${n} ชิ้น">${n>1?`<em>${n}</em>`:""}</div>`;
+  }
+  return `<div class="spRow" style="border-top:2px dashed var(--line);margin-top:8px;padding-top:12px">
+    <div class="lbl"><b>ต่อเวลา ⏱</b><span>วันที่ ${SPRINT_DAYS_TOTAL+1}–${TOTAL}</span></div>
+    <div class="days" style="flex:0 0 auto">${cells}</div>
+    <div class="sc">${tot} ชิ้น</div></div>`;
 }
 
 /* ================= PROFILE ================= */
@@ -864,7 +896,7 @@ function drawCert(){
   ctx.shadowBlur=0;
   ctx.font="500 28px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#e6e1ff";
-  ctx.fillText("ชิ้น ตลอด "+WEEKS+" สัปดาห์ของหลักสูตร", W/2, 1152);
+  ctx.fillText("ชิ้น ตลอด "+TOTAL+" วันของหลักสูตร", W/2, 1152);
 
   /* ตราประทับเมื่อถึงเป้า */
   if(hit){
@@ -895,7 +927,7 @@ function drawCert(){
 function certText(){
   const r=meR(), s=stats(r), h=houseOf(r.house);
   const hit = s.contents>=FINISH;
-  return "จบแล้ว " + WEEKS + " สัปดาห์ 🎓\n"
+  return "จบแล้ว " + TOTAL + " วัน 🎓\n"
     + "ปล่อยคอนเทนต์ไปทั้งหมด " + s.contents + " ชิ้น" + (hit ? " — ครบเป้า " + FINISH + " ชิ้น 🏆" : "") + "\n"
     + h.emoji + " บ้าน " + h.name + " · ทำได้ " + s.rate + "% ของเป้าที่รับไว้\n"
     + "#CreatorBootcamp";
@@ -985,7 +1017,7 @@ function renderHud(){
   const h=houseOf(r.house), s=stats(r);
   $("hudWeek").textContent=curWeek();
   $("hudWeeks").textContent=WEEKS;
-  $("hudSprint").textContent=curSp()+1;
+  $("hudSprint").textContent = inOvertime() ? "ต่อเวลา" : (curSp()+1);
   $("hudSprints").textContent=NSP;
   $("hudDay").textContent=S.today;
   $("hudTotal").textContent=TOTAL;
@@ -996,7 +1028,7 @@ function renderHud(){
   $("who").textContent=r.name;
   /* ปิดปุ่มส่งงานเมื่อรุ่นยังไม่เปิด จบแล้ว หรือไม่ได้ลงสปรินต์ปัจจุบัน
      เซิร์ฟเวอร์กันอยู่แล้ว แต่บอกล่วงหน้าดีกว่าปล่อยให้กดแล้วเด้ง error */
-  const joinedNow = joinedIn(r, curSp());
+  const joinedNow = inOvertime() ? r.joined.length > 0 : joinedIn(r, curSp());
   const blocked = !S.started ? "▶ รุ่นยังไม่เปิด"
                 : finished()  ? "▶ จบหลักสูตรแล้ว"
                 : !joinedNow  ? "▶ ไม่ได้ลงสปรินต์นี้" : null;
