@@ -120,6 +120,7 @@ create trigger trg_claim_roster
 create or replace function public.lock_house()
 returns trigger language plpgsql security definer set search_path = public as $fn$
 begin
+  if auth.uid() is null then return new; end if;   -- เรียกจากฝั่งเซิร์ฟเวอร์ ปล่อยผ่าน
   if new.house_id is distinct from old.house_id and not public.is_head_coach() then
     raise exception 'ย้ายห้องเองไม่ได้';
   end if;

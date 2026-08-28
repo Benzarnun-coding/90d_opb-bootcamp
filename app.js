@@ -195,7 +195,7 @@ const DemoDB = (()=>{
       joined:[0,1,2,3,4,5].filter(s=> s<=2 || Math.random()<.7),
       pledges:{}
     }));
-    runners.unshift({id:"me", name:me.name, handle:me.handle, color:me.color,
+    runners.unshift({id:"me", name:me.name, handle:me.handle||("@"+me.name.toLowerCase()), color:me.color,
       house:me.house||1, role:"student", joined:me.joined, pledges:{}});
 
     runners.forEach((r,i)=>{
@@ -324,7 +324,7 @@ const LiveDB = (()=>{
     },
     async signOut(){ await sb.auth.signOut(); location.reload(); },
     async createProfile(p){
-      const {error}=await sb.from("profiles").insert({id:session.user.id, name:p.name, handle:p.handle, color:p.color});
+      const {error}=await sb.from("profiles").insert({id:session.user.id, name:p.name, color:p.color});
       if(error) throw new Error(/duplicate/i.test(error.message)?"ชื่อหรือ handle นี้มีคนใช้แล้ว":error.message);
       const {error:e2}=await sb.from("enrollments").insert(p.joined.map(s=>({profile_id:session.user.id,sprint_idx:s})));
       if(e2) throw new Error(e2.message);
@@ -515,7 +515,7 @@ function renderPledge(){
     $("pledgeCard").innerHTML =
       '<div class="paceNum on">' + S.daysUntil + '</div>'
       + '<div class="pledgeTxt"><span class="big normal">อีก ' + S.daysUntil + ' วันจะเริ่ม</span><br>'
-      + 'รุ่นเปิด ' + th + ' · ระหว่างนี้ตั้งชื่อ เลือกสปรินต์ และรับเป้าสัปดาห์แรกไว้ก่อนได้'
+      + 'รุ่นเปิด ' + th + ' · ระหว่างนี้ตั้งชื่อ เลือกสี และรับเป้าของสัปดาห์แรกไว้ก่อนได้'
       + '<br><span style="color:var(--dim)">ส่งงานได้ตั้งแต่วันเปิดรุ่นเป็นต้นไป</span></div>';
     return;
   }
@@ -1097,7 +1097,7 @@ function drawSelect(){
       style="background:linear-gradient(180deg,${shift(c,40)},${c} 55%,${shift(c,-50)})"></button>`).join("");
   $("myPreview").innerHTML=runnerBox(pickColor,4);
   $("myLabel").textContent=$("myName").value.trim().toUpperCase()||"RUNNER";
-  $("myHandleLbl").textContent=$("myHandle").value.trim()||"@yourname";
+  $("myEmailLbl").textContent=(BOOTSTATE&&BOOTSTATE.email)||"เข้าสู่ระบบแล้ว";
 }
 /* ================= PLEDGE PICKER ================= */
 function drawPledgePick(){
@@ -1148,7 +1148,6 @@ window.openPledge=openPledge;
 /* ================= EVENTS ================= */
 $("swatches").onclick=e=>{ const b=e.target.closest(".sw"); if(b){ pickColor=b.dataset.c; drawSelect(); } };
 $("myName").oninput=drawSelect;
-$("myHandle").oninput=drawSelect;
 $("plPick").onclick=e=>{
   const b=e.target.closest(".optCard"); if(!b||b.disabled) return;
   pickPledge=+b.dataset.t; drawPledgePick();
@@ -1162,14 +1161,13 @@ $("authBtn").onclick=async()=>{
   catch(err){ toast(err.message); $("authBtn").disabled=false; }
 };
 $("joinBtn").onclick=async()=>{
-  if(!$("myName").value.trim()) return toast("ใส่ชื่อก่อน");
-  let h=$("myHandle").value.trim();
-  if(h.replace("@","").length<2) return toast("ใส่ handle ที่ใช้โพสต์จริง");
-  if(!h.startsWith("@")) h="@"+h;
+  const nm=$("myName").value.trim();
+  if(!nm) return toast("ใส่ชื่อก่อน");
   $("joinBtn").disabled=true;
   try{
-    await DB.createProfile({name:$("myName").value.trim().toUpperCase().slice(0,10),
-      handle:h.toLowerCase(), color:pickColor, joined:ALL_SPRINTS, house:1+((Date.now())%4)});
+    /* handle ไม่ต้องกรอกแล้ว ฐานข้อมูลเติมให้จากอีเมลที่ล็อกอิน */
+    await DB.createProfile({name:nm.toUpperCase().slice(0,10),
+      color:pickColor, joined:ALL_SPRINTS, house:1+((Date.now())%4)});
     await boot();
   }catch(err){ toast(err.message); $("joinBtn").disabled=false; }
 };
@@ -1299,7 +1297,7 @@ async function boot(){
   const st=BOOTSTATE=await DB.init();
   if(st.needsAuth||st.needsProfile){
     drawSelect();
-    if(st.email){ $("myHandle").placeholder="@"+st.email.split("@")[0]; $("authWho").textContent=st.email; }
+    if(st.email){ $("authWho").textContent=st.email; }
     show("scTitle");
     return;
   }
