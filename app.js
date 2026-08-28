@@ -200,7 +200,10 @@ const DemoDB = (()=>{
     async signIn(){}, async signInGoogle(){},
     async signOut(){ try{localStorage.removeItem(KEY);}catch(e){} db=null; },
     async createProfile(p){ db=build(p); uid=db.uid; save(); },
-    async fetchAll(){ return {today:db.today, me:db.me, runners:db.runners, subs:db.subs}; },
+    async fetchAll(){
+      const postedToday = db.subs.some(s=>s.who===db.me && s.day===db.today);
+      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday};
+    },
     async rosterList(){
       return db.runners.filter(r=>r.role==="student").map((r,i)=>({
         email:r.name.toLowerCase()+"@example.com", house_id:r.house,
@@ -231,7 +234,7 @@ const DemoDB = (()=>{
     async setSprints(list){ db.runners.find(r=>r.name===db.me).joined=[...list].sort((a,b)=>a-b); save(); onChange(); },
     subscribe(cb){ onChange=cb; },
     simulateDay(){
-      if(db.today>=TOTAL) throw new Error("จบ 12 สัปดาห์แล้ว");
+      if(db.today>TOTAL) throw new Error("จบหลักสูตรแล้ว ดูใบประกาศที่หน้า MY STATUS");
       const bw=weekOf(db.today); db.today++; const cw=weekOf(db.today);
       let n=0;
       db.runners.forEach((r,i)=>{
@@ -324,9 +327,14 @@ const LiveDB = (()=>{
       }));
       const me=runners.find(r=>r.id===uidNow);
       if(me) (pls||[]).forEach(x=>{ me.pledges[x.week_no]=x.target; });
+      const todayIdx=todayFrom(co.start_date);
+      const {count:todayCount}=await sb.from("submissions")
+        .select("id",{count:"exact",head:true})
+        .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved");
       return {
-        today: todayFrom(co.start_date),
+        today: todayIdx,
         me: me ? me.name : null,
+        postedToday: (todayCount||0) > 0,
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -409,6 +417,7 @@ function show(id){
   $("sky").style.opacity = id==="scArena" ? ".28" : "1";
   window.scrollTo(0,0);
 }
+window.showPage=showPage;
 function showPage(id){
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("on", p.id===id));
   document.querySelectorAll(".navBtn").forEach(b=>b.classList.toggle("on", b.dataset.page===id));
@@ -439,6 +448,17 @@ const ranked = () => [...S.runners].sort((a,b)=>{
 /* ================= PLEDGE CARD ================= */
 function renderPledge(){
   const r=meR(); if(!r) return;
+  if(finished()){
+    const st=stats(r), hit=st.contents>=FINISH;
+    $("pledgeCard").innerHTML =
+      '<div class="paceNum ' + (hit?"ahead":"on") + '">' + (hit?"🏆":"🎓") + '</div>'
+      + '<div class="pledgeTxt"><span class="big normal">จบ ' + WEEKS + ' สัปดาห์แล้ว</span><br>'
+      + 'ปล่อยไปทั้งหมด ' + st.contents + ' ชิ้น'
+      + (hit ? ' · ครบเป้า ' + FINISH + ' ชิ้น' : ' จากเป้า ' + FINISH)
+      + '<br><span style="color:var(--dim)">ใบประกาศอยู่ที่หน้า MY STATUS กดแชร์ได้เลย</span></div>'
+      + '<button class="btn gold" style="padding:13px 18px" onclick="showPage(&quot;pgStatus&quot;)">🎓 ดูใบประกาศ</button>';
+    return;
+  }
   const st=stats(r), cw=curWeek();
   if(!st.weekTarget){
     $("pledgeCard").innerHTML=`
@@ -452,6 +472,14 @@ function renderPledge(){
   const dash=2*Math.PI*44;
   const ringColor = o.style==="flame" ? "#ffb020" : o.style==="red" ? "#ff2436" : r.color;
   const dayLeft = weekEnd(cw)-S.today+1;
+  /* เตือนว่าวันนี้ยังไม่ได้ส่งงาน — ตัวเดียวที่ทำงานได้โดยไม่ต้องพึ่งบริการภายนอก */
+  const left = cutoffLeft().split(":");
+  const nudge = S.postedToday ? "" :
+    '<div style="flex-basis:100%;margin-top:12px;padding:11px 13px;font-size:13px;line-height:1.7;'
+    + 'background:linear-gradient(180deg,#5c3a10,#33200a);border:2px solid #ffb020 #8a5a08 #8a5a08 #ffb020">'
+    + '<b style="font-family:var(--f-px);color:#ffd24d">วันนี้ยังไม่ได้ส่งงาน</b> · '
+    + 'เหลืออีก ' + left[0] + ' ชั่วโมง ' + left[1] + ' นาที ก่อนปิดรอบตี ' + C.CUTOFF_HOUR
+    + '</div>';
   const paceCls = st.pace>0?"ahead":st.pace<0?"behind":"on";
   $("pledgeCard").innerHTML=`
     <div class="ring">
@@ -482,7 +510,7 @@ function renderPledge(){
         ${st.contents>=FINISH ? `🏆 ถึงเส้นชัยแล้ว! เกินมา +${st.contents-FINISH}`
           : `เส้นชัย ${FINISH} ชิ้น · เหลืออีก ${FINISH-st.contents}`}
       </div>
-    </div>`;
+    </div>` + nudge;
 }
 
 /* ================= TRACK ================= */
@@ -734,6 +762,117 @@ function drawCard(){
   ctx.font="500 24px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#6f68a8"; ctx.fillText("#CreatorBootcamp", W/2, H-34);
 }
+/* ================= จบรุ่น: ใบประกาศ ================= */
+const finished = () => S.today > TOTAL;
+
+function drawCert(){
+  const cv=$("shareCanvas"), ctx=cv.getContext("2d");
+  const r=meR(); if(!r) return;
+  const s=stats(r), h=houseOf(r.house);
+  const W=cv.width, H=cv.height;
+  const hit = s.contents >= FINISH;
+  ctx.imageSmoothingEnabled=false;
+
+  /* พื้นหลังกระดาษเข้มไล่เฉด */
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,"#1a1340"); bg.addColorStop(.5,"#241a52"); bg.addColorStop(1,"#120d2e");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  const glow=ctx.createRadialGradient(W/2,H*.38,40,W/2,H*.38,W*.7);
+  glow.addColorStop(0,(hit?"#ffcc4d":h.color)+"3a"); glow.addColorStop(1,"transparent");
+  ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
+
+  ctx.globalAlpha=.12; ctx.fillStyle="#000";
+  for(let y=0;y<H;y+=6) ctx.fillRect(0,y,W,2);
+  ctx.globalAlpha=1;
+
+  /* กรอบแบบพิกเซลสองชั้น */
+  const gold = hit ? "#ffcc4d" : h.color;
+  ctx.strokeStyle=gold; ctx.lineWidth=8;  ctx.strokeRect(38,38,W-76,H-76);
+  ctx.strokeStyle=gold+"66"; ctx.lineWidth=3; ctx.strokeRect(60,60,W-120,H-120);
+  /* มุมทั้งสี่ */
+  [[38,38,1,1],[W-38,38,-1,1],[38,H-38,1,-1],[W-38,H-38,-1,-1]].forEach(([x,y,dx,dy])=>{
+    ctx.fillStyle=gold;
+    ctx.fillRect(x, y, 46*dx, 14*dy);
+    ctx.fillRect(x, y, 14*dx, 46*dy);
+  });
+
+  ctx.textAlign="center";
+  ctx.font="700 34px 'Pixelify Sans', monospace";
+  ctx.fillStyle="#cdc7ff";
+  ctx.fillText("CERTIFICATE OF COMPLETION", W/2, 148);
+  ctx.font="500 26px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#9a92d8";
+  ctx.fillText("ใบรับรองการจบหลักสูตร", W/2, 190);
+
+  ctx.font="700 40px 'Pixelify Sans', monospace";
+  ctx.fillStyle=gold; ctx.shadowColor=gold; ctx.shadowBlur=24;
+  ctx.fillText(C.TITLE, W/2, 254);
+  ctx.shadowBlur=0;
+
+  const px=17, sw=16*px;
+  drawSpriteCanvas(ctx,(W-sw)/2, 300, px, r.color, s.style);
+
+  ctx.font="500 26px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#a49ce0";
+  ctx.fillText("มอบให้แก่", W/2, 760);
+
+  ctx.font="700 96px 'Pixelify Sans', monospace";
+  ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
+  ctx.fillText(r.name, W/2, 858);
+  ctx.shadowOffsetY=0;
+
+  ctx.font="500 28px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle=h.color;
+  ctx.fillText(h.emoji+"  บ้าน "+h.name+" · "+h.th, W/2, 906);
+
+  ctx.font="500 28px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#e6e1ff";
+  ctx.fillText("ปล่อยคอนเทนต์รวมทั้งสิ้น", W/2, 976);
+
+  ctx.font="700 150px 'Pixelify Sans', monospace";
+  ctx.fillStyle=gold; ctx.shadowColor=gold; ctx.shadowBlur=36;
+  ctx.fillText(String(s.contents), W/2, 1108);
+  ctx.shadowBlur=0;
+  ctx.font="500 28px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#e6e1ff";
+  ctx.fillText("ชิ้น ตลอด "+WEEKS+" สัปดาห์ของหลักสูตร", W/2, 1152);
+
+  /* ตราประทับเมื่อถึงเป้า */
+  if(hit){
+    ctx.save();
+    ctx.translate(W-186, 1090); ctx.rotate(-.18);
+    ctx.strokeStyle="#ffcc4d"; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.arc(0,0,78,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle="#ffcc4d88"; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(0,0,64,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle="#ffcc4d";
+    ctx.font="700 46px 'Pixelify Sans', monospace"; ctx.fillText(String(FINISH), 0, 2);
+    ctx.font="500 18px 'IBM Plex Sans Thai', sans-serif"; ctx.fillText("ครบเป้า", 0, 32);
+    ctx.restore();
+  }
+
+  const rank=ranked().filter(x=>x.role!=="coach").findIndex(x=>x.name===r.name)+1;
+  const total=S.runners.filter(x=>x.role!=="coach").length;
+  ctx.font="500 24px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#a49ce0";
+  ctx.fillText("อันดับ "+rank+" จาก "+total+" คน  ·  ทำได้ "+s.rate+"% ของเป้าที่ตัวเองรับไว้"
+    + "  ·  streak สูงสุด "+s.weekStreak+" สัปดาห์", W/2, 1224);
+
+  ctx.font="500 22px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#6f68a8";
+  ctx.fillText("#CreatorBootcamp", W/2, 1284);
+}
+
+function certText(){
+  const r=meR(), s=stats(r), h=houseOf(r.house);
+  const hit = s.contents>=FINISH;
+  return "จบแล้ว " + WEEKS + " สัปดาห์ 🎓\n"
+    + "ปล่อยคอนเทนต์ไปทั้งหมด " + s.contents + " ชิ้น" + (hit ? " — ครบเป้า " + FINISH + " ชิ้น 🏆" : "") + "\n"
+    + h.emoji + " บ้าน " + h.name + " · ทำได้ " + s.rate + "% ของเป้าที่รับไว้\n"
+    + "#CreatorBootcamp";
+}
+
 function shareTextOf(){
   const r=meR(), s=stats(r), h=houseOf(r.house);
   const o=s.weekTarget?optOf(s.weekTarget):null;
@@ -745,18 +884,18 @@ function shareTextOf(){
 }
 async function renderStatus(){
   const r=meR(); if(!r) return;
-  document.fonts.ready.then(drawCard);   // รอฟอนต์โหลดก่อนวาด ไม่งั้นตัวหนังสือบนการ์ดจะเพี้ยน
+  document.fonts.ready.then(function(){ finished() ? drawCert() : drawCard(); });
   const s=stats(r), h=houseOf(r.house);
   const rank=ranked().findIndex(x=>x.name===r.name)+1;
-  drawCard();
-  $("shTitle").textContent=`${r.name} · ${h.emoji} ${h.name}`;
+  (finished() ? drawCert() : drawCard());
+  $("shTitle").textContent = (finished() ? "🎓 ใบประกาศ · " : "") + r.name + " · " + h.emoji + " " + h.name;
   $("shSub").textContent=`อันดับ ${rank} จาก ${S.runners.length} คน · ปล่อยไปแล้ว ${s.contents} จาก ${FINISH} ชิ้น ใน ${s.activeDays} วัน`
     + (s.contents>=FINISH ? ` · ถึงเส้นชัยแล้ว 🏆` : ` · เหลืออีก ${FINISH-s.contents}`);
   $("shStats").innerHTML=[
     [`CONTENTS / ${FINISH}`, s.contents],["วันที่ปล่อยงาน", s.activeDays],
     ["STREAK สัปดาห์", s.weekStreak],["ห่างจากเป้า", (s.pace>0?"+":"")+s.pace]
   ].map(([l,v])=>`<div class="statBox"><b>${v}</b><span>${l}</span></div>`).join("");
-  $("shareText").value=shareTextOf();
+  $("shareText").value = finished() ? certText() : shareTextOf();
   $("mMap").innerHTML=`<div class="noJoin">กำลังโหลด…</div>`;
   try{ const det=await DB.detail(r); $("mMap").innerHTML=mapHTML(r, det.byDay); }
   catch(e){ console.error(e); $("mMap").innerHTML=`<div class="noJoin">โหลดแผนที่ไม่สำเร็จ</div>`; }
@@ -1002,6 +1141,7 @@ $("pushBtn").onclick=async()=>{
   try{
     await DB.submit({url, platform:$("plat").value});
     $("url").value="";
+    S.postedToday=true;
     await refresh();
     const after=stats(meR());
     const o=after.weekTarget?optOf(after.weekTarget):null;
@@ -1078,7 +1218,7 @@ $("shShare").onclick=async()=>{
 /* ================= BOOT ================= */
 async function refresh(){
   const d=await DB.fetchAll();
-  S.today=d.today; S.me=d.me; S.runners=d.runners; S.subs=d.subs;
+  S.today=d.today; S.me=d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
   renderAll();
 }
