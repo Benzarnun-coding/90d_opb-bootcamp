@@ -150,7 +150,8 @@ exception when duplicate_object then null; end $blk$;
 -- 6. งานที่ "นับ" ได้จริง
 --    อนุมัติแล้ว และไม่เกินโควตาต่อวัน (เรียงตามเวลาที่ส่ง ชิ้นที่เกินไม่นับ)
 -- ------------------------------------------------------------
-create or replace view public.v_counted as
+drop view if exists public.v_counted cascade;
+create view public.v_counted as
 select s.*, public.week_of(s.day_index) as week_no
 from (
   select x.*,
@@ -163,7 +164,8 @@ where s.seq <= (select max_per_day from public.cohort where id = 1);
 -- ------------------------------------------------------------
 -- 7. ความคืบหน้ารายสัปดาห์
 -- ------------------------------------------------------------
-create or replace view public.v_week_progress as
+drop view if exists public.v_week_progress cascade;
+create view public.v_week_progress as
 select
   pl.profile_id,
   pl.week_no,
@@ -305,7 +307,8 @@ left join lateral public.streak_of(p.id) st on true;
 -- ------------------------------------------------------------
 -- 10. กระดานห้อง (สร้างใหม่ เพราะโดน cascade ตอน drop v_leaderboard)
 -- ------------------------------------------------------------
-create or replace view public.v_house_board as
+drop view if exists public.v_house_board cascade;
+create view public.v_house_board as
 select
   h.id, h.key, h.name, h.th, h.color, h.emoji, h.motto,
   count(l.id) filter (where l.role = 'student')                  as students,
@@ -329,7 +332,8 @@ order by avg_rate desc, avg_contents desc;
 -- ------------------------------------------------------------
 -- 11. คิวตรวจงาน (โดน cascade ไปด้วย สร้างใหม่)
 -- ------------------------------------------------------------
-create or replace view public.v_review_queue as
+drop view if exists public.v_review_queue cascade;
+create view public.v_review_queue as
 select s.id, s.profile_id, p.name, p.handle, p.color,
        p.house_id, h.key as house_key, h.emoji as house_emoji,
        s.platform, s.url, s.day_index, s.sprint_idx,

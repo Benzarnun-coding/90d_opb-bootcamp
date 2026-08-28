@@ -16,10 +16,20 @@ http.createServer((req, res) => {
   const rel   = clean === "/" ? "index.html" : clean.replace(/^\/+/, "");
   const file  = path.join(__dirname, rel);
   if(!file.startsWith(__dirname)){ res.writeHead(403).end("forbidden"); return; }
+  // เปิด CORS ไว้ให้หน้า Supabase ดึงไฟล์ migration ไปรันได้ (ใช้เฉพาะตอน dev ในเครื่อง)
+  const cors = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-private-network": "true",
+    "access-control-allow-headers": "*"
+  };
+  if(req.method === "OPTIONS"){ res.writeHead(204, cors).end(); return; }
+
   fs.readFile(file, (err, buf) => {
     if(err){ res.writeHead(404, {"content-type":"text/plain"}).end("not found: " + rel); return; }
-    res.writeHead(200, {"content-type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream",
-                        "cache-control":"no-store"});
+    res.writeHead(200, Object.assign({
+      "content-type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream",
+      "cache-control": "no-store"
+    }, cors));
     res.end(buf);
   });
 }).listen(PORT, () => console.log(`\n  Creator Bootcamp → http://localhost:${PORT}\n`));
