@@ -12,6 +12,7 @@ const NSP     = SPRINTS.length;
 const SPRINT_DAYS_TOTAL = SPD * NSP;       // 84 วันที่มีโครงสร้างสปรินต์
 const TOTAL   = C.COHORT_DAYS || SPD*NSP;  // ความยาวรุ่นทั้งหมด (รวมช่วงต่อเวลา)
 const OT_DAYS = TOTAL - SPRINT_DAYS_TOTAL; // จำนวนวันต่อเวลา
+const HEAVY   = C.HEAVY_TARGET || 10;      // รับเป้าตั้งแต่เท่านี้ขึ้นไปแล้วทำไม่ถึง = หมดแรงสัปดาห์ถัดไป
 const WEEKS   = Math.round((SPD * NSP) / 7);
 const FINISH  = C.GOAL_TOTAL || 7 * WEEKS; // เส้นชัย = ปล่อยครบกี่ชิ้น (ส่งเกินได้)
 const NEAR    = C.NEAR_RANGE || 3;
@@ -28,8 +29,12 @@ const $ = id => document.getElementById(id);
 
 /* ================= SPRITE ================= */
 const HEAD=[".....OOOOO......","...OOhhhhhOO....","..OhhhhhhhhhO...","..OhHHHHHHHhO...",
-  ".OHHSSSSSSSHHO..",".OHSSSSSSSSSHO..",".OHSOSSSSOSSsO..",".OHSSSSSSSSSsO..",
+  ".OHHSSSSSSSHHO..",".OHSSSSSSSSSHO..",".OHSESSSSESSsO..",".OHSSSSSSSSSsO..",
   "..OSSssSSssSsO..","...OsssssssO...."];
+/* ร่างหมดแรง — โผล่เมื่อสัปดาห์ที่แล้วรับเป้าหนักแล้วทำไม่ถึง */
+const HEAD_SKULL=[".....OOOOO......","...OOKKKKKOO....","..OKKKKKKKKKO...","..OKKKKKKKKKO...",
+  ".OKKKKKKKKKKKO..",".OKKEEKKKEEKKO..",".OKKEEKKKEEKKO..",".OKKKKKOKKKKKO..",
+  "..OKKEKEKEKKO...","...OKKKKKKKO...."];
 const TORSO=["...OOCCCCCCOO...","..OClCCCCCCcCO..",".OSClCCCCCCccSO.",".OSCllCCCCccCSO.",
   ".OsCCllCCccCCsO.","..OCCCCCCCCCCO..","...OCCCCCCCCO..."];
 const LEGS={
@@ -48,19 +53,31 @@ function shift(hex,amt){
 }
 /* จานสีตามโหมดของสัปดาห์: ปกติ / แดง (LASER) / ไฟ (PRO MAX ผมทอง) */
 function palette(color, style){
-  /* ไล่ระดับสามขั้น ให้ดูออกจากอีกฝั่งของสนามว่าใครรับเป้าหนัก
-       ปกติ    — สีที่ตัวเองเลือก ผมน้ำตาล กางเกงน้ำเงิน
-       LASER   — ชุดแดงเลือดนกทั้งตัว ทับสีส่วนตัว ทุกคนที่รับ 10 จะแดงเหมือนกันหมด
-       PRO MAX — ชุดทองร้อน ผมทอง กางเกงส้มเข้ม พร้อมไฟลุกรอบตัว */
+  /* สี่ขั้น ให้ดูออกจากอีกฝั่งของสนามว่าใครอยู่สถานะไหน
+       ปกติ    — สีที่ตัวเองเลือก ผมน้ำตาล ตาดำ
+       LASER   — ชุดแดงเลือดนกทับสีส่วนตัว + ตายิงเลเซอร์
+       PRO MAX — ชุดทอง ผมทอง ตาแดง + ไฟลุกรอบตัว
+       BURNOUT — ร่างกระโหลกสีกระดูก หมดแรง เลือกเป้าหนักไม่ได้ทั้งสัปดาห์ */
+  if(style==="burnout"){
+    return {O:"#1a1622", K:"#d8d4c8", E:"#241f18", S:"#d8d4c8", s:"#a9a496",
+      C:"#6b6a78", c:"#43424f", l:"#8f8e9c",
+      P:"#3a3946", p:"#2a2934", B:"#8d8a9a", b:"#5d5b68",
+      H:"#d8d4c8", h:"#eae7dc"};
+  }
   const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : color;
   const p = {O:"#140d2e", H:"#2e1c14", h:"#5a3a22", S:"#ffd2a8", s:"#d99a6c",
+    E:"#140d2e",
     C:suit, c:shift(suit,-62), l:shift(suit,58),
     P:"#3450a8", p:"#22357a", B:"#eceaf6", b:"#a8a4c4"};
+  if(style==="red"){
+    p.E="#fff2f2";                      // ตาขาวร้อน ต้นทางของลำเลเซอร์
+  }
   if(style==="flame"){
     p.H="#ffd23a"; p.h="#fff8c4";      // ผมทองแบบซูเปอร์ไซย่า
     p.l="#fff3a0";                      // ไฮไลต์ชุดขาวร้อน
     p.P="#c85a10"; p.p="#8a3606";      // กางเกงส้มเข้ม
     p.O="#3a1a05";                      // เส้นขอบอุ่นขึ้น ไม่ตัดกับไฟ
+    p.E="#ff1f1f";                      // ตาแดงเรือง
   }
   return p;
 }
@@ -71,8 +88,14 @@ function sprite(color, px=2, style="normal"){
       pal[ch]?`<rect x="${x*px}" y="${(y+yOff)*px}" width="${px}" height="${px}" fill="${pal[ch]}"/>`:"").join("")).join("");
   const legs=FRAMES.map((f,i)=>
     `<g class="leg k${i}" style="animation-delay:-${(i*.12).toFixed(2)}s">${rects(f,17)}</g>`).join("");
+  const head = style==="burnout" ? HEAD_SKULL : HEAD;
+  /* ลำเลเซอร์ยิงไปข้างหน้าจากตา เฉพาะโหมด LASER FOCUS */
+  const laser = style==="red"
+    ? `<rect x="${10*px}" y="${6*px}" width="${6*px}" height="${px}" fill="#ff2020"/>`
+    + `<rect x="${10*px}" y="${6*px}" width="${3*px}" height="${px}" fill="#fff2f2"/>`
+    : "";
   return `<svg width="${16*px}" height="${24*px}" viewBox="0 0 ${16*px} ${24*px}" shape-rendering="crispEdges">
-    ${rects(HEAD,0)}${rects(TORSO,10)}${legs}</svg>`;
+    ${rects(head,0)}${rects(TORSO,10)}${legs}${laser}</svg>`;
 }
 const aura = () => `<span class="aura"><i></i><i></i><i></i></span>`;
 function runnerBox(color, px, style="normal"){
@@ -139,10 +162,20 @@ function computeStats(r){
     else if(d===S.today) continue;
     else break;
   }
+  /* หมดแรง: สัปดาห์ที่แล้วรับเป้าหนัก (10+) ไว้แล้วทำไม่ถึง
+     สัปดาห์นี้ตัวละครกลายเป็นร่างกระโหลก และเลือกได้แค่ 4 หรือ 7 */
+  let burnout = !!r.burnout;
+  if(!burnout && cw > 1){
+    const pw = cw - 1, pt = r.pledges && r.pledges[pw];
+    if(pt >= HEAVY && joinedWeek(r, pw)){
+      burnout = my.filter(s=>weekOf(s.day)===pw).length < pt;
+    }
+  }
   const contents=my.length;
   return {contents, activeDays:Object.keys(byDay).length, weekDone, weekTarget, target,
     pace:contents-target, rate: target?Math.round(contents/target*100):0,
-    weekStreak:ws, dayStreak:ds, byDay, weeksHit, style:styleOf(r)};
+    weekStreak:ws, dayStreak:ds, byDay, weeksHit, burnout,
+    style: burnout ? "burnout" : (weekTarget ? optOf(weekTarget).style : "normal")};
 }
 
 /* ================= DATA LAYER ================= */
@@ -301,11 +334,12 @@ const LiveDB = (()=>{
        แทนที่จะลากงานทั้งรุ่นสองหมื่นกว่าแถวมาคำนวณในเครื่องนักเรียน */
     async fetchAll(){
       const uidNow = session.user.id;
-      const [{data:co},{data:board,error:be},{data:feed},{data:pls}]=await Promise.all([
+      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
-        sb.from("pledges").select("week_no,target").eq("profile_id",uidNow)
+        sb.from("pledges").select("week_no,target").eq("profile_id",uidNow),
+        sb.from("v_burnout").select("profile_id")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -329,6 +363,10 @@ const LiveDB = (()=>{
           style:      b.pledge_style||"normal"
         }
       }));
+      const burntIds = new Set((burn||[]).map(b=>b.profile_id));
+      runners.forEach(r=>{
+        if(burntIds.has(r.id)){ r.burnout = true; r.st.burnout = true; r.st.style = "burnout"; }
+      });
       const me=runners.find(r=>r.id===uidNow);
       if(me) (pls||[]).forEach(x=>{ me.pledges[x.week_no]=x.target; });
       /* สถานะรุ่นต้องเอาจากเซิร์ฟเวอร์ เพราะมันคิดตามเวลาไทยและตัดรอบตี 4
@@ -748,7 +786,11 @@ function drawSpriteCanvas(ctx, x, y, px, color, style){
     g.addColorStop(.7,"rgba(255,70,10,.25)"); g.addColorStop(1,"rgba(255,70,10,0)");
     ctx.fillStyle=g; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
   }
-  put(HEAD,0); put(TORSO,10); put(LEGS.b,17);
+  put(style==="burnout" ? HEAD_SKULL : HEAD, 0); put(TORSO,10); put(LEGS.b,17);
+  if(style==="red"){
+    ctx.fillStyle="#ff2020"; ctx.fillRect(x+10*px, y+6*px, 6*px, px);
+    ctx.fillStyle="#fff2f2"; ctx.fillRect(x+10*px, y+6*px, 3*px, px);
+  }
 }
 function drawCard(){
   const cv=$("shareCanvas"), ctx=cv.getContext("2d");
@@ -1088,7 +1130,9 @@ function drawPledgePick(){
   const HIDE = C.HIDE_LOCKED_PLEDGES !== false;
   /* ซ่อนตัวเลือกที่ยังไม่ถึงสัปดาห์ปลดล็อก — เก็บไว้เป็นเซอร์ไพรส์
      แต่ถ้าเคยรับไว้แล้วต้องยังเห็นอยู่ ไม่งั้นการ์ดจะหาย */
-  const visible = PLEDGES.filter(o => !HIDE || cw >= o.unlockWeek || o.target === cur);
+  const burnt = stats(me).burnout;
+  const visible = PLEDGES.filter(o =>
+    (!HIDE || cw >= o.unlockWeek || o.target === cur) && (!burnt || o.target < HEAVY));
   $("plPick").innerHTML=visible.map(o=>{
     const locked = cw<o.unlockWeek ? "locked" : (cur && o.target<cur ? "locked" : "");
     const note = cw<o.unlockWeek ? `ปลดล็อกสัปดาห์ที่ ${o.unlockWeek}`
@@ -1106,13 +1150,18 @@ function drawPledgePick(){
       ${note?`<div class="lockTag">${note}</div>`:""}</button>`;
   }).join("");
   const o=optOf(pickPledge);
-  $("plNote").innerHTML=`เลือก <b>${o.target}</b> ชิ้นในสัปดาห์นี้ = เฉลี่ยวันละ ${(o.target/7).toFixed(1)} ชิ้น`
-    + `<br><span style="color:var(--dim)">รับแล้วเพิ่มได้ตลอด แต่ลดไม่ได้จนกว่าจะขึ้นสัปดาห์ใหม่</span>`;
+  $("plNote").innerHTML = burnt
+    ? `<b style="color:#ff8fa3">💀 หมดแรง</b> — สัปดาห์ที่แล้วรับเป้าหนักไว้แล้วทำไม่ถึง<br>` +
+      `<span style="color:var(--dim)">สัปดาห์นี้เลือกได้แค่ต่ำกว่า ${HEAVY} ชิ้น ตัวละครจะเป็นร่างกระโหลกจนจบสัปดาห์<br>` +
+      `ทำให้ครบแล้วสัปดาห์หน้ากลับมาเลือกเป้าหนักได้เหมือนเดิม</span>`
+    : `เลือก <b>${o.target}</b> ชิ้นในสัปดาห์นี้ = เฉลี่ยวันละ ${(o.target/7).toFixed(1)} ชิ้น` +
+      `<br><span style="color:var(--dim)">รับแล้วเพิ่มได้ตลอด แต่ลดไม่ได้จนกว่าจะขึ้นสัปดาห์ใหม่</span>`;
 }
 function openPledge(){
   const cw=curWeek(), cur=(meR().pledges||{})[cw];
   pickPledge = cur || 7;
-  $("plTitle").textContent=`เป้าของสัปดาห์ที่ ${cw}`;
+  $("plTitle").textContent = stats(meR()).burnout
+    ? `💀 หมดแรง · เป้าของสัปดาห์ที่ ${cw}` : `เป้าของสัปดาห์ที่ ${cw}`;
   $("plLede").innerHTML = cur
     ? `ตอนนี้รับไว้ที่ <b style="color:var(--gold)">${cur} ชิ้น</b> — เพิ่มได้ ลดไม่ได้`
     : `สัปดาห์นี้จะปล่อยกี่ชิ้น เลือกเองได้ตามความพร้อม ไม่มีถูกผิด แต่เลือกแล้วต้องทำ`;

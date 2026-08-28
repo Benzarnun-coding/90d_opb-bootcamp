@@ -58,6 +58,10 @@ window.CFG = {
      false = โชว์ไว้แต่กดไม่ได้ พร้อมป้ายบอกว่าปลดล็อกสัปดาห์ไหน                      */
   HIDE_LOCKED_PLEDGES: true,
 
+  /* รับเป้าตั้งแต่กี่ชิ้นขึ้นไปถือว่า "หนัก" — ทำไม่ถึงแล้วสัปดาห์ถัดไปกลายเป็นร่างกระโหลก
+     และเลือกได้แค่ต่ำกว่าเลขนี้ ต้องตรงกับ cohort.heavy_target ในฐานข้อมูล */
+  HEAVY_TARGET: 10,
+
   PLEDGES: [
     { target: 4,  key:"compromise",  name:"COMPROMISE",
       th:"สัปดาห์นี้งานยุ่ง เอาแค่ไม่หลุด",   unlockWeek:1, style:"normal" },

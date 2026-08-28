@@ -253,6 +253,7 @@
 
   /* ---------- CHARACTER FX ---------- */
   .runner.red .body{filter:drop-shadow(0 0 7px rgba(255,40,70,.95))}
+  .runner.red svg rect[fill="#ff2020"]{filter:drop-shadow(0 0 3px #ff2020)}
   .aura{position:absolute; left:50%; bottom:-6px; width:62px; height:76px; margin-left:-31px; z-index:1;
     pointer-events:none;
     background:radial-gradient(ellipse at 50% 78%,rgba(255,214,80,.95) 0%,rgba(255,140,20,.7) 30%,
@@ -269,6 +270,12 @@
   @keyframes spark{from{transform:translateY(0) scale(1); opacity:.95}
                    to{transform:translateY(-16px) scale(.3); opacity:0}}
   .runner.flame .body{filter:drop-shadow(0 0 9px rgba(255,180,40,1))}
+  /* ร่างหมดแรง — ขยับช้า ไม่มีแสง เอียงเล็กน้อยเหมือนจะล้ม */
+  .runner.burnout .body{animation:sway 1.6s ease-in-out infinite; filter:grayscale(.35) brightness(.92)}
+  .runner.burnout .dust{display:none}
+  @keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+  .optCard.burntWarn{border-color:#a8324c #33101f #33101f #a8324c;
+    background:linear-gradient(180deg,#3d1a2c,#1c0c18)}
   .noJoin{padding:26px 16px; text-align:center; color:var(--dim); font-size:13px; line-height:1.9}
 
   /* ---------- FORM ---------- */
