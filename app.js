@@ -202,7 +202,8 @@ const DemoDB = (()=>{
     async createProfile(p){ db=build(p); uid=db.uid; save(); },
     async fetchAll(){
       const postedToday = db.subs.some(s=>s.who===db.me && s.day===db.today);
-      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday};
+      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday,
+              started:true, daysUntil:0, startDate:null};
     },
     async rosterList(){
       return db.runners.filter(r=>r.role==="student").map((r,i)=>({
@@ -327,17 +328,21 @@ const LiveDB = (()=>{
       }));
       const me=runners.find(r=>r.id===uidNow);
       if(me) (pls||[]).forEach(x=>{ me.pledges[x.week_no]=x.target; });
-      /* วันที่ต้องเอาจากเซิร์ฟเวอร์ เพราะมันคิดตามเวลาไทยและตัดรอบตี 4
+      /* สถานะรุ่นต้องเอาจากเซิร์ฟเวอร์ เพราะมันคิดตามเวลาไทยและตัดรอบตี 4
          ถ้าปล่อยให้เบราว์เซอร์คิดเอง คนที่ตั้งไทม์โซนไม่ตรงจะเห็นวันเหลื่อมไปหนึ่งวัน
-         แล้วเป้าสัปดาห์กับ pace จะผิดตามไปหมด */
-      let todayIdx;
+         และต้องรู้ด้วยว่ารุ่นเริ่มหรือยัง ไม่งั้นช่วงก่อนเปิดจะโชว์ว่าเป็นวันที่ 1 */
+      let todayIdx, started = true, daysUntil = 0;
       try{
-        const {data:d0,error:e0}=await sb.rpc("today_index");
+        const {data:cs,error:e0}=await sb.rpc("cohort_status");
         if(e0) throw e0;
-        todayIdx=Number(d0);
+        const row = Array.isArray(cs) ? cs[0] : cs;
+        todayIdx  = Number(row.day_index);
+        started   = !!row.started;
+        daysUntil = Number(row.days_until) || 0;
       }catch(e){
-        console.warn("today_index RPC ไม่ตอบ ใช้เวลาเครื่องแทนชั่วคราว",e.message||e);
-        todayIdx=todayFrom(co.start_date);
+        console.warn("cohort_status RPC ไม่ตอบ ใช้เวลาเครื่องแทนชั่วคราว", e.message||e);
+        todayIdx = todayFrom(co.start_date);
+        started  = new Date() >= new Date(co.start_date + "T00:00:00");
       }
       if(!todayIdx || !isFinite(todayIdx)) todayIdx=todayFrom(co.start_date);
       const {count:todayCount}=await sb.from("submissions")
@@ -347,6 +352,7 @@ const LiveDB = (()=>{
         today: todayIdx,
         me: me ? me.name : null,
         postedToday: (todayCount||0) > 0,
+        started, daysUntil, startDate: co.start_date,
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -460,6 +466,16 @@ const ranked = () => [...S.runners].sort((a,b)=>{
 /* ================= PLEDGE CARD ================= */
 function renderPledge(){
   const r=meR(); if(!r) return;
+  if(!S.started){
+    const d = new Date((S.startDate||"") + "T00:00:00");
+    const th = isNaN(d) ? "" : d.toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"});
+    $("pledgeCard").innerHTML =
+      '<div class="paceNum on">' + S.daysUntil + '</div>'
+      + '<div class="pledgeTxt"><span class="big normal">อีก ' + S.daysUntil + ' วันจะเริ่ม</span><br>'
+      + 'รุ่นเปิด ' + th + ' · ระหว่างนี้ตั้งชื่อ เลือกสปรินต์ และรับเป้าสัปดาห์แรกไว้ก่อนได้'
+      + '<br><span style="color:var(--dim)">ส่งงานได้ตั้งแต่วันเปิดรุ่นเป็นต้นไป</span></div>';
+    return;
+  }
   if(finished()){
     const st=stats(r), hit=st.contents>=FINISH;
     $("pledgeCard").innerHTML =
@@ -978,6 +994,14 @@ function renderHud(){
     ${r.name} · ปล่อยแล้ว <b style="color:${r.color}">${s.contents}</b> คอนเทนต์ ·
     คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
   $("who").textContent=r.name;
+  /* ปิดปุ่มส่งงานเมื่อรุ่นยังไม่เปิด จบแล้ว หรือไม่ได้ลงสปรินต์ปัจจุบัน
+     เซิร์ฟเวอร์กันอยู่แล้ว แต่บอกล่วงหน้าดีกว่าปล่อยให้กดแล้วเด้ง error */
+  const joinedNow = joinedIn(r, curSp());
+  const blocked = !S.started ? "▶ รุ่นยังไม่เปิด"
+                : finished()  ? "▶ จบหลักสูตรแล้ว"
+                : !joinedNow  ? "▶ ไม่ได้ลงสปรินต์นี้" : null;
+  $("pushBtn").disabled = !!blocked;
+  $("pushBtn").textContent = blocked || "▶ SUBMIT";
   $("simBtn").style.display = DB.canSim?"":"none";
   $("adminNav").style.display = (DB.mode==="demo" || r.role==="coach") ? "" : "none";
   $("outBtn").textContent = DB.mode==="live"?"SIGN OUT":"RESET DEMO";
@@ -1231,6 +1255,7 @@ $("shShare").onclick=async()=>{
 async function refresh(){
   const d=await DB.fetchAll();
   S.today=d.today; S.me=d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
+  S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
   renderAll();
 }
