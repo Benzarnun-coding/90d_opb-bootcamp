@@ -1,0 +1,36 @@
+# ============================================================
+# Netlify — เว็บนี้เป็นไฟล์นิ่งล้วน ไม่ต้อง build
+# ============================================================
+[build]
+  publish = "."
+  command = ""
+
+# ไม่ต้องเอาไฟล์ฝั่งฐานข้อมูลกับสคริปต์ dev ขึ้นเว็บ
+[[redirects]]
+  from = "/backend/*"
+  to   = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/serve.js"
+  to   = "/404.html"
+  status = 404
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+    Permissions-Policy     = "geolocation=(), microphone=(), camera=()"
+
+# config.js ห้าม cache ไม่งั้นเปลี่ยนคีย์แล้วคนยังได้ของเก่า
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/app.js"
+  [headers.values]
+    Cache-Control = "no-cache"

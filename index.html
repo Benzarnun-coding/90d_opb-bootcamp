@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creator Bootcamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0a0820; --deep:#141033; --mid:#221c50; --panel:#2a2360;
+    --bevelHi:#7b74d6; --bevelLo:#150f36; --line:#4a41a0;
+    --ink:#f2f0ff; --dim:#a49ce0;
+    --gold:#ffcc4d; --goldLo:#c98a12;
+    --cyan:#4ee1ff; --green:#5ef08c; --red:#ff4d6d;
+    --purple:#b06bff; --orange:#ff9f43; --pink:#ff7bc6;
+    --f-px:"Pixelify Sans","Trebuchet MS",monospace;
+    --f-th:"IBM Plex Sans Thai",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--void); color:var(--ink); font-family:var(--f-th);
+    min-height:100vh; image-rendering:pixelated; overflow-x:hidden}
+  body::after{content:""; position:fixed; inset:0; pointer-events:none; z-index:40;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode:multiply}
+  .px{font-family:var(--f-px); font-weight:700; letter-spacing:.5px}
+  .wrap{max-width:1200px; margin:0 auto; padding:20px 16px 64px; position:relative; z-index:2}
+  .screen{display:none}
+  .screen.on{display:block}
+  .page{display:none}
+  .page.on{display:block}
+
+  /* ---------- SKY ---------- */
+  .sky{position:fixed; inset:0; z-index:0; overflow:hidden; transition:opacity .4s;
+    background:linear-gradient(180deg,#150f3a 0%,#2d1f6b 32%,#6b3a94 60%,#c05e8e 82%,#f09a5c 100%)}
+  .stars{position:absolute; inset:0 0 40% 0; opacity:.75; animation:tw 3.2s steps(2) infinite alternate;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%,#fff,transparent),radial-gradient(1px 1px at 32% 12%,#cfe6ff,transparent),
+      radial-gradient(2px 2px at 58% 30%,#fff,transparent),radial-gradient(1px 1px at 74% 15%,#ffe9b0,transparent),
+      radial-gradient(1px 1px at 88% 34%,#fff,transparent),radial-gradient(1px 1px at 46% 40%,#cfe6ff,transparent),
+      radial-gradient(2px 2px at 22% 46%,#fff,transparent)}
+  @keyframes tw{to{opacity:.35}}
+  .sun{position:absolute; left:50%; bottom:26%; width:220px; height:220px; margin-left:-110px; opacity:.55;
+    background:radial-gradient(circle,#ffd98a 0 38%,#ff9a55 39% 60%,transparent 61%)}
+  .mtn{position:absolute; left:-10%; right:-10%; bottom:20%; height:180px; opacity:.55;
+    background:linear-gradient(135deg,transparent 46%,#3b2a72 47%) 0 0/240px 180px repeat-x,
+               linear-gradient(225deg,transparent 46%,#3b2a72 47%) 120px 0/240px 180px repeat-x}
+  .mtn.b{bottom:26%; height:130px; opacity:.35; background-size:170px 130px,170px 130px}
+  .cloud{position:absolute; height:14px; background:rgba(255,255,255,.16);
+    box-shadow:14px -8px 0 rgba(255,255,255,.16), 30px 0 0 rgba(255,255,255,.12);
+    animation:drift linear infinite}
+  @keyframes drift{from{transform:translateX(-120px)}to{transform:translateX(110vw)}}
+  .hills{position:absolute; left:0; right:0; bottom:0; height:22%;
+    background:linear-gradient(180deg,#241a52,#120d2e);
+    clip-path:polygon(0 38%,8% 22%,18% 40%,28% 18%,40% 36%,52% 16%,64% 38%,76% 20%,88% 40%,100% 24%,100% 100%,0 100%)}
+
+  /* ---------- CHROME ---------- */
+  .bevel{background:linear-gradient(180deg,var(--panel) 0%,var(--mid) 55%,var(--deep) 100%);
+    border:3px solid; border-color:var(--bevelHi) var(--bevelLo) var(--bevelLo) var(--bevelHi);
+    box-shadow:0 0 0 3px var(--void), 0 8px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.14)}
+  .titlebar{background:linear-gradient(180deg,#5b51c4 0%,#3d3490 48%,#2b2470 100%);
+    border-bottom:3px solid var(--bevelLo); box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+    padding:11px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+  .titlebar h2{margin:0; font-family:var(--f-px); font-weight:700; font-size:17px;
+    color:var(--gold); text-shadow:0 2px 0 #000, 0 0 10px rgba(255,204,77,.45)}
+  .titlebar span{font-size:12px; color:#cdc7ff}
+  .body{padding:16px}
+  .panel{margin-bottom:20px}
+
+  /* ---------- TITLE ---------- */
+  #scTitle{min-height:100vh; display:none; place-content:center; text-align:center; padding:24px; position:relative; z-index:2}
+  #scTitle.on{display:grid}
+  .logo{margin:0; font-family:var(--f-px); font-weight:700; line-height:1.05;
+    font-size:clamp(26px,7vw,58px); color:#fff; animation:hover 2.6s ease-in-out infinite;
+    text-shadow:0 3px 0 #b0349a,0 6px 0 #7a1f6e,0 9px 0 #45103e,0 10px 16px rgba(0,0,0,.6),0 0 26px rgba(255,123,198,.5)}
+  @keyframes hover{50%{transform:translateY(-6px)}}
+  .tagline{color:#e6e1ff; margin:26px auto 30px; font-size:14px; line-height:2.1; max-width:520px;
+    text-shadow:0 2px 4px rgba(0,0,0,.8)}
+  .press{display:inline-block; font-family:var(--f-px); font-weight:700; font-size:20px; color:#fff;
+    cursor:pointer; user-select:none; padding:14px 30px; animation:pulse 1.4s ease-in-out infinite;
+    background:linear-gradient(180deg,#4fd67e,#22a054 60%,#137a3c);
+    border:3px solid; border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4; text-shadow:0 2px 0 #0b4a24;
+    box-shadow:0 0 0 3px var(--void),0 7px 0 rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35)}
+  @keyframes pulse{50%{filter:brightness(1.25)}}
+  .press:active{transform:translateY(4px); box-shadow:0 0 0 3px var(--void),0 3px 0 rgba(0,0,0,.5)}
+  .coin{color:#cbbfff; font-size:12px; margin-top:22px; font-family:var(--f-px); letter-spacing:2px; text-shadow:0 2px 3px #000}
+  .parade{position:absolute; left:0; right:0; bottom:5%; height:80px; pointer-events:none}
+  .parade > div{position:absolute; bottom:0; animation:run linear infinite}
+  @keyframes run{from{transform:translateX(-90px)}to{transform:translateX(105vw)}}
+
+  /* ---------- MID SCREENS ---------- */
+  .midScreen{min-height:100vh; display:none; place-content:center; padding:26px 20px; position:relative; z-index:2}
+  .midScreen.on{display:grid}
+  .card{max-width:560px; width:100%; margin:0 auto}
+  .card.wide{max-width:900px}
+  .lede{color:var(--dim); font-size:13px; margin:0 0 20px; line-height:1.9}
+  .preview{display:flex; align-items:center; gap:20px; margin:16px 0 20px; padding:16px; position:relative; overflow:hidden;
+    background:linear-gradient(180deg,#120d30,#1c1544);
+    border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  .preview::before{content:""; position:absolute; inset:0;
+    background:repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 3px,transparent 3px 6px)}
+  .swatches{display:flex; flex-wrap:wrap; gap:9px}
+  .sw{width:40px; height:40px; cursor:pointer; padding:0; border:3px solid;
+    border-color:rgba(255,255,255,.5) rgba(0,0,0,.55) rgba(0,0,0,.55) rgba(255,255,255,.5);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.3)}
+  .sw.sel{outline:3px solid var(--gold); outline-offset:2px; transform:translateY(-3px)}
+  .optGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:13px}
+  .optCard{padding:14px; cursor:pointer; position:relative; text-align:left; transition:transform .12s;
+    background:linear-gradient(180deg,#1d1748,#0f0a2c);
+    border:3px solid; border-color:#3a3288 #0a0722 #0a0722 #3a3288;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1); color:var(--ink); font-family:var(--f-th)}
+  .optCard:hover{transform:translateY(-2px)}
+  .optCard .no{font-family:var(--f-px); font-weight:700; font-size:22px; color:var(--dim); text-shadow:0 2px 0 #000}
+  .optCard .nm{font-family:var(--f-px); font-weight:700; font-size:16px; color:#fff; text-shadow:0 2px 0 #000; margin-top:2px; line-height:1.25}
+  .optCard .th{font-size:12px; color:var(--dim); margin-top:6px; line-height:1.6}
+  .optCard .wk{font-size:11px; color:#8f87cc; margin-top:9px; letter-spacing:.5px}
+  .optCard .tick{position:absolute; top:9px; right:11px; font-family:var(--f-px); font-weight:700; font-size:15px; color:#3a3288}
+  .optCard.on{border-color:var(--gold) var(--goldLo) var(--goldLo) var(--gold);
+    background:linear-gradient(180deg,#3a2f6e,#221846);
+    box-shadow:0 0 16px rgba(255,204,77,.3), inset 0 1px 0 rgba(255,255,255,.2)}
+  .optCard.on .no,.optCard.on .tick{color:var(--gold); text-shadow:0 2px 0 #000,0 0 10px rgba(255,204,77,.7)}
+  .optCard.plCard{padding-right:78px; min-height:150px}
+  .opChar{position:absolute; right:12px; bottom:14px; width:32px; height:48px}
+  .opChar svg{position:relative; z-index:2}
+  .opChar .aura{left:50%; bottom:-4px; width:52px; height:64px; margin-left:-26px}
+  .optCard.red .opChar{filter:drop-shadow(0 0 6px rgba(255,40,70,.9))}
+  .optCard.flame .opChar{filter:drop-shadow(0 0 8px rgba(255,180,40,1))}
+  .optCard.locked{opacity:.5; cursor:not-allowed}
+  .optCard.locked:hover{transform:none}
+  .optCard.red.on{border-color:#ff8fa3 #8a1730 #8a1730 #ff8fa3; box-shadow:0 0 20px rgba(255,77,109,.45)}
+  .optCard.red.on .no,.optCard.red.on .tick{color:#ff8fa3; text-shadow:0 2px 0 #000,0 0 12px rgba(255,77,109,.9)}
+  .optCard.flame.on{border-color:#ffe38a #a85a00 #a85a00 #ffe38a;
+    background:linear-gradient(180deg,#6b3a12,#2b1608); box-shadow:0 0 26px rgba(255,160,40,.55)}
+  .optCard.flame.on .no,.optCard.flame.on .tick{color:#ffd24d; text-shadow:0 2px 0 #000,0 0 14px rgba(255,180,40,1)}
+  .lockTag{display:inline-block; margin-top:9px; font-size:10px; padding:2px 7px; letter-spacing:.5px;
+    background:#150f36; border:2px solid #3a3288; color:#8f87cc}
+  .optCard.done .lockTag{border-color:#2c6b45; color:var(--green)}
+  .optCard.live .lockTag{border-color:#a8324c; color:var(--red)}
+  .tally{margin-top:16px; padding:12px 14px; font-size:13px; color:#e6e1ff; line-height:1.8;
+    background:linear-gradient(180deg,#191341,#0e0a29);
+    border:2px solid; border-color:var(--line) #0a0722 #0a0722 var(--line)}
+  .tally b{font-family:var(--f-px); font-size:17px; color:var(--gold); text-shadow:0 2px 0 #000}
+
+  /* ---------- HUD + NAV ---------- */
+  header.hudbar{padding:16px 18px; margin-bottom:16px; display:flex; flex-wrap:wrap;
+    gap:14px; align-items:center; justify-content:space-between}
+  h1.game{margin:0; font-family:var(--f-px); font-weight:700; font-size:23px; color:#fff;
+    text-shadow:0 2px 0 #b0349a,0 4px 0 #6d1a62,0 0 16px rgba(255,123,198,.4)}
+  .sub{color:var(--dim); font-size:12.5px; margin-top:7px}
+  .hud{display:flex; gap:9px; flex-wrap:wrap}
+  .chip{font-family:var(--f-px); font-weight:700; font-size:13px; padding:8px 12px; color:#dcd6ff;
+    background:linear-gradient(180deg,#1d1748,#100b2e);
+    border:2px solid; border-color:var(--line) #0a0722 #0a0722 var(--line);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  .chip b{color:var(--green); font-weight:700; text-shadow:0 0 8px rgba(94,240,140,.6)}
+  .chip.now b{color:var(--gold); text-shadow:0 0 8px rgba(255,204,77,.7)}
+  .chip.clock b{color:var(--cyan); text-shadow:0 0 8px rgba(78,225,255,.6)}
+  .chip.live{color:var(--green); border-color:#1d7040 #0a0722 #0a0722 #1d7040}
+  .chip.warnChip{color:var(--orange); border-color:#8a4a08 #0a0722 #0a0722 #8a4a08}
+
+  .nav{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px}
+  .navBtn{flex:1; min-width:150px; font-family:var(--f-px); font-weight:700; font-size:16px;
+    cursor:pointer; padding:14px 12px; color:#9a92d8; text-shadow:0 2px 0 #000;
+    background:linear-gradient(180deg,#241d58,#161139);
+    border:3px solid; border-color:#5a51b8 #0a0722 #0a0722 #5a51b8;
+    box-shadow:0 0 0 2px var(--void),0 5px 0 rgba(0,0,0,.5)}
+  .navBtn:hover{color:#fff}
+  .navBtn.on{color:var(--gold); background:linear-gradient(180deg,#5b51c4,#332a80);
+    border-color:#a79dff #1a1245 #1a1245 #a79dff;
+    box-shadow:0 0 0 2px var(--void),0 5px 0 rgba(0,0,0,.5),0 0 18px rgba(255,204,77,.3)}
+  .navBtn small{display:block; font-family:var(--f-th); font-size:11px; font-weight:400;
+    color:#8f87cc; margin-top:3px; text-shadow:none}
+  .navBtn.on small{color:#e6d9ff}
+
+  /* ---------- PLEDGE CARD ---------- */
+  .pledgeCard{display:flex; gap:20px; align-items:center; flex-wrap:wrap; padding:16px 18px; margin-bottom:18px}
+  .ring{position:relative; width:104px; height:104px; flex-shrink:0}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .val{position:absolute; inset:0; display:grid; place-content:center; text-align:center;
+    font-family:var(--f-px); font-weight:700; line-height:1.1}
+  .ring .val b{display:block; font-size:26px; color:#fff; text-shadow:0 2px 0 #000}
+  .ring .val span{font-size:12px; color:var(--dim)}
+  .pledgeTxt{flex:1; min-width:240px; font-size:13px; line-height:1.9; color:#e6e1ff}
+  .pledgeTxt .big{font-family:var(--f-px); font-size:19px; text-shadow:0 2px 0 #000}
+  .pledgeTxt .big.normal{color:var(--gold)}
+  .pledgeTxt .big.red{color:#ff6b85; text-shadow:0 2px 0 #000,0 0 14px rgba(255,77,109,.8)}
+  .pledgeTxt .big.flame{color:#ffc24d; text-shadow:0 2px 0 #000,0 0 16px rgba(255,160,40,1)}
+  .paceNum{font-family:var(--f-px); font-weight:700; font-size:34px; text-shadow:0 3px 0 #000}
+  .paceNum.ahead{color:var(--green)} .paceNum.behind{color:var(--orange)} .paceNum.on{color:var(--cyan)}
+
+  /* ---------- TRACK ---------- */
+  .track-wrap{overflow-x:auto}
+  .track{min-width:900px; position:relative; padding:30px 16px 12px;
+    background:linear-gradient(180deg,#0f0a2a 0%,#171040 60%,#1e1550 100%)}
+  .track::before{content:""; position:absolute; inset:0; opacity:.5; animation:scrollBg 2.4s linear infinite;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 2px,transparent 2px 5px)}
+  @keyframes scrollBg{to{background-position:-40px 0}}
+  .zones{position:absolute; inset:30px 16px 12px; pointer-events:none; z-index:1; display:flex}
+  .zone{flex:1; border-right:2px solid rgba(255,255,255,.07); position:relative}
+  .zone:last-child{border-right:0}
+  .zone:nth-child(even){background:rgba(255,255,255,.032)}
+  .zone b{position:absolute; top:-24px; left:50%; transform:translateX(-50%); white-space:nowrap;
+    font-family:var(--f-px); font-weight:700; font-size:12px; color:#b8b0f0; text-shadow:0 2px 0 #000}
+  .checkpoints{position:absolute; inset:30px 16px 12px; pointer-events:none; z-index:3}
+  .cp{position:absolute; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,rgba(164,156,224,.9),rgba(164,156,224,.15));
+    box-shadow:0 0 8px rgba(164,156,224,.55)}
+  .cp em{position:absolute; top:-24px; left:50%; transform:translateX(-50%); font-style:normal;
+    font-family:var(--f-px); font-weight:700; font-size:12px; color:#e8e3ff; white-space:nowrap;
+    padding:3px 7px; text-shadow:0 1px 0 #000;
+    background:linear-gradient(180deg,#3d3490,#231c60);
+    border:2px solid; border-color:var(--bevelHi) var(--bevelLo) var(--bevelLo) var(--bevelHi)}
+  .cp.finish{width:14px; box-shadow:0 0 14px rgba(255,255,255,.6);
+    background:repeating-conic-gradient(#fff 0 25%,#151030 0 50%) 0 0/10px 10px}
+  .cp.pace{width:4px; background:linear-gradient(180deg,var(--cyan),rgba(78,225,255,.15));
+    box-shadow:0 0 14px rgba(78,225,255,.8)}
+  .cp.pace em{background:linear-gradient(180deg,#7fe9ff,#1b7f96); color:#06222b;
+    border-color:#c8f6ff #0a4a59 #0a4a59 #c8f6ff; text-shadow:none}
+  .lane{position:relative; height:78px; container-type:inline-size; cursor:pointer; z-index:2;
+    border-bottom:3px solid rgba(255,255,255,.06)}
+  .lane:last-child{border-bottom:0}
+  .lane::after{content:""; position:absolute; left:0; right:0; bottom:0; height:5px;
+    background:repeating-linear-gradient(90deg,#3a2f7a 0 12px,#241c56 12px 24px)}
+  .lane:hover{background:rgba(123,116,214,.09)}
+  .lane.meLane{background:linear-gradient(90deg,rgba(255,204,77,.12),transparent)}
+  .lane .name{position:absolute; left:2px; top:4px; z-index:4; font-family:var(--f-px); font-weight:700;
+    font-size:12px; color:#cdc7ff; text-shadow:0 2px 0 #000; opacity:.9}
+  .lane .name i{font-style:normal; font-size:13px}
+  .runner{position:absolute; bottom:6px; left:0; width:46px; z-index:2;
+    transform:translateX(calc(var(--p) * (100cqw - 72px)));
+    transition:transform .8s cubic-bezier(.2,.85,.3,1)}
+  .runner .tag{font-family:var(--f-px); font-weight:700; font-size:12px; text-align:center;
+    color:#fff; text-shadow:0 2px 0 #000; margin-bottom:1px}
+  .runner .body{position:relative; animation:bob .26s steps(2) infinite alternate}
+  @keyframes bob{to{transform:translateY(-3px)}}
+  .runner.idle .body{animation:none}
+  .runner svg{display:block; margin:0 auto; position:relative; z-index:2}
+  .runner svg g.leg{opacity:0; animation:flick .48s steps(1) infinite}
+  @keyframes flick{0%,24.9%{opacity:1}25%,100%{opacity:0}}
+  .runner.idle svg g.leg{animation:none; opacity:0}
+  .runner.idle svg g.k0{opacity:1}
+  .shadow{position:absolute; left:50%; bottom:-3px; width:32px; height:7px; margin-left:-16px;
+    background:radial-gradient(ellipse,rgba(0,0,0,.55),transparent 70%)}
+  .runner.me .tag{color:var(--gold); text-shadow:0 2px 0 #000,0 0 10px rgba(255,204,77,.8)}
+  .runner.me::after{content:"▼ YOU"; display:block; text-align:center; font-family:var(--f-px);
+    font-weight:700; font-size:10px; color:var(--gold); text-shadow:0 2px 0 #000}
+  .dust{position:absolute; bottom:0; left:-4px; width:7px; height:7px; border-radius:50%;
+    background:rgba(190,180,255,.5); animation:dust .55s steps(3) infinite}
+  .dust.b{animation-delay:-.28s; width:5px; height:5px; left:-10px}
+  @keyframes dust{from{transform:translate(0,0) scale(1);opacity:.6}to{transform:translate(-18px,-8px) scale(.2);opacity:0}}
+
+  /* ---------- CHARACTER FX ---------- */
+  .runner.red .body{filter:drop-shadow(0 0 7px rgba(255,40,70,.95))}
+  .aura{position:absolute; left:50%; bottom:-6px; width:62px; height:76px; margin-left:-31px; z-index:1;
+    pointer-events:none;
+    background:radial-gradient(ellipse at 50% 78%,rgba(255,214,80,.95) 0%,rgba(255,140,20,.7) 30%,
+               rgba(255,70,10,.35) 52%,transparent 72%);
+    animation:auraPulse .28s steps(2) infinite alternate;
+    filter:blur(.4px)}
+  @keyframes auraPulse{from{transform:scaleY(1) scaleX(1); opacity:.95}
+                       to{transform:scaleY(1.16) scaleX(.9); opacity:.75}}
+  .aura i{position:absolute; bottom:70%; left:50%; width:8px; height:14px; margin-left:-4px;
+    background:linear-gradient(180deg,#fff6b0,#ffb020); border-radius:50% 50% 40% 40%;
+    animation:spark .5s steps(3) infinite; opacity:.9}
+  .aura i:nth-child(2){margin-left:-16px; animation-delay:-.18s; height:10px}
+  .aura i:nth-child(3){margin-left:8px;  animation-delay:-.33s; height:11px}
+  @keyframes spark{from{transform:translateY(0) scale(1); opacity:.95}
+                   to{transform:translateY(-16px) scale(.3); opacity:0}}
+  .runner.flame .body{filter:drop-shadow(0 0 9px rgba(255,180,40,1))}
+  .noJoin{padding:26px 16px; text-align:center; color:var(--dim); font-size:13px; line-height:1.9}
+
+  /* ---------- FORM ---------- */
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+  @media(max-width:880px){.cols{grid-template-columns:1fr}}
+  label{display:block; font-family:var(--f-px); font-weight:700; font-size:13px;
+    color:var(--cyan); margin:0 0 7px; text-shadow:0 2px 0 #000; letter-spacing:1px}
+  input,select{font-family:var(--f-th); font-size:14px; width:100%; padding:11px 12px; color:var(--ink);
+    background:linear-gradient(180deg,#0e0928,#171043);
+    border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo); outline:none}
+  input:focus,select:focus{border-color:var(--cyan); box-shadow:0 0 10px rgba(78,225,255,.35)}
+  .row{display:flex; gap:12px; margin-bottom:14px}
+  .row > div{flex:1}
+  .meBox{padding:11px 12px; font-family:var(--f-px); font-size:16px; color:var(--gold);
+    text-shadow:0 2px 0 #000; background:linear-gradient(180deg,#0e0928,#171043);
+    border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  .btn{font-family:var(--f-px); font-weight:700; cursor:pointer; color:#fff; border:3px solid;
+    text-shadow:0 2px 0 rgba(0,0,0,.55);
+    box-shadow:0 0 0 2px var(--void),0 6px 0 rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.3)}
+  .btn:active{transform:translateY(4px); box-shadow:0 0 0 2px var(--void),0 2px 0 rgba(0,0,0,.5)}
+  .btn.go{width:100%; font-size:19px; padding:14px; margin-top:6px;
+    background:linear-gradient(180deg,#4fd67e,#22a054 60%,#137a3c);
+    border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4}
+  .btn.sm{font-size:13px; padding:9px 14px; position:relative;
+    background:linear-gradient(180deg,#4b41a8,#2e2678 60%,#1e1856);
+    border-color:#8f86e6 #150f3a #150f3a #8f86e6}
+  .btn.gold{background:linear-gradient(180deg,#ffd96b,#e0a018 60%,#a86f06);
+    border-color:#fff0b8 #7a5000 #7a5000 #fff0b8; color:#3a2600; text-shadow:none}
+  .btn:disabled{filter:grayscale(.8) brightness(.6); cursor:not-allowed; transform:none}
+  .hint{color:var(--dim); font-size:12px; margin-top:12px; line-height:1.9}
+  .hint b{color:var(--gold)}
+
+  /* ---------- TABLE ---------- */
+  table{width:100%; border-collapse:collapse; font-size:13.5px}
+  th{font-family:var(--f-px); font-weight:700; font-size:13px; color:var(--cyan); letter-spacing:1px;
+    text-align:left; padding:11px 10px; white-space:nowrap; text-shadow:0 2px 0 #000;
+    background:linear-gradient(180deg,#241d58,#161139); border-bottom:3px solid var(--bevelLo);
+    position:sticky; top:0; z-index:5}
+  td{padding:10px; border-bottom:2px solid rgba(255,255,255,.06)}
+  tbody tr{cursor:pointer}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.028)}
+  tbody tr:hover{background:rgba(123,116,214,.16)}
+  tr.me{background:linear-gradient(90deg,rgba(255,204,77,.22),rgba(255,204,77,.05))!important}
+  tr.me td{border-bottom-color:rgba(255,204,77,.3)}
+  .rk{font-family:var(--f-px); font-weight:700; font-size:16px; color:var(--gold); width:52px; text-shadow:0 2px 0 #000}
+  .rk.top1{font-size:19px} .rk.top2{color:#d8d8f0} .rk.top3{color:#e0a060}
+  .nm{font-family:var(--f-px); font-weight:700; font-size:15px; text-shadow:0 2px 0 #000}
+  .bar{height:15px; min-width:100px; position:relative;
+    background:linear-gradient(180deg,#0c0824,#150f38);
+    border:2px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  .bar i{display:block; height:100%; box-shadow:inset 0 2px 0 rgba(255,255,255,.45), inset 0 -3px 0 rgba(0,0,0,.3)}
+  .bar .goal{position:absolute; top:-3px; bottom:-3px; width:3px; background:var(--cyan);
+    box-shadow:0 0 8px rgba(78,225,255,.9)}
+  .num{font-family:var(--f-px); font-weight:700; font-size:14px; text-shadow:0 2px 0 #000}
+  .streak{font-family:var(--f-px); font-weight:700; font-size:14px; color:var(--orange); text-shadow:0 2px 0 #000}
+  .hs{font-size:15px}
+  .wkTag{font-family:var(--f-px); font-size:12px; padding:2px 7px; white-space:nowrap;
+    border:2px solid; text-shadow:0 2px 0 #000}
+  .wkTag.normal{color:#cdc7ff; border-color:var(--line)}
+  .wkTag.red{color:#ff8fa3; border-color:#a8324c; box-shadow:0 0 8px rgba(255,77,109,.4)}
+  .wkTag.flame{color:#ffd24d; border-color:#a85a00; box-shadow:0 0 10px rgba(255,160,40,.55)}
+  .wkTag.hit{background:linear-gradient(180deg,#1d7040,#0d3a20); color:#8affb0; border-color:#2fbf6a}
+  @media(max-width:900px){.hideMd{display:none}}
+  @media(max-width:700px){.hideSm{display:none}}
+
+  /* ---------- HOUSE FILTER ---------- */
+  .filters{display:flex; gap:8px; flex-wrap:wrap; padding:12px 14px;
+    background:#161139; border-bottom:3px solid var(--bevelLo)}
+  .fBtn{font-family:var(--f-px); font-weight:700; font-size:13px; cursor:pointer; padding:8px 13px;
+    color:#9a92d8; text-shadow:0 2px 0 #000;
+    background:linear-gradient(180deg,#241d58,#161139);
+    border:2px solid; border-color:#4a41a0 #0a0722 #0a0722 #4a41a0}
+  .fBtn:hover{color:#fff}
+  .fBtn.on{color:#fff; box-shadow:inset 0 2px 0 rgba(255,255,255,.25)}
+
+  /* ---------- HOUSE BOARD ---------- */
+  .houseGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; padding:16px}
+  .houseCard{padding:14px; position:relative; overflow:hidden;
+    background:linear-gradient(180deg,#1d1748,#0f0a2c);
+    border:3px solid; box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+  .houseCard .hn{font-family:var(--f-px); font-weight:700; font-size:18px; text-shadow:0 2px 0 #000}
+  .houseCard .hth{font-size:12px; color:var(--dim); margin-top:2px}
+  .houseCard .hv{font-family:var(--f-px); font-weight:700; font-size:30px; color:#fff;
+    text-shadow:0 3px 0 #000; margin-top:10px}
+  .houseCard .hl{font-size:11px; color:var(--dim)}
+  .houseCard .hr{position:absolute; top:12px; right:14px; font-size:26px; opacity:.85}
+
+  /* ---------- FEED ---------- */
+  .feed{list-style:none; margin:0; padding:0; max-height:340px; overflow-y:auto}
+  .feed li{display:flex; gap:9px; align-items:center; padding:11px 12px; font-size:13px;
+    border-bottom:2px solid rgba(255,255,255,.06); flex-wrap:wrap}
+  .feed li:nth-child(even){background:rgba(255,255,255,.028)}
+  .feed .who{font-family:var(--f-px); font-weight:700; font-size:14px; white-space:nowrap; text-shadow:0 2px 0 #000}
+  .feed .plat,.feed .sp{font-size:11px; color:#dcd6ff; padding:2px 8px; white-space:nowrap;
+    background:linear-gradient(180deg,#37307f,#221c56);
+    border:2px solid; border-color:var(--line) #100c2e #100c2e var(--line)}
+  .feed .sp{color:var(--gold); border-color:var(--goldLo) #100c2e #100c2e var(--goldLo)}
+  .feed a{color:var(--cyan); text-decoration:none; word-break:break-all; flex:1; min-width:140px}
+  .feed a:hover{text-decoration:underline; color:#fff}
+  .feed .when{margin-left:auto; color:var(--dim); font-size:11px; white-space:nowrap}
+
+  /* ---------- STATUS / SHARE ---------- */
+  .shareWrap{display:grid; grid-template-columns:minmax(260px,380px) 1fr; gap:22px; padding:18px}
+  @media(max-width:820px){.shareWrap{grid-template-columns:1fr}}
+  #shareCanvas{width:100%; height:auto; display:block; image-rendering:pixelated;
+    border:3px solid; border-color:var(--bevelHi) var(--bevelLo) var(--bevelLo) var(--bevelHi);
+    box-shadow:0 0 0 3px var(--void),0 8px 0 rgba(0,0,0,.45)}
+  .shareSide h3{font-family:var(--f-px); font-weight:700; font-size:17px; color:var(--gold);
+    margin:0 0 10px; text-shadow:0 2px 0 #000}
+  .shareSide p{color:var(--dim); font-size:13px; line-height:1.9; margin:0 0 16px}
+  .shareBtns{display:flex; flex-direction:column; gap:10px}
+  .shareBtns .btn{padding:13px; font-size:15px}
+  .statGrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:16px 0}
+  .statBox{padding:12px; text-align:center;
+    background:linear-gradient(180deg,#1d1748,#0f0a2c);
+    border:2px solid; border-color:var(--line) #0a0722 #0a0722 var(--line)}
+  .statBox b{display:block; font-family:var(--f-px); font-weight:700; font-size:24px; color:var(--gold);
+    text-shadow:0 3px 0 #000,0 0 12px rgba(255,204,77,.5)}
+  .statBox span{font-size:11px; color:var(--dim)}
+  .shareTxt{width:100%; min-height:96px; font-family:var(--f-th); font-size:13px; line-height:1.8;
+    padding:12px; resize:vertical; color:var(--ink);
+    background:linear-gradient(180deg,#0e0928,#171043);
+    border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+
+  /* ---------- MODAL ---------- */
+  .modal{position:fixed; inset:0; background:rgba(6,4,20,.9); display:none; place-content:center;
+    padding:20px; z-index:35; overflow-y:auto; backdrop-filter:blur(2px)}
+  .modal.on{display:grid}
+  .sheet{max-width:760px; width:100%; margin:auto}
+  .closeX{cursor:pointer; font-family:var(--f-px); font-weight:700; font-size:16px; color:#ffb8c4;
+    text-shadow:0 2px 0 #000; padding:2px 8px}
+  .closeX:hover{color:#fff}
+  .spRow{display:flex; align-items:center; gap:11px; padding:9px 0; flex-wrap:wrap}
+  .spRow .lbl{width:120px; flex-shrink:0}
+  .spRow .lbl b{display:block; font-family:var(--f-px); font-weight:700; font-size:14px; color:#fff; text-shadow:0 2px 0 #000}
+  .spRow .lbl span{font-size:10.5px; color:var(--dim)}
+  .spRow .days{display:flex; gap:4px; flex:1; min-width:170px}
+  .cell{flex:1; aspect-ratio:1; max-width:22px; border:2px solid; position:relative;
+    background:linear-gradient(180deg,#191341,#0e0a29); border-color:#2c2568 #0a0722 #0a0722 #2c2568}
+  .cell.miss{background:linear-gradient(180deg,#4a1030,#2a0a1c); border-color:#6d1a40 #200612 #200612 #6d1a40}
+  .cell.done{box-shadow:inset 0 2px 0 rgba(255,255,255,.4), inset 0 -3px 0 rgba(0,0,0,.32)}
+  .cell em{position:absolute; inset:0; display:grid; place-content:center; font-style:normal;
+    font-family:var(--f-px); font-size:10px; color:#04240d; text-shadow:none}
+  .spRow .sc{font-family:var(--f-px); font-weight:700; font-size:14px; width:56px; text-align:right;
+    color:var(--gold); text-shadow:0 2px 0 #000}
+  .spRow.off{opacity:.4}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; color:var(--dim); font-size:12px; margin-top:14px}
+  .legend i{display:inline-block; width:14px; height:14px; vertical-align:-3px; margin-right:7px; border:2px solid rgba(0,0,0,.5)}
+
+  /* ---------- TOAST ---------- */
+  #toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(200%);
+    font-family:var(--f-px); font-weight:700; font-size:17px; color:#fff; text-align:center;
+    padding:16px 26px; line-height:1.6; max-width:90vw; z-index:45; text-shadow:0 2px 0 #000;
+    background:linear-gradient(180deg,#4b41a8,#2a2270 60%,#1a1450);
+    border:3px solid; border-color:var(--gold) var(--goldLo) var(--goldLo) var(--gold);
+    box-shadow:0 0 0 3px var(--void),0 8px 0 rgba(0,0,0,.5),0 0 30px rgba(255,204,77,.35);
+    transition:transform .28s cubic-bezier(.2,1.4,.4,1)}
+  #toast.on{transform:translateX(-50%) translateY(0)}
+  footer{color:var(--dim); font-size:12px; text-align:center; margin-top:26px; line-height:2}
+
+  /* ---------- MOBILE ---------- */
+  @media(max-width:700px){
+    .track{min-width:520px; padding:26px 10px 10px}
+    .zones,.checkpoints{inset:26px 10px 10px}
+    .zone b{font-size:10px}
+    .cp em{font-size:10px; padding:2px 4px; top:-20px}
+    .lane{height:60px}
+    .runner{width:36px; transform:translateX(calc(var(--p) * (100cqw - 54px)))}
+    .runner .body{zoom:.75}
+    h1.game{font-size:18px}
+    .navBtn{font-size:14px; padding:11px 8px; min-width:0}
+    .ring{width:86px;height:86px}
+  }
+</style>
+</head>
+<body>
+
+<div class="sky" id="sky">
+  <div class="stars"></div><div class="sun"></div>
+  <div class="mtn b"></div><div class="mtn"></div><div class="hills"></div>
+</div>
+
+<!-- ============ TITLE ============ -->
+<section id="scTitle" class="screen">
+  <div>
+    <h1 class="logo" id="bcTitle">CREATOR BOOTCAMP</h1>
+    <p class="tagline" id="titleSub"></p>
+    <div class="press" id="startBtn">▶ PRESS START</div>
+    <div class="coin">UPLOAD CONTENT · RUN THE TRACK</div>
+  </div>
+  <div class="parade" id="parade"></div>
+</section>
+
+<!-- ============ SIGN IN ============ -->
+<section id="scAuth" class="screen midScreen">
+  <div class="card bevel">
+    <div class="titlebar"><h2>SIGN IN</h2><span id="authWho"></span></div>
+    <div class="body">
+      <p class="lede">ใส่อีเมลที่ใช้สมัคร bootcamp ระบบจะส่งลิงก์เข้าอีเมล กดลิงก์แล้วเข้าใช้งานได้เลย ไม่ต้องตั้งรหัสผ่าน</p>
+      <label>EMAIL</label>
+      <input id="email" type="email" placeholder="you@email.com" autocomplete="email">
+      <button class="btn go" id="authBtn" style="margin-top:18px">▶ ส่งลิงก์เข้าอีเมล</button>
+      <button class="btn sm" id="googleBtn" style="display:none;width:100%;margin-top:12px;padding:13px">เข้าด้วย GOOGLE</button>
+      <div class="hint" id="authNote">ต้องเป็นอีเมลที่อยู่ในรายชื่อรุ่นเท่านั้น ถ้าเข้าไม่ได้ให้ติดต่อทีมงาน</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STEP 1 ============ -->
+<section id="scSelect" class="screen midScreen">
+  <div class="card bevel">
+    <div class="titlebar"><h2>SELECT YOUR RUNNER</h2><span>STEP 1 / 2</span></div>
+    <div class="body">
+      <p class="lede">ใส่ชื่อที่จะโชว์บนสนามแข่ง และ handle ที่คุณใช้โพสต์จริง</p>
+      <label>RUNNER NAME</label>
+      <input id="myName" maxlength="10" placeholder="ใส่ชื่อของคุณ">
+      <div style="margin-top:14px"></div>
+      <label>YOUR HANDLE</label>
+      <input id="myHandle" maxlength="24" placeholder="@yourname">
+      <div class="preview">
+        <div id="myPreview"></div>
+        <div style="position:relative">
+          <div class="px" style="font-size:20px;text-shadow:0 2px 0 #000" id="myLabel">RUNNER</div>
+          <div style="color:var(--dim);font-size:12px;margin-top:8px" id="myHandleLbl">@yourname</div>
+        </div>
+      </div>
+      <label>SUIT COLOR</label>
+      <div class="swatches" id="swatches"></div>
+      <button class="btn go" id="toSprintsBtn" style="margin-top:22px">▶ NEXT : เลือกสปรินต์</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STEP 2 ============ -->
+<section id="scSprints" class="screen midScreen">
+  <div class="card wide bevel">
+    <div class="titlebar"><h2>CHOOSE YOUR SPRINTS</h2><span>STEP 2 / 2</span></div>
+    <div class="body">
+      <p class="lede">แต่ละสปรินต์มีโจทย์ของตัวเอง เลือกลงเฉพาะสปรินต์ที่พร้อมจริง ๆ ก็ได้ ไม่ต้องครบ</p>
+      <div class="optGrid" id="spPick"></div>
+      <div class="tally" id="spTally"></div>
+      <button class="btn go" id="joinBtn" style="margin-top:18px">▶ JOIN THE BOOTCAMP</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ARENA ============ -->
+<section id="scArena" class="screen">
+<div class="wrap">
+  <header class="hudbar bevel">
+    <div>
+      <h1 class="game" id="bcTitle2">CREATOR BOOTCAMP</h1>
+      <div class="sub" id="meLine">—</div>
+    </div>
+    <div class="hud">
+      <div class="chip">WEEK <b id="hudWeek">--</b>/<span id="hudWeeks">12</span></div>
+      <div class="chip now">SPRINT <b id="hudSprint">--</b>/<span id="hudSprints">6</span></div>
+      <div class="chip">DAY <b id="hudDay">--</b>/<span id="hudTotal">84</span></div>
+      <div class="chip clock">ปิดรอบใน <b id="hudClock">--:--:--</b></div>
+      <div class="chip live" id="modeTag">DEMO</div>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <button class="navBtn on" data-page="pgRace">🏁 RACE<small>สนามแข่ง</small></button>
+    <button class="navBtn" data-page="pgBoard">🏆 SCOREBOARD<small>อันดับทั้งรุ่น</small></button>
+    <button class="navBtn" data-page="pgStatus">📣 MY STATUS<small>การ์ดไว้แชร์</small></button>
+  </nav>
+
+  <!-- ===== RACE ===== -->
+  <div class="page on" id="pgRace">
+    <section class="pledgeCard bevel" id="pledgeCard"></section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>SUBMIT CONTENT</h2><span>วางลิงก์งานที่เพิ่งปล่อย — นับทันที</span></div>
+      <div class="body">
+        <div class="row">
+          <div><label>RUNNER</label><div class="meBox" id="who">—</div></div>
+          <div><label>PLATFORM</label><select id="plat"></select></div>
+        </div>
+        <label>CONTENT URL</label>
+        <input id="url" placeholder="https://www.tiktok.com/@yourname/video/1234567890">
+        <button class="btn go" id="pushBtn">▶ SUBMIT</button>
+        <div class="hint">
+          วันหนึ่งส่งกี่ชิ้นก็ได้ ส่งเกินเป้าก็ได้ · ลิงก์ซ้ำส่งไม่ได้<br>
+          เป้าหลักคือ<b>วันละหนึ่งชิ้น</b> ที่เหลือคือของแถม
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn sm" id="pledgeBtn">เปลี่ยนเป้าสัปดาห์นี้</button>
+          <button class="btn sm" id="simBtn">SIMULATE 1 DAY</button>
+          <button class="btn sm" id="mySpBtn">MY SPRINTS</button>
+          <button class="btn sm" id="outBtn">SIGN OUT</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2 id="trackTitle">RACE TRACK</h2><span id="trackSub"></span></div>
+      <div class="filters" id="raceFilters"></div>
+      <div class="track-wrap"><div class="track">
+        <div class="zones" id="zones"></div>
+        <div class="checkpoints" id="cps"></div>
+        <div id="lanes"></div>
+      </div></div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>LIVE FEED</h2><span>งานที่เพิ่งส่งเข้ามา</span></div>
+      <ul class="feed" id="feed"></ul>
+    </section>
+  </div>
+
+  <!-- ===== SCOREBOARD ===== -->
+  <div class="page" id="pgBoard">
+    <section class="panel bevel">
+      <div class="titlebar"><h2>HOUSE STANDINGS</h2><span>เฉลี่ยต่อคน ไม่ใช่ผลรวม ห้องคนน้อยไม่เสียเปรียบ</span></div>
+      <div class="houseGrid" id="houseGrid"></div>
+    </section>
+    <section class="panel bevel">
+      <div class="titlebar">
+        <h2>SCOREBOARD</h2>
+        <span><button class="btn sm" id="jumpMe">ไปที่อันดับฉัน</button></span>
+      </div>
+      <div class="filters" id="boardFilters"></div>
+      <div style="max-height:70vh;overflow-y:auto">
+        <table>
+          <thead><tr>
+            <th>#</th><th>RUNNER</th><th class="hideSm">HOUSE</th><th>CONTENTS</th>
+            <th>WEEK</th><th class="hideSm">STREAK</th><th class="hideMd">PACE</th><th class="hideMd">PROGRESS</th>
+          </tr></thead>
+          <tbody id="board"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== STATUS ===== -->
+  <div class="page" id="pgStatus">
+    <section class="panel bevel">
+      <div class="titlebar"><h2>MY STATUS CARD</h2><span>กดแชร์ลงโซเชียลได้เลย</span></div>
+      <div class="shareWrap">
+        <div><canvas id="shareCanvas" width="1080" height="1350"></canvas></div>
+        <div class="shareSide">
+          <h3 id="shTitle">—</h3>
+          <p id="shSub">—</p>
+          <div class="statGrid" id="shStats"></div>
+          <label>ข้อความสำหรับโพสต์</label>
+          <textarea class="shareTxt" id="shareText"></textarea>
+          <div class="shareBtns" style="margin-top:14px">
+            <button class="btn gold" id="shShare">📣 แชร์การ์ดนี้</button>
+            <button class="btn sm" id="shDownload">⬇ ดาวน์โหลดรูป PNG</button>
+            <button class="btn sm" id="shCopy">📋 คัดลอกข้อความ</button>
+          </div>
+          <div class="hint">
+            ปุ่มแชร์จะเรียกเมนูแชร์ของเครื่อง (มือถือจะเห็นไอคอน IG / X / LINE)<br>
+            ถ้าเครื่องไม่รองรับ ให้ดาวน์โหลดรูปแล้วโพสต์เอง
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="panel bevel">
+      <div class="titlebar"><h2>SPRINT MAP</h2><span>ทำไปกี่ชิ้นในแต่ละวัน</span></div>
+      <div class="body"><div id="mMap"></div>
+        <div class="legend">
+          <span><i style="background:var(--green)"></i>วันที่ปล่อยงาน (ตัวเลข = กี่ชิ้น)</span>
+          <span><i style="background:linear-gradient(180deg,#4a1030,#2a0a1c)"></i>ขาด</span>
+          <span><i style="background:linear-gradient(180deg,#191341,#0e0a29)"></i>ยังไม่ถึง</span>
+          <span style="opacity:.45">แถวจาง = ไม่ได้ลงสปรินต์นี้</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+</section>
+
+<!-- ============ PLEDGE MODAL ============ -->
+<div class="modal" id="pledgeModal"><div class="sheet bevel">
+  <div class="titlebar"><h2 id="plTitle">เป้าของสัปดาห์นี้</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="body">
+    <p class="lede" id="plLede"></p>
+    <div class="optGrid" id="plPick"></div>
+    <div class="tally" id="plNote"></div>
+    <button class="btn go" id="plSave" style="margin-top:16px">▶ รับเป้านี้</button>
+  </div>
+</div></div>
+
+<!-- ============ MY SPRINTS ============ -->
+<div class="modal" id="spModal"><div class="sheet bevel">
+  <div class="titlebar"><h2>MY SPRINTS</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="body">
+    <p class="lede">สปรินต์ที่จบไปแล้วหรือกำลังวิ่งอยู่ ล็อกไว้แก้ไม่ได้ — เปลี่ยนได้เฉพาะสปรินต์ที่ยังไม่เริ่ม</p>
+    <div class="optGrid" id="spEdit"></div>
+    <div class="tally" id="spEditTally"></div>
+    <button class="btn go" id="spSaveBtn" style="margin-top:16px">▶ SAVE</button>
+  </div>
+</div></div>
+
+<!-- ============ PROFILE ============ -->
+<div class="modal" id="modal"><div class="sheet bevel">
+  <div class="titlebar">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div id="mSprite"></div>
+      <div>
+        <div class="px" style="font-size:22px;text-shadow:0 2px 0 #000" id="mName">—</div>
+        <div style="color:#cdc7ff;font-size:12px;margin-top:5px" id="mRank">—</div>
+      </div>
+    </div>
+    <div class="closeX" data-close>[ X ]</div>
+  </div>
+  <div class="body">
+    <div class="statGrid" style="grid-template-columns:repeat(4,1fr)" id="mStats"></div>
+    <div style="margin-top:22px">
+      <label>SPRINT MAP</label>
+      <div id="pMap"></div>
+    </div>
+    <div style="margin-top:22px">
+      <label>ล่าสุด</label>
+      <ul class="feed" id="mFeed" style="max-height:180px;border:3px solid;
+        border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)"></ul>
+    </div>
+  </div>
+</div></div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
