@@ -1089,7 +1089,8 @@ function renderAll(){
 }
 
 /* ================= ONBOARDING ================= */
-let pickColor=COLORS[0], pickSprints=SPRINTS.map((_,i)=>i), pickPledge=7, editSprints=[];
+let pickColor=COLORS[0], pickPledge=7;
+const ALL_SPRINTS = SPRINTS.map((_,i)=>i);   // ทุกคนลงครบทุกสปรินต์อัตโนมัติ
 function drawSelect(){
   $("swatches").innerHTML=COLORS.map(c=>
     `<button class="sw ${c===pickColor?"sel":""}" data-c="${c}"
@@ -1098,32 +1099,6 @@ function drawSelect(){
   $("myLabel").textContent=$("myName").value.trim().toUpperCase()||"RUNNER";
   $("myHandleLbl").textContent=$("myHandle").value.trim()||"@yourname";
 }
-function sprintCard(i,on,lock,note){
-  return `<button class="optCard ${on?"on":""} ${lock?"locked "+lock:""}" data-i="${i}" ${lock?"disabled":""}>
-    <div class="tick">${on?"[✓]":"[  ]"}</div>
-    <div class="no">SPRINT ${i+1} ${SPRINTS[i].e}</div>
-    <div class="nm">${SPRINTS[i].n}</div>
-    <div class="th">${SPRINTS[i].th}</div>
-    <div class="wk">สัปดาห์ ${i*2+1}–${i*2+2} · วันที่ ${spStart(i)}–${spEnd(i)}</div>
-    ${note?`<div class="lockTag">${note}</div>`:""}</button>`;
-}
-function drawPick(){
-  $("spPick").innerHTML=SPRINTS.map((_,i)=>sprintCard(i,pickSprints.includes(i),null,null)).join("");
-  const n=pickSprints.length;
-  $("spTally").innerHTML = n ? `เลือกไว้ <b>${n}</b> สปรินต์ = <b>${n*2}</b> สัปดาห์`
-    : `<span style="color:var(--red)">ต้องเลือกอย่างน้อย 1 สปรินต์</span>`;
-  $("joinBtn").disabled=!n;
-}
-function drawEdit(){
-  const s=curSp();
-  $("spEdit").innerHTML=SPRINTS.map((_,i)=>{
-    const lock=i<s?"done":(i===s?"live":null);
-    const note=i<s?"จบไปแล้ว · ล็อก":(i===s?"กำลังวิ่ง · ล็อก":"ยังไม่เริ่ม · แก้ได้");
-    return sprintCard(i, editSprints.includes(i), lock, note);
-  }).join("");
-  $("spEditTally").innerHTML=`ลงไว้ <b>${editSprints.length}</b> สปรินต์`;
-}
-
 /* ================= PLEDGE PICKER ================= */
 function drawPledgePick(){
   const cw=curWeek(), me=meR(), cur=(me.pledges||{})[cw];
@@ -1174,18 +1149,6 @@ window.openPledge=openPledge;
 $("swatches").onclick=e=>{ const b=e.target.closest(".sw"); if(b){ pickColor=b.dataset.c; drawSelect(); } };
 $("myName").oninput=drawSelect;
 $("myHandle").oninput=drawSelect;
-$("spPick").onclick=e=>{
-  const b=e.target.closest(".optCard"); if(!b) return;
-  const i=+b.dataset.i;
-  pickSprints=pickSprints.includes(i)?pickSprints.filter(x=>x!==i):[...pickSprints,i].sort((a,b)=>a-b);
-  drawPick();
-};
-$("spEdit").onclick=e=>{
-  const b=e.target.closest(".optCard"); if(!b||b.disabled) return;
-  const i=+b.dataset.i;
-  editSprints=editSprints.includes(i)?editSprints.filter(x=>x!==i):[...editSprints,i].sort((a,b)=>a-b);
-  drawEdit();
-};
 $("plPick").onclick=e=>{
   const b=e.target.closest(".optCard"); if(!b||b.disabled) return;
   pickPledge=+b.dataset.t; drawPledgePick();
@@ -1198,18 +1161,15 @@ $("authBtn").onclick=async()=>{
   try{ await DB.signIn(em); $("authNote").textContent="ส่งลิงก์เข้าอีเมลแล้ว — เปิดอีเมลแล้วกดลิงก์"; }
   catch(err){ toast(err.message); $("authBtn").disabled=false; }
 };
-$("toSprintsBtn").onclick=()=>{
-  if(!$("myName").value.trim()) return toast("ใส่ชื่อก่อน");
-  if($("myHandle").value.trim().replace("@","").length<2) return toast("ใส่ handle ที่ใช้โพสต์จริง");
-  drawPick(); show("scSprints");
-};
 $("joinBtn").onclick=async()=>{
-  if(!pickSprints.length) return toast("เลือกอย่างน้อย 1 สปรินต์");
-  let h=$("myHandle").value.trim(); if(!h.startsWith("@")) h="@"+h;
+  if(!$("myName").value.trim()) return toast("ใส่ชื่อก่อน");
+  let h=$("myHandle").value.trim();
+  if(h.replace("@","").length<2) return toast("ใส่ handle ที่ใช้โพสต์จริง");
+  if(!h.startsWith("@")) h="@"+h;
   $("joinBtn").disabled=true;
   try{
     await DB.createProfile({name:$("myName").value.trim().toUpperCase().slice(0,10),
-      handle:h.toLowerCase(), color:pickColor, joined:pickSprints, house:1+((Date.now())%4)});
+      handle:h.toLowerCase(), color:pickColor, joined:ALL_SPRINTS, house:1+((Date.now())%4)});
     await boot();
   }catch(err){ toast(err.message); $("joinBtn").disabled=false; }
 };
@@ -1287,15 +1247,6 @@ $("plSave").onclick=async()=>{
         : `รับเป้า ${o.target} ชิ้นแล้ว`);
   }catch(err){ toast(err.message); }
   $("plSave").disabled=false;
-};
-$("mySpBtn").onclick=()=>{ editSprints=[...meR().joined]; drawEdit(); $("spModal").classList.add("on"); };
-$("spSaveBtn").onclick=async()=>{
-  if(!editSprints.length) return toast("ต้องเหลืออย่างน้อย 1 สปรินต์");
-  $("spSaveBtn").disabled=true;
-  try{ await DB.setSprints(editSprints); await refresh();
-    $("spModal").classList.remove("on"); toast(`อัปเดตแล้ว · ${editSprints.length} สปรินต์`);
-  }catch(err){ toast(err.message); }
-  $("spSaveBtn").disabled=false;
 };
 $("simBtn").onclick=async()=>{
   try{
