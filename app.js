@@ -509,7 +509,10 @@ function cutoffLeft(){
   const s=Math.floor((c-now)/1000);
   return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(v=>String(v).padStart(2,"0")).join(":");
 }
-const ranked = () => [...S.runners].sort((a,b)=>{
+/* โค้ชไม่ลงแข่ง — ไม่โผล่บนสนาม ไม่อยู่ในกระดาน ไม่ถ่วงค่าเฉลี่ยของบ้าน
+   ถ้าโค้ชอยากวิ่งด้วย ให้สมัครอีกบัญชีเป็นนักเรียน */
+const students = () => S.runners.filter(r => r.role !== "coach");
+const ranked = () => [...students()].sort((a,b)=>{
   const A=stats(a), B=stats(b);
   return B.contents-A.contents || B.rate-A.rate || B.weekStreak-A.weekStreak;
 });
@@ -651,7 +654,7 @@ function renderTrack(){
 /* ================= SCOREBOARD ================= */
 function renderHouses(){
   const rows=HOUSES.map(h=>{
-    const mem=S.runners.filter(r=>r.house===h.id);
+    const mem=students().filter(r=>r.house===h.id);
     const sts=mem.map(stats);
     const avg = sts.length ? sts.reduce((a,s)=>a+s.contents,0)/sts.length : 0;
     const rate= sts.length ? sts.reduce((a,s)=>a+s.rate,0)/sts.length : 0;
@@ -766,7 +769,7 @@ async function openProfile(name){
   $("mSprite").innerHTML=runnerBox(r.color,3,s.style);
   $("mName").innerHTML=`<span style="color:${r.color}">${r.name}</span>
     <span style="font-family:var(--f-th);font-size:12px;color:var(--dim)"> ${r.handle}</span>`;
-  $("mRank").textContent=`${h.emoji} ${h.name} · อันดับ ${rank} จาก ${S.runners.length} · ลงไว้ ${r.joined.length}/${NSP} สปรินต์`;
+  $("mRank").textContent=`${h.emoji} ${h.name} · อันดับ ${rank} จาก ${students().length} · ลงไว้ ${r.joined.length}/${NSP} สปรินต์`;
   $("mStats").innerHTML=[
     ["CONTENTS", s.contents],["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
     ["STREAK 🔥", s.weekStreak+" สัปดาห์"],["ห่างจากเป้า", (s.pace>0?"+":"")+s.pace]
@@ -999,7 +1002,7 @@ async function renderStatus(){
   const rank=ranked().findIndex(x=>x.name===r.name)+1;
   (finished() ? drawCert() : drawCard());
   $("shTitle").textContent = (finished() ? "🎓 ใบประกาศ · " : "") + r.name + " · " + h.emoji + " " + h.name;
-  $("shSub").textContent=`อันดับ ${rank} จาก ${S.runners.length} คน · ปล่อยไปแล้ว ${s.contents} จาก ${FINISH} ชิ้น ใน ${s.activeDays} วัน`
+  $("shSub").textContent=`อันดับ ${rank} จาก ${students().length} คน · ปล่อยไปแล้ว ${s.contents} จาก ${FINISH} ชิ้น ใน ${s.activeDays} วัน`
     + (s.contents>=FINISH ? ` · ถึงเส้นชัยแล้ว 🏆` : ` · เหลืออีก ${FINISH-s.contents}`);
   $("shStats").innerHTML=[
     [`CONTENTS / ${FINISH}`, s.contents],["วันที่ปล่อยงาน", s.activeDays],
