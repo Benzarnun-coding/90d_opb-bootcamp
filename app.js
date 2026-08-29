@@ -325,7 +325,15 @@ const LiveDB = (()=>{
     async signOut(){ await sb.auth.signOut(); location.reload(); },
     async createProfile(p){
       const {error}=await sb.from("profiles").insert({id:session.user.id, name:p.name, color:p.color});
-      if(error) throw new Error(/duplicate/i.test(error.message)?"ชื่อหรือ handle นี้มีคนใช้แล้ว":error.message);
+      if(error){
+        /* บอกให้ตรงว่าชนตรงไหน ไม่งั้นผู้ใช้จะเปลี่ยนชื่อไปเรื่อย ๆ ทั้งที่ปัญหาอยู่ที่อื่น */
+        const m = error.message || "";
+        if(/profiles_name_key/i.test(m))        throw new Error("ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น");
+        if(/profiles_pkey/i.test(m))            throw new Error("คุณมีโปรไฟล์อยู่แล้ว ลองรีเฟรชหน้าเว็บ");
+        if(/profiles_handle_key/i.test(m))      throw new Error("ระบบตั้ง handle ให้ไม่สำเร็จ แจ้งทีมงาน");
+        if(/ไม่อยู่ในรายชื่อ|ถูกใช้สมัครไปแล้ว/.test(m)) throw new Error(m);
+        throw new Error(m);
+      }
       const {error:e2}=await sb.from("enrollments").insert(p.joined.map(s=>({profile_id:session.user.id,sprint_idx:s})));
       if(e2) throw new Error(e2.message);
     },
