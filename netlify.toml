@@ -5,6 +5,24 @@
   publish = "."
   command = ""
 
+# ลิงก์สั้นสำหรับแจกคน
+#   /play  = โหมดทดลองเล่น (ข้อมูลปลอมในเครื่องของคนเปิด ไม่แตะฐานข้อมูลจริง)
+#   /watch = ดูสนามจริงแบบไม่ต้องล็อกอิน
+[[redirects]]
+  from = "/play"
+  to   = "/?demo"
+  status = 302
+
+[[redirects]]
+  from = "/demo"
+  to   = "/?demo"
+  status = 302
+
+[[redirects]]
+  from = "/watch"
+  to   = "/#watch"
+  status = 302
+
 # ไม่ต้องเอาไฟล์ฝั่งฐานข้อมูลกับสคริปต์ dev ขึ้นเว็บ
 [[redirects]]
   from = "/backend/*"
