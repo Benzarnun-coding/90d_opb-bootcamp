@@ -199,19 +199,21 @@ function sprite(av, px=2, style="normal"){
   const LEG0=17+HR;
   const legs=FRAMES.map((_,i)=>
     `<g class="leg k${i}" style="animation-delay:-${(i*.12).toFixed(2)}s">${rects(i?buildGrid(av,style,i):g0,LEG0,ROWS)}</g>`).join("");
-  /* ลำเลเซอร์ยิงไปข้างหน้าจากตา เฉพาะโหมด LASER FOCUS */
-  const ey=(6+HR)*px;
-  const laser = style==="red"
-    ? `<rect x="${10*px}" y="${ey}" width="${6*px}" height="${px}" fill="#ff2020"/>`
-    + `<rect x="${10*px}" y="${ey}" width="${3*px}" height="${px}" fill="#fff2f2"/>`
-    : "";
   return `<svg width="${16*px}" height="${ROWS*px}" viewBox="0 0 ${16*px} ${ROWS*px}" shape-rendering="crispEdges">
-    ${rects(g0,0,LEG0)}${legs}${laser}</svg>`;
+    ${rects(g0,0,LEG0)}${legs}</svg>`;
 }
-const aura = () => `<span class="aura"><i></i><i></i><i></i></span>`;
+/* แถวบนสุดที่มีพิกเซล — ไว้วางป้ายชื่อให้ชิดหัว (หมวกสูงก็ขยับขึ้นตาม) */
+function spriteTop(av, style){
+  const g=buildGrid(av,style,0);
+  for(let y=0;y<ROWS;y++) if(g[y].some(c=>c!==".")) return y;
+  return HR;
+}
+/* ไฟรอบตัว: red = ไฟแดง (LASER FOCUS)  flame = ไฟทอง (PRO MAX) */
+const hasAura = style => style==="red" || style==="flame";
+const aura = (style="flame") => `<span class="aura ${style}"><i></i><i></i><i></i></span>`;
 function runnerBox(av, px, style="normal"){
   return `<div class="runner ${style}" style="position:relative;transform:none;width:auto">
-    <div class="body">${style==="flame"?aura():""}${sprite(av,px,style)}</div></div>`;
+    <div class="body">${hasAura(style)?aura(style):""}${sprite(av,px,style)}</div></div>`;
 }
 
 /* ================= MATH ================= */
@@ -787,12 +789,18 @@ function renderTrack(){
     const s=stats(r), h=houseOf(r.house);
     const p=Math.min(s.contents/FINISH,1);
     const role=roleOf(r), rtag=role==="head"?" COACH":role==="ta"?" TA":"";
-    /* ชื่อลอยอยู่เหนือหัวและวิ่งตามตัวละคร — ใกล้เส้นชัยให้ชิดขวาแทน จะได้ไม่ล้นออกนอกสนาม */
+    /* ป้ายชื่อ+ตัวเลขวางอยู่เหนือพิกเซลบนสุดของตัวละครพอดี (คิดจากหมวก/ผมจริง)
+       ต้นสนามชิดซ้าย กลางสนามอยู่กลางหัว ใกล้เส้นชัยชิดขวา จะได้ไม่ล้นออกนอกสนาม */
+    const av=avOf(r), top=spriteTop(av,s.style);
+    const side = p<0.12 ? "edgeL" : p>0.78 ? "edgeR" : "";
     return `<div class="lane ${r.name===S.me?"meLane":""}" data-n="${r.name}">
-      <div class="runner ${r.name===S.me?"me":""} ${s.style} ${p>0.72?"flip":""}" style="--p:${p}">
-        <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
-        <div class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</div>
-        <div class="body">${s.style==="flame"?aura():""}${sprite(avOf(r),2,s.style)}
+      <div class="runner ${r.name===S.me?"me":""} ${s.style}" style="--p:${p}">
+        <div class="body">
+          <div class="lbl ${side}" style="bottom:${(ROWS-top)*2}px">
+            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
+            <span class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</span>
+          </div>
+          ${hasAura(s.style)?aura(s.style):""}${sprite(av,2,s.style)}
           ${s.dayStreak?'<span class="dust"></span><span class="dust b"></span>':''}</div>
         <div class="shadow"></div>
       </div></div>`;
@@ -946,6 +954,12 @@ function drawSpriteCanvas(ctx, x, y, px, av, style){
     gr.addColorStop(.7,"rgba(255,70,10,.25)"); gr.addColorStop(1,"rgba(255,70,10,0)");
     ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
   }
+  if(style==="red"){
+    const gr=ctx.createRadialGradient(x+8*px, y+24*px, 2*px, x+8*px, y+22*px, 15*px);
+    gr.addColorStop(0,"rgba(255,120,120,.95)"); gr.addColorStop(.4,"rgba(255,40,70,.6)");
+    gr.addColorStop(.7,"rgba(200,0,40,.25)"); gr.addColorStop(1,"rgba(200,0,40,0)");
+    ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
+  }
   if(style==="boost"){
     const gr=ctx.createRadialGradient(x+8*px, y+16*px, 2*px, x+8*px, y+16*px, 13*px);
     gr.addColorStop(0,"rgba(57,229,255,.5)"); gr.addColorStop(1,"rgba(57,229,255,0)");
@@ -954,10 +968,6 @@ function drawSpriteCanvas(ctx, x, y, px, av, style){
   for(let ry=0;ry<ROWS;ry++) for(let cx=0;cx<16;cx++){
     const c=pal[g[ry][cx]]; if(!c) continue;
     ctx.fillStyle=c; ctx.fillRect(x+cx*px, y+ry*px, px, px);
-  }
-  if(style==="red"){
-    ctx.fillStyle="#ff2020"; ctx.fillRect(x+10*px, y+(6+HR)*px, 6*px, px);
-    ctx.fillStyle="#fff2f2"; ctx.fillRect(x+10*px, y+(6+HR)*px, 3*px, px);
   }
 }
 function drawCard(){
@@ -1027,7 +1037,7 @@ function drawCard(){
     const o=optOf(s.weekTarget);
     ctx.font="700 34px 'Pixelify Sans', monospace";
     ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":"#39e5ff";
-    ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔴":"🔵"} ${o.name} MODE`, W/2, 178);
+    ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":"🔵"} ${o.name} MODE`, W/2, 178);
   }
   ctx.font="500 24px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#6f68a8"; ctx.fillText("#CreatorBootcamp", W/2, H-34);
@@ -1294,11 +1304,11 @@ function drawPledgePick(){
     return `<button class="optCard plCard ${o.style} ${pickPledge===o.target?"on":""} ${locked}"
       data-t="${o.target}" ${locked?"disabled":""}>
       <div class="tick">${pickPledge===o.target?"[✓]":"[  ]"}</div>
-      <div class="opChar">${o.style==="flame"?aura():""}${sprite(avOf(me),2,o.style)}</div>
+      <div class="opChar">${hasAura(o.style)?aura(o.style):""}${sprite(avOf(me),2,o.style)}</div>
       <div class="no">${o.target} ชิ้น</div>
       <div class="nm">${o.name}</div>
       <div class="th">${o.th}</div>
-      <div class="wk">${o.style==="red"?"🔴 ตัวละครเป็นสีแดงทั้งสัปดาห์"
+      <div class="wk">${o.style==="red"?"🔥 ไฟแดงลุกทั้งตัวทั้งสัปดาห์"
         : o.style==="flame"?"🔥 ตัวละครติดไฟ โหมดซูเปอร์ไซย่า"
         : o.style==="boost"?"🔵 ตาเรืองแสงสีฟ้าทั้งสัปดาห์"
         : "เฉลี่ย "+(o.target/7).toFixed(1)+" ชิ้นต่อวัน"}</div>
@@ -1423,7 +1433,7 @@ $("plSave").onclick=async()=>{
     $("pledgeModal").classList.remove("on");
     const o=optOf(pickPledge);
     toast(o.style==="flame" ? `🔥 ${o.name}<br>ตัวละครติดไฟแล้ว`
-        : o.style==="red" ? `🔴 ${o.name}<br>ตัวละครเป็นสีแดงสัปดาห์นี้`
+        : o.style==="red" ? `🔥 ${o.name}<br>ไฟแดงลุกทั้งตัวสัปดาห์นี้`
         : o.style==="boost" ? `🔵 ${o.name}<br>ตาเรืองแสงฟ้าสัปดาห์นี้`
         : `รับเป้า ${o.target} ชิ้นแล้ว`);
   }catch(err){ toast(err.message); }
