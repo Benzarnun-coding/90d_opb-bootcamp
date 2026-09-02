@@ -887,7 +887,8 @@ function renderFilters(){
     .concat(HOUSES.map(h=>`<button class="fBtn ${cur===String(h.id)?"on":""}" data-f="${h.id}"
       style="${cur===String(h.id)?`background:linear-gradient(180deg,${h.color},${shift(h.color,-90)});color:#0d0a22`:""}">
       ${h.id===champHouse()?"🏆 ":""}${h.emoji} ${h.name}</button>`)).join("");
-  $("raceFilters").innerHTML=mk(S.raceFilter,"r");
+  const meBtn = S.spectator ? "" : `<button class="fBtn goMe" data-me="1">📍 ตัวฉัน</button>`;
+  $("raceFilters").innerHTML=mk(S.raceFilter,"r")+meBtn;
   $("boardFilters").innerHTML=mk(S.boardFilter,"b");
 }
 function renderTrack(){
@@ -1545,7 +1546,19 @@ $("joinBtn").onclick=async()=>{
 document.querySelector(".nav").onclick=e=>{
   const b=e.target.closest(".navBtn"); if(b) showPage(b.dataset.page);
 };
-$("raceFilters").onclick=e=>{ const b=e.target.closest(".fBtn"); if(b){ S.raceFilter=b.dataset.f; renderFilters(); renderTrack(); } };
+function scrollToMe(){
+  const el=document.querySelector(".lane.meLane");
+  if(!el){ toast("คุณไม่ได้อยู่ในกลุ่มนี้"); return; }
+  el.scrollIntoView({block:"center", behavior:"smooth"});
+  el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"), 1600);
+}
+$("raceFilters").onclick=e=>{
+  const b=e.target.closest(".fBtn"); if(!b) return;
+  if(b.dataset.me){ scrollToMe(); return; }
+  S.raceFilter=b.dataset.f; renderFilters(); renderTrack();
+  /* เปลี่ยนเป็นทั้งรุ่น/บ้าน แล้วพาไปหาตัวเองเลย จะได้รู้ว่าอยู่ตรงไหนของแถว */
+  if(S.raceFilter!=="near" && !S.spectator) setTimeout(scrollToMe, 60);
+};
 $("boardFilters").onclick=e=>{ const b=e.target.closest(".fBtn"); if(b){ S.boardFilter=b.dataset.f; renderFilters(); renderBoard(); } };
 $("lanes").onclick=e=>{ const l=e.target.closest(".lane"); if(l) openProfile(l.dataset.n); };
 $("board").onclick=e=>{ const t=e.target.closest("tr[data-n]"); if(t) openProfile(t.dataset.n); };

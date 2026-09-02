@@ -230,7 +230,14 @@
   .lane::after{content:""; position:absolute; left:0; right:0; bottom:0; height:5px;
     background:repeating-linear-gradient(90deg,#3a2f7a 0 12px,#241c56 12px 24px)}
   .lane:hover{background:rgba(123,116,214,.09)}
-  .lane.meLane{background:linear-gradient(90deg,rgba(255,204,77,.12),transparent)}
+  .lane.meLane{background:linear-gradient(90deg,rgba(255,204,77,.22),rgba(255,204,77,.06) 60%,transparent);
+    box-shadow:inset 4px 0 0 var(--gold), inset 0 0 0 2px rgba(255,204,77,.35)}
+  .lane.meLane::before{content:"YOU · อันดับของคุณ"; position:absolute; right:8px; top:6px; z-index:4; font-family:var(--f-px); font-weight:700;
+    font-size:11px; color:#0d0a22; background:var(--gold); padding:2px 8px; border:2px solid #fff3b0 #8a5a08 #8a5a08 #fff3b0}
+  .lane.meLane .name{color:var(--gold); text-shadow:0 2px 0 #000,0 0 10px rgba(255,204,77,.9)}
+  .lane.flash{animation:laneFlash 1.5s steps(2) 3}
+  @keyframes laneFlash{50%{background:rgba(255,204,77,.45)}}
+  .fBtn.goMe{margin-left:auto; border-color:var(--gold); color:var(--gold)}
   .runner .lbl{position:absolute; left:50%; transform:translateX(-50%); white-space:nowrap; z-index:5; text-align:center; line-height:1.15; pointer-events:none}
   .runner .lbl.edgeL{left:-4px; transform:none; text-align:left}
   .runner .lbl.edgeR{left:auto; right:-4px; transform:none; text-align:right}
