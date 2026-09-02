@@ -1141,21 +1141,24 @@ function drawCard(){
   /* ป้ายรางวัลที่ได้แล้ว */
   const bl = S.myDet ? earnedBadges(r,S.myDet) : [];
   if(bl.length){
-    ctx.font="44px sans-serif"; ctx.fillStyle="#fff";
-    ctx.fillText(bl.map(b=>b.e).join("  "), W/2, 1322);
+    ctx.font="36px sans-serif"; ctx.fillStyle="#fff";
+    ctx.fillText(bl.map(b=>b.e).join("  "), W/2, 1312);
   }
-  ctx.font="600 26px 'IBM Plex Sans Thai', sans-serif";
-  ctx.fillStyle="#9a92d8"; ctx.fillText(TAG, W/2, H-14);
-  drawCredit(ctx, W, H);
+  /* บรรทัดล่างสุด: แฮชแท็กซ้าย เครดิตขวา */
+  ctx.textAlign="left";
+  ctx.font="600 22px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#9a92d8"; ctx.fillText(TAG, 40, H-16);
+  drawCredit(ctx, W, H-16);
+  ctx.textAlign="center";
 }
 /* ลายน้ำเครดิต มุมขวาล่างของการ์ด — แคปหน้าจอไปก็ยังเห็น */
-function drawCredit(ctx, W, H){
+function drawCredit(ctx, W, y){
   if(!CREDIT) return;
   ctx.save();
   ctx.textAlign="right";
-  ctx.font="700 26px 'Pixelify Sans', monospace";
-  ctx.fillStyle="rgba(255,204,77,.9)"; ctx.shadowColor="#000"; ctx.shadowBlur=6;
-  ctx.fillText(CREDIT, W-40, H-46);
+  ctx.font="700 24px 'Pixelify Sans', monospace";
+  ctx.fillStyle="rgba(255,204,77,.95)"; ctx.shadowColor="#000"; ctx.shadowBlur=6;
+  ctx.fillText(CREDIT, W-40, y);
   ctx.restore();
 }
 /* ================= จบรุ่น: ใบประกาศ ================= */
@@ -1258,7 +1261,7 @@ function drawCert(){
   ctx.font="600 24px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#9a92d8";
   ctx.fillText(TAG, W/2, 1284);
-  drawCredit(ctx, W, H);
+  drawCredit(ctx, W, H-60);
 }
 
 function certText(){
