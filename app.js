@@ -378,10 +378,10 @@ const DemoDB = (()=>{
       house:me.house||1, role:"student", joined:me.joined, pledges:{}});
 
     /* บทบาทพิเศษในสนามสาธิต */
-    const BURN  = new Set([7,12,18,25,31,44]);   // รับ 10/14 สัปดาห์ที่แล้วแล้วพลาด → กระโหลก
-    const FLAME = new Set([6]);                  // PRO MAX มีคนเดียวในสาธิต
+    const BURN  = new Set([12,31]);              // กระโหลกแค่ 2 คน ไม่ให้น่ากลัว   // รับ 10/14 สัปดาห์ที่แล้วแล้วพลาด → กระโหลก
+    const FLAME = new Set([]);                   // PRO MAX คนเดียว = KING (คนที่ถึงเส้นชัย)
     const RED   = new Set([9,20,33]);            // ไฟแดงมีน้อย ๆ
-    const WEAK  = new Set([8,15,23,29,36,42,48]);   // รับ 4/7 สัปดาห์ที่แล้วแล้วพลาด → ร่างผอมแห้ง
+    const WEAK  = new Set([8,23,36,48]);   // รับ 4/7 สัปดาห์ที่แล้วแล้วพลาด → ร่างผอมแห้ง
     const FINISHER = 34;                          // KING วิ่งถึง 90 แล้ว
 
     runners.forEach((r,i)=>{
