@@ -480,6 +480,29 @@
     background:linear-gradient(180deg,#5b51c4,#332a80 60%,#221c50); border-color:#9d97ff #1a1450 #1a1450 #9d97ff; text-shadow:0 2px 0 #000}
   @media(max-width:700px){ .dress{grid-template-columns:1fr} }
 
+  /* ---------- GAMIFICATION ---------- */
+  .rival{flex-basis:100%; margin-top:10px; font-size:13px; color:#cdc7ff; line-height:1.7}
+  .badges{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
+  .badge{display:inline-flex; flex-direction:column; align-items:center; width:96px; padding:8px 4px; text-align:center;
+    border:2px solid var(--line); background:#120d30; opacity:.32}
+  .badge.on{opacity:1; border-color:var(--gold); box-shadow:0 0 10px rgba(255,204,77,.35)}
+  .badge i{font-style:normal; font-size:22px; line-height:1}
+  .badge b{font-family:var(--f-px); font-size:10px; color:#fff; margin-top:4px; letter-spacing:.3px}
+  .badge small{font-size:9.5px; color:var(--dim); line-height:1.3; margin-top:2px}
+  .drOpt.locked{opacity:.5} .drOpt.locked svg{filter:grayscale(.7) brightness(.45)}
+  .drOpt em{display:block; font-style:normal; font-size:9.5px; color:var(--gold); margin-top:3px; white-space:normal; line-height:1.3}
+  .cupNow{font-size:13px; color:#e6e1ff; margin:0 0 6px}
+  .cupHist{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px}
+  .cupHist span{font-family:var(--f-px); font-size:11px; padding:3px 7px; border:2px solid var(--line); color:#cdc7ff; background:#120d30}
+  .runner.cup .body::after{content:"✦"; position:absolute; top:6px; right:-8px; color:#ffcc4d; font-size:13px; z-index:6;
+    text-shadow:0 0 6px rgba(255,204,77,.9); animation:tw 1.1s steps(2) infinite alternate}
+  .runner.champ .body{filter:drop-shadow(0 0 10px rgba(255,204,77,.95))}
+  .runner .body.jump{animation:jump .65s steps(5) 1}
+  @keyframes jump{0%,100%{transform:translateY(0)} 35%{transform:translateY(-28px)} 65%{transform:translateY(-8px)}}
+  .confetti{position:fixed; inset:0; pointer-events:none; z-index:60}
+  .confetti i{position:absolute; bottom:42%; width:9px; height:9px; animation:conf 1.45s cubic-bezier(.2,.8,.4,1) forwards}
+  @keyframes conf{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r)); opacity:0}}
+
   /* ---------- MOBILE ---------- */
   @media(max-width:700px){
     .track{min-width:520px; padding:26px 10px 10px}
@@ -654,6 +677,8 @@
           <h3 id="shTitle">—</h3>
           <p id="shSub">—</p>
           <div class="statGrid" id="shStats"></div>
+          <label>ป้ายรางวัล</label>
+          <div id="shBadges"></div>
           <label>ข้อความสำหรับโพสต์</label>
           <textarea class="shareTxt" id="shareText"></textarea>
           <div class="shareBtns" style="margin-top:14px">
@@ -771,6 +796,7 @@
   </div>
   <div class="body">
     <div class="statGrid" style="grid-template-columns:repeat(4,1fr)" id="mStats"></div>
+    <div style="margin-top:14px"><label>ป้ายรางวัล</label><div id="mBadges"></div></div>
     <div style="margin-top:22px">
       <label>SPRINT MAP</label>
       <div id="pMap"></div>

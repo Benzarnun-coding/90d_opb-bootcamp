@@ -357,7 +357,19 @@ const DemoDB = (()=>{
     async fetchAll(){
       if(!db) db=build({name:"YOU", color:COLORS[0], joined:ALL_SPRINTS, avatar:{}});   // โหมดคนดูใน DEMO ยังไม่ได้สร้างตัวละคร
       const postedToday = db.subs.some(s=>s.who===db.me && s.day===db.today);
-      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday,
+      /* ถ้วยบ้าน: บ้านที่เฉลี่ยต่อคนสูงสุดของแต่ละสัปดาห์ที่จบแล้ว */
+      const cups=[], cw=weekOf(db.today);
+      for(let w=1; w<cw; w++){
+        let best=null;
+        HOUSES.forEach(hs=>{
+          const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id); if(!mem.length) return;
+          const n=db.subs.filter(s=>weekOf(s.day)===w && mem.some(m=>m.name===s.who)).length;
+          const avg=n/mem.length;
+          if(!best||avg>best.avg_pieces) best={week_no:w, house_id:hs.id, avg_pieces:+avg.toFixed(2), pieces:n, members:mem.length};
+        });
+        if(best) cups.push(best);
+      }
+      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, cups,
               started:true, daysUntil:0, startDate:null};
     },
     async rosterList(){
@@ -369,7 +381,12 @@ const DemoDB = (()=>{
     async detail(runner){
       const my=db.subs.filter(s=>s.who===runner.name);
       const byDay={}; my.forEach(s=>{ byDay[s.day]=(byDay[s.day]||0)+1; });
-      return {byDay, recent:[...my].sort((a,b)=>b.ts-a.ts).slice(0,15)};
+      const weeks=Object.entries(runner.pledges||{}).map(([w,t])=>{
+        const wn=+w, done=my.filter(s=>weekOf(s.day)===wn).length;
+        return {week_no:wn, target:t, done, hit:done>=t, finished:wn<weekOf(db.today)};
+      });
+      return {byDay, weeks, early:my.some(s=>new Date(s.ts).getHours()<6),
+              recent:[...my].sort((a,b)=>b.ts-a.ts).slice(0,15)};
     },
     async submit({url, platform}){
       const r=db.runners.find(x=>x.name===db.me);
@@ -481,12 +498,13 @@ const LiveDB = (()=>{
     },
     async fetchAll(){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
-      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn}]=await Promise.all([
+      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
         uidNow ? sb.from("pledges").select("week_no,target").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
-        sb.from("v_burnout").select("profile_id")
+        sb.from("v_burnout").select("profile_id"),
+        sb.from("v_house_cup").select("*")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -546,6 +564,7 @@ const LiveDB = (()=>{
         me: me ? me.name : null,
         postedToday: (todayCount||0) > 0,
         started, daysUntil, startDate: co.start_date,
+        cups: cups||[],
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -566,13 +585,18 @@ const LiveDB = (()=>{
     },
     /* รายละเอียดของคนเดียว — ใช้ตอนเปิดโปรไฟล์หรือหน้า Status */
     async detail(runner){
-      const {data}=await sb.from("submissions")
-        .select("id,platform,url,day_index,sprint_idx,created_at")
-        .eq("profile_id",runner.id).eq("status","approved")
-        .order("created_at",{ascending:false}).limit(400);
+      const [{data},{data:wk}]=await Promise.all([
+        sb.from("submissions")
+          .select("id,platform,url,day_index,sprint_idx,created_at")
+          .eq("profile_id",runner.id).eq("status","approved")
+          .order("created_at",{ascending:false}).limit(400),
+        sb.from("v_week_progress").select("week_no,target,done,hit,finished").eq("profile_id",runner.id)
+      ]);
       const byDay={};
       (data||[]).forEach(s=>{ byDay[s.day_index]=(byDay[s.day_index]||0)+1; });
-      return {byDay, recent:(data||[]).slice(0,15).map(s=>({
+      /* ส่งก่อน 6 โมงเช้าเวลาไทย */
+      const early=(data||[]).some(s=>((new Date(s.created_at).getUTCHours()+7)%24) < 6);
+      return {byDay, weeks:wk||[], early, recent:(data||[]).slice(0,15).map(s=>({
         id:s.id, who:runner.name, day:s.day_index, sp:s.sprint_idx,
         plat:s.platform, url:s.url, ts:new Date(s.created_at).getTime()}))};
     },
@@ -754,7 +778,10 @@ function renderPledge(){
         ${st.contents>=FINISH ? `🏆 ถึงเส้นชัยแล้ว! เกินมา +${st.contents-FINISH}`
           : `เส้นชัย ${FINISH} ชิ้น · เหลืออีก ${FINISH-st.contents}`}
       </div>
-    </div>` + nudge;
+    </div>
+    <div class="rival">${st.burnout
+      ? `💀 สัปดาห์นี้เป็นร่างกระโหลก · ทำครบ ${st.weekTarget} ชิ้น = <b style="color:var(--gold)">ฟื้นคืนชีพ</b> ได้ป้าย REVIVED · `
+      : ""}${rivalHTML(r)}</div>` + nudge;
 }
 
 /* ================= TRACK ================= */
@@ -773,7 +800,7 @@ function renderFilters(){
       style="${cur==="all"?"background:linear-gradient(180deg,#5b51c4,#332a80)":""}">ทั้งรุ่น</button>`]
     .concat(HOUSES.map(h=>`<button class="fBtn ${cur===String(h.id)?"on":""}" data-f="${h.id}"
       style="${cur===String(h.id)?`background:linear-gradient(180deg,${h.color},${shift(h.color,-90)});color:#0d0a22`:""}">
-      ${h.emoji} ${h.name}</button>`)).join("");
+      ${h.id===champHouse()?"🏆 ":""}${h.emoji} ${h.name}</button>`)).join("");
   $("raceFilters").innerHTML=mk(S.raceFilter,"r");
   $("boardFilters").innerHTML=mk(S.boardFilter,"b");
 }
@@ -795,7 +822,7 @@ function renderTrack(){
     const av=avOf(r), top=spriteTop(av,s.style);
     const side = p<0.12 ? "edgeL" : p>0.78 ? "edgeR" : "";
     return `<div class="lane ${r.name===S.me?"meLane":""}" data-n="${r.name}">
-      <div class="runner ${r.name===S.me?"me":""} ${s.style}" style="--p:${p}">
+      <div class="runner ${r.name===S.me?"me":""} ${s.style} ${r.house===champHouse()&&roleOf(r)==="student"?"cup":""} ${s.contents>=FINISH?"champ":""}" style="--p:${p}">
         <div class="body">
           <div class="lbl ${side}" style="bottom:${(ROWS-top)*2}px">
             <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
@@ -808,7 +835,10 @@ function renderTrack(){
   }).join("") : `<div class="noJoin">ยังไม่มีใครในกลุ่มนี้</div>`;
 
   $("trackTitle").textContent=`RACE TRACK · ${FINISH} CONTENTS`;
-  $("trackSub").textContent="ระยะทาง = จำนวนคอนเทนต์ · เส้นฟ้า = เป้าของคุณ ณ สัปดาห์นี้";
+  const cc=champCup();
+  $("trackSub").textContent = cc
+    ? `🏆 บ้านแชมป์สัปดาห์ที่แล้ว: ${houseOf(cc.house_id).emoji} ${houseOf(cc.house_id).name} (เฉลี่ย ${cc.avg_pieces} ชิ้น/คน) · ระยะทาง = จำนวนคอนเทนต์`
+    : "ระยะทาง = จำนวนคอนเทนต์ · เส้นฟ้า = เป้าของคุณ ณ สัปดาห์นี้";
 }
 
 /* ================= SCOREBOARD ================= */
@@ -823,10 +853,18 @@ function renderHouses(){
     return {h, mem:mem.length, avg, rate, behind, laser};
   }).sort((a,b)=>b.rate-a.rate || b.avg-a.avg);
 
+  /* ประวัติถ้วยรายสัปดาห์ */
+  let hist=$("cupHist");
+  if(!hist){ hist=document.createElement("div"); hist.id="cupHist"; $("houseGrid").parentNode.insertBefore(hist,$("houseGrid")); }
+  const cc=champCup();
+  hist.innerHTML = (S.cups||[]).length
+    ? `<div class="cupNow">${cc ? `🏆 บ้านแชมป์สัปดาห์ที่แล้ว: <b style="color:${houseOf(cc.house_id).color}">${houseOf(cc.house_id).emoji} ${houseOf(cc.house_id).name}</b> · เฉลี่ย ${cc.avg_pieces} ชิ้น/คน` : "🏆 ถ้วยสัปดาห์ที่แล้วยังไม่ตัดสิน"}</div>
+       <div class="cupHist">${(S.cups||[]).map(c=>`<span title="เฉลี่ย ${c.avg_pieces} ชิ้น/คน">W${c.week_no} ${houseOf(c.house_id).emoji}</span>`).join("")}</div>`
+    : `<div class="cupNow" style="color:var(--dim)">🏆 ถ้วยบ้านรายสัปดาห์ — ตัดสินทุกต้นสัปดาห์จากค่าเฉลี่ยชิ้นต่อคน บ้านที่ชนะได้มงกุฎบนสนาม 7 วัน</div>`;
   $("houseGrid").innerHTML=rows.map((x,i)=>`
     <div class="houseCard" style="border-color:${x.h.color} ${shift(x.h.color,-110)} ${shift(x.h.color,-110)} ${x.h.color}">
       <div class="hr">${x.h.emoji}</div>
-      <div class="hn" style="color:${x.h.color}">${i===0?"👑 ":""}${x.h.name}</div>
+      <div class="hn" style="color:${x.h.color}">${x.h.id===champHouse()?"🏆 ":""}${x.h.name}${cupsOf(x.h.id)?` <small style="font-size:11px;color:var(--gold)">ถ้วย ×${cupsOf(x.h.id)}</small>`:""}</div>
       <div class="hth">${x.h.th} · ${x.mem} คน</div>
       <div class="hv">${x.avg.toFixed(1)}</div>
       <div class="hl">คอนเทนต์เฉลี่ยต่อคน · ทำได้ ${Math.round(x.rate)}% ของเป้า</div>
@@ -937,9 +975,11 @@ async function openProfile(name){
     ["CONTENTS", s.contents],["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
     ["STREAK 🔥", s.weekStreak+" สัปดาห์"],["ห่างจากเป้า", (s.pace>0?"+":"")+s.pace]
   ].map(([l,v])=>`<div class="statBox"><b>${v}</b><span>${l}</span></div>`).join("");
-  let det={byDay:{},recent:[]};
+  let det={byDay:{},recent:[],weeks:[]};
+  $("mBadges").innerHTML="";
   try{ det=await DB.detail(r); }catch(e){ console.error(e); }
   $("pMap").innerHTML=mapHTML(r, det.byDay);
+  $("mBadges").innerHTML=badgesHTML(earnedBadges(r,det), false);
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
@@ -1040,8 +1080,14 @@ function drawCard(){
     ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":"#39e5ff";
     ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":"🔵"} ${o.name} MODE`, W/2, 178);
   }
-  ctx.font="500 24px 'IBM Plex Sans Thai', sans-serif";
-  ctx.fillStyle="#6f68a8"; ctx.fillText("#CreatorBootcamp", W/2, H-34);
+  /* ป้ายรางวัลที่ได้แล้ว */
+  const bl = S.myDet ? earnedBadges(r,S.myDet) : [];
+  if(bl.length){
+    ctx.font="44px sans-serif"; ctx.fillStyle="#fff";
+    ctx.fillText(bl.map(b=>b.e).join("  "), W/2, 1322);
+  }
+  ctx.font="500 20px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#6f68a8"; ctx.fillText("#CreatorBootcamp", W/2, H-12);
 }
 /* ================= จบรุ่น: ใบประกาศ ================= */
 const finished = () => S.today > TOTAL;
@@ -1161,6 +1207,7 @@ function shareTextOf(){
   return `ปล่อยไปแล้ว ${s.contents} คอนเทนต์${fin} ใน ${C.TITLE} 🏁\n`
    + `${h.emoji} บ้าน ${h.name} · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`
    + (o?`สัปดาห์นี้รับเป้า ${o.name} ${o.target} ชิ้น — ทำไปแล้ว ${s.weekDone}\n`:"")
+   + rivalText(r)
    + `streak ${s.weekStreak} สัปดาห์ 🔥\n#CreatorBootcamp`;
 }
 async function renderStatus(){
@@ -1178,8 +1225,11 @@ async function renderStatus(){
   ].map(([l,v])=>`<div class="statBox"><b>${v}</b><span>${l}</span></div>`).join("");
   $("shareText").value = finished() ? certText() : shareTextOf();
   $("mMap").innerHTML=`<div class="noJoin">กำลังโหลด…</div>`;
-  try{ const det=await DB.detail(r); $("mMap").innerHTML=mapHTML(r, det.byDay); }
-  catch(e){ console.error(e); $("mMap").innerHTML=`<div class="noJoin">โหลดแผนที่ไม่สำเร็จ</div>`; }
+  $("shBadges").innerHTML = S.myDet ? badgesHTML(earnedBadges(r,S.myDet), true) : "";
+  try{ const det=await DB.detail(r); S.myDet=det; $("mMap").innerHTML=mapHTML(r, det.byDay);
+    $("shBadges").innerHTML=badgesHTML(earnedBadges(r,det), true);
+    (finished() ? drawCert() : drawCard());          // วาดใหม่ให้มีป้ายบนการ์ด
+  }catch(e){ console.error(e); $("mMap").innerHTML=`<div class="noJoin">โหลดแผนที่ไม่สำเร็จ</div>`; }
 }
 function canvasBlob(){
   return new Promise(res=>$("shareCanvas").toBlob(res,"image/png"));
@@ -1408,7 +1458,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") document.querySele
 $("pushBtn").onclick=async()=>{
   const url=$("url").value.trim();
   if(!/^https?:\/\/.+\..+/.test(url)) return toast("ใส่ลิงก์ให้ถูก<br>ต้องขึ้นต้นด้วย http(s)://");
-  const before=stats(meR());
+  const before=stats(meR()), hadUnlocked=unlockedSet(before);
   $("pushBtn").disabled=true;
   try{
     await DB.submit({url, platform:$("plat").value});
@@ -1417,11 +1467,18 @@ $("pushBtn").onclick=async()=>{
     await refresh();
     const after=stats(meR());
     const o=after.weekTarget?optOf(after.weekTarget):null;
-    let msg=`+1 CONTENT · รวม ${after.contents} ชิ้น`;
-    if(o && before.weekDone<o.target && after.weekDone>=o.target)
-      msg=`ครบเป้าสัปดาห์นี้แล้ว! 🎉<br>${o.name} ${o.target}/${o.target}`;
+    let msg=`+1 CONTENT · รวม ${after.contents} ชิ้น`, kind="submit";
+    if(o && before.weekDone<o.target && after.weekDone>=o.target){
+      if(before.burnout){ msg=`ฟื้นคืนชีพ! 💀→🔥<br>ทำครบเป้าทั้งที่เป็นร่างกระโหลก ได้ป้าย REVIVED`; kind="revive"; }
+      else { msg=`ครบเป้าสัปดาห์นี้แล้ว! 🎉<br>${o.name} ${o.target}/${o.target}`; kind="target"; }
+    }
     else if(o) msg=`+1 CONTENT · สัปดาห์นี้ ${after.weekDone}/${o.target}`;
-    toast(msg);
+    if(after.contents>=FINISH && before.contents<FINISH){ msg=`🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว!<br>ออร่าทองถาวรติดตัวตลอดรุ่น`; kind="target"; }
+    celebrate(kind); toast(msg);
+    /* ปลดล็อกของแต่งตัวใหม่ */
+    const fresh=[...unlockedSet(after)].filter(k=>!hadUnlocked.has(k));
+    if(fresh.length) setTimeout(()=>{ celebrate("unlock");
+      toast(`🔓 ปลดล็อกแล้ว: ${fresh.map(k=>UNLOCKS[k].th).join(" · ")}<br>ไปใส่ได้ที่ห้องแต่งตัว`); }, 2200);
   }catch(err){ toast(err.message); }
   $("pushBtn").disabled=false;
 };
@@ -1494,10 +1551,12 @@ window.openDress=openDress;
 function drawDress(){
   $("drPreview").innerHTML=runnerBox(drAv,7);
   $("drTabs").innerHTML=DR_CATS.map(([k,n])=>`<button class="drTab ${k===drCat?"on":""}" data-k="${k}">${n}</button>`).join("");
+  const st = drMode==="arena" ? stats(meR()) : EMPTY_ST;
   $("drOpts").innerHTML=DR_OPTS[drCat].map((o,i)=>{
     const av=Object.assign({},drAv,{[drCat]:i});
     const label = DR_LABEL[drCat] ? DR_LABEL[drCat](i) : o;
-    return `<button class="drOpt ${drAv[drCat]===i?"on":""}" data-i="${i}">${sprite(av,4,"normal")}<span>${label}</span></button>`;
+    const lock = lockOf(drCat,i,st);
+    return `<button class="drOpt ${drAv[drCat]===i?"on":""} ${lock?"locked":""}" data-i="${i}">${sprite(av,4,"normal")}<span>${label}</span>${lock?`<em>🔒 ${lock.how}</em>`:""}</button>`;
   }).join("");
   $("drSwatches").innerHTML=COLORS.map(c=>
     `<button class="sw ${c===drAv.color?"sel":""}" data-c="${c}"
@@ -1506,7 +1565,10 @@ function drawDress(){
 $("drTabs").onclick=e=>{ const b=e.target.closest(".drTab"); if(b){ drCat=b.dataset.k; drawDress(); } };
 $("drOpts").onclick=e=>{
   const b=e.target.closest(".drOpt"); if(!b) return;
-  const i=+b.dataset.i; drAv[drCat]=i;
+  const i=+b.dataset.i;
+  const lock=lockOf(drCat,i, drMode==="arena" ? stats(meR()) : EMPTY_ST);
+  if(lock) return toast(`🔒 ${lock.th} ปลดล็อกเมื่อ${lock.how}`);
+  drAv[drCat]=i;
   /* เปลี่ยนเพศแล้วสลับทรงผมเริ่มต้นให้ ถ้ายังใช้ทรงพื้นฐานอยู่ */
   if(drCat==="g"){ if(i===1 && [0,1,4].includes(drAv.hr)) drAv.hr=2; if(i===0 && [2,3].includes(drAv.hr)) drAv.hr=0; }
   drawDress();
@@ -1524,11 +1586,139 @@ $("drSave").onclick=async()=>{
 $("dressBtn").onclick=()=>openDress("select");
 $("dressBtn2").onclick=()=>openDress("arena");
 
+/* ================= GAMIFICATION ================= */
+/* ---- 1. ปลดล็อกของแต่งตัวด้วยผลงาน
+   เช็คจาก stats ของตัวเองฝั่งเว็บ (ของแต่งตัวไม่มีผลต่อคะแนน เลยไม่ต้องกันฝั่งเซิร์ฟเวอร์)
+   key = หมวด:index ในห้องแต่งตัว ---- */
+const UNLOCKS = {
+  "gl:3":  {th:"แว่นกันแดด",  need:s=>s.contents>=10, how:"ปล่อยครบ 10 ชิ้น"},
+  "hat:6": {th:"หมวกคาวบอย",  need:s=>s.contents>=20, how:"ปล่อยครบ 20 ชิ้น"},
+  "hat:5": {th:"หมวกทรงสูง",  need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "top:5": {th:"สูทผูกไท",    need:s=>s.contents>=45, how:"ปล่อยครบ 45 ชิ้น (ครึ่งทาง)"},
+  "hat:3": {th:"มงกุฎ",       need:s=>s.weeksHit>=3,  how:"ทำครบเป้า 3 สัปดาห์"},
+  "hr:8":  {th:"ผมแอฟโฟร",    need:s=>s.dayStreak>=7, how:"ส่งติดกัน 7 วัน"},
+  "hat:7": {th:"หมวกพ่อมด",   need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"}
+};
+const unlockedSet = st => new Set(Object.keys(UNLOCKS).filter(k=>UNLOCKS[k].need(st||EMPTY_ST)));
+const lockOf = (cat,i,st) => { const u=UNLOCKS[cat+":"+i]; return (u && !u.need(st||EMPTY_ST)) ? u : null; };
+
+/* ---- 2. คู่แข่งข้างหน้า — อันดับ 137 ไม่มีความหมาย แต่ "ห่างจากคนข้างหน้า 2 ชิ้น" มี ---- */
+function rivalOf(me){
+  const list=ranked().filter(r=>roleOf(r)==="student");
+  const i=list.findIndex(r=>r.name===me.name);
+  if(i<0) return null;
+  const my=stats(me).contents;
+  if(i===0){ const b=list[1]; return {lead:true, who:b||null, gap:b?my-stats(b).contents:0}; }
+  const a=list[i-1];
+  return {lead:false, who:a, gap:stats(a).contents-my};
+}
+function rivalHTML(me){
+  const rv=rivalOf(me); if(!rv) return "";
+  if(rv.lead) return rv.who
+    ? `👑 คุณนำทั้งรุ่นอยู่ · <b style="color:${nameColor(rv.who)}">${rv.who.name}</b> ตามมาห่าง ${rv.gap} ชิ้น`
+    : "👑 คุณนำทั้งรุ่นอยู่";
+  const gap=rv.gap;
+  return `🎯 ข้างหน้าคุณคือ <b style="color:${nameColor(rv.who)}">${rv.who.name}</b> · `
+    + (gap>0 ? `ห่างแค่ <b style="color:var(--gold)">${gap} ชิ้น</b> — ส่งอีก ${gap+1} ชิ้นแซงได้` : `คะแนนเท่ากัน — อีก 1 ชิ้นแซงเลย`);
+}
+function rivalText(me){
+  const rv=rivalOf(me); if(!rv||!rv.who) return "";
+  return rv.lead ? `👑 นำทั้งรุ่น · ${rv.who.name} ตามมาห่าง ${rv.gap} ชิ้น\n` : `🎯 ไล่ ${rv.who.name} อยู่ ห่างอีก ${rv.gap} ชิ้น\n`;
+}
+
+/* ---- 3. ป้ายรางวัล — คิดจากประวัติของคนนั้น (detail) + stats ---- */
+const BADGES=[
+  {k:"first",   e:"🎬", n:"FIRST POST",   th:"ปล่อยชิ้นแรก",                       test:c=>c.st.contents>=1},
+  {k:"streak7", e:"🔥", n:"7-DAY STREAK", th:"ส่งติดกัน 7 วัน",                    test:c=>c.maxDay>=7},
+  {k:"hit3",    e:"🎯", n:"HAT-TRICK",    th:"ครบเป้า 3 สัปดาห์ซ้อน",              test:c=>c.maxHit>=3},
+  {k:"early",   e:"🌅", n:"EARLY BIRD",   th:"ส่งงานก่อน 6 โมงเช้า",                test:c=>c.early},
+  {k:"laser",   e:"🔴", n:"LASER",        th:"เคยรับเป้า 10 ชิ้น",                  test:c=>c.weeks.some(w=>w.target>=10&&w.target<14)},
+  {k:"promax",  e:"🔥", n:"PRO MAX",      th:"เคยรับเป้า 14 ชิ้น",                  test:c=>c.weeks.some(w=>w.target>=14)},
+  {k:"revive",  e:"💀", n:"REVIVED",      th:"พลาดเป้าหนักจนเป็นกระโหลก แล้วกลับมาทำครบ", test:c=>c.revived},
+  {k:"c30",     e:"🥉", n:"30 CONTENTS",  th:"ปล่อยครบ 30 ชิ้น",                    test:c=>c.st.contents>=30},
+  {k:"c60",     e:"🥈", n:"60 CONTENTS",  th:"ปล่อยครบ 60 ชิ้น",                    test:c=>c.st.contents>=60},
+  {k:"c90",     e:"🏆", n:"FINISHER",     th:"ถึงเส้นชัย 90 ชิ้น",                  test:c=>c.st.contents>=FINISH},
+  {k:"cup",     e:"👑", n:"HOUSE CUP",    th:"บ้านของคุณชนะถ้วยรายสัปดาห์",         test:c=>c.cups>0}
+];
+function badgeCtx(r, det){
+  const st=stats(r), weeks=((det&&det.weeks)||[]).slice().sort((a,b)=>a.week_no-b.week_no);
+  const byDay=(det&&det.byDay)||{};
+  let maxDay=0, run=0;
+  for(let d=1; d<=S.today; d++){ if(byDay[d]){ run++; maxDay=Math.max(maxDay,run); } else run=0; }
+  let maxHit=0, hh=0, revived=false, burnedAt=null;
+  const cw=curWeek();
+  weeks.forEach(w=>{
+    const decided = w.finished || w.week_no<cw;
+    if(decided || w.hit){ if(w.hit){ hh++; maxHit=Math.max(maxHit,hh); } else if(decided) hh=0; }
+    if(decided && w.target>=HEAVY && !w.hit) burnedAt=w.week_no;
+    else if(burnedAt!==null && w.hit && w.week_no>burnedAt) revived=true;
+  });
+  const cups=(S.cups||[]).filter(c=>c.house_id===r.house).length;
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups};
+}
+const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)); };
+function badgesHTML(list, showAll){
+  const html=BADGES.map(b=>{
+    const on=list.includes(b); if(!on && !showAll) return "";
+    return `<span class="badge ${on?"on":""}" title="${b.th}"><i>${b.e}</i><b>${b.n}</b><small>${b.th}</small></span>`;
+  }).join("");
+  return html ? `<div class="badges">${html}</div>` : `<div class="noJoin" style="padding:10px">ยังไม่มีป้าย — ปล่อยชิ้นแรกก็ได้ป้ายแรกแล้ว</div>`;
+}
+
+/* ---- 4. ถ้วยบ้านรายสัปดาห์ — บ้านที่เฉลี่ยต่อคนสูงสุดของสัปดาห์ที่แล้ว ---- */
+const champCup   = () => (S.cups||[]).find(c=>c.week_no===curWeek()-1) || null;
+const champHouse = () => { const c=champCup(); return c ? c.house_id : null; };
+const cupsOf     = hid => (S.cups||[]).filter(c=>c.house_id===hid).length;
+
+/* ---- 5. ฟีดแบ็กตอนส่งงาน — เสียง 8-bit จาก WebAudio (ไม่ต้องมีไฟล์) + กระโดด + confetti ---- */
+let AC=null;
+function beep(freq, dur, type="square", vol=.15, when=0){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(AC.destination);
+    const t=AC.currentTime+when;
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+const SFX={
+  coin:   ()=>{ beep(988,.08); beep(1319,.28,"square",.15,.08); },
+  fanfare:()=>{ [523,659,784,1047].forEach((f,i)=>beep(f,.18,"square",.14,i*.11)); beep(1319,.55,"square",.14,.46); },
+  unlock: ()=>{ [784,988,1175,1568].forEach((f,i)=>beep(f,.13,"triangle",.16,i*.08)); },
+  revive: ()=>{ beep(196,.3,"sawtooth",.12); beep(392,.2,"square",.12,.3); beep(784,.45,"square",.14,.5); }
+};
+function confetti(n=48){
+  const box=document.createElement("div"); box.className="confetti";
+  for(let i=0;i<n;i++){
+    const p=document.createElement("i");
+    p.style.left=(50+(Math.random()*40-20))+"%";
+    p.style.background=COLORS[i%COLORS.length];
+    p.style.setProperty("--dx",(Math.random()*420-210)+"px");
+    p.style.setProperty("--dy",(-(220+Math.random()*320))+"px");
+    p.style.setProperty("--r",(Math.random()*720)+"deg");
+    p.style.animationDelay=(Math.random()*.15)+"s";
+    box.appendChild(p);
+  }
+  document.body.appendChild(box); setTimeout(()=>box.remove(),1700);
+}
+function jumpMe(){
+  const el=document.querySelector(".runner.me .body");
+  if(el){ el.classList.add("jump"); setTimeout(()=>el.classList.remove("jump"),700); }
+}
+function celebrate(kind){
+  if(kind==="submit"){ SFX.coin(); jumpMe(); }
+  if(kind==="target"){ SFX.fanfare(); jumpMe(); confetti(); }
+  if(kind==="unlock"){ SFX.unlock(); confetti(30); }
+  if(kind==="revive"){ SFX.revive(); jumpMe(); confetti(70); }
+}
+
 /* ================= BOOT ================= */
 async function refresh(){
   const d=await DB.fetchAll();
   S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
   S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
+  S.cups = d.cups||[];
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
   renderAll();
 }
