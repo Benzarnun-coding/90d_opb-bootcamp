@@ -171,6 +171,7 @@ function buildGrid(av, style, frame){
     if(mo===3){ for(let x=5;x<=9;x++){ set(7,x,"M");set(8,x,"M"); } for(let x=6;x<=8;x++) set(7,x,"W"); }
     if(mo===4){ for(let x=5;x<=9;x++) set(7,x,"H"); set(8,4,"H");set(8,10,"H"); }
     if(mo===5){ for(let x=5;x<=9;x++) set(7,x,"H"); for(let x=3;x<=12;x++){ set(8,x,"H");set(9,x,"H"); } set(10,4,"H");set(10,11,"H"); for(let x=5;x<=10;x++) set(10,x,"H"); }
+    if(style==="flame"){ set(5,4,"E");set(5,9,"E"); }       // PRO MAX: ตาแดงโตเรืองแสง
   }
   /* ---- แว่น (2-3 แถว ให้เห็นชัด) ---- */
   const gl=av.gl;
@@ -210,7 +211,7 @@ function spriteTop(av, style){
 }
 /* ไฟรอบตัว: red = ไฟแดง (LASER FOCUS)  flame = ไฟทอง (PRO MAX) */
 const hasAura = style => style==="red" || style==="flame";
-const aura = (style="flame") => `<span class="aura ${style}"><i></i><i></i><i></i></span>`;
+const aura = (style="flame") => `<span class="aura ${style}">${"<i></i>".repeat(style==="flame"?5:3)}</span>`;
 function runnerBox(av, px, style="normal"){
   return `<div class="runner ${style}" style="position:relative;transform:none;width:auto">
     <div class="body">${hasAura(style)?aura(style):""}${sprite(av,px,style)}</div></div>`;
@@ -949,10 +950,10 @@ async function openProfile(name){
 function drawSpriteCanvas(ctx, x, y, px, av, style){
   const pal=palette(av,style), g=buildGrid(av,style,1);
   if(style==="flame"){
-    const gr=ctx.createRadialGradient(x+8*px, y+24*px, 2*px, x+8*px, y+22*px, 15*px);
-    gr.addColorStop(0,"rgba(255,220,90,.95)"); gr.addColorStop(.4,"rgba(255,140,20,.6)");
-    gr.addColorStop(.7,"rgba(255,70,10,.25)"); gr.addColorStop(1,"rgba(255,70,10,0)");
-    ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
+    const gr=ctx.createRadialGradient(x+8*px, y+24*px, 3*px, x+8*px, y+18*px, 24*px);
+    gr.addColorStop(0,"rgba(255,240,150,1)"); gr.addColorStop(.3,"rgba(255,200,50,.85)");
+    gr.addColorStop(.6,"rgba(255,130,20,.45)"); gr.addColorStop(1,"rgba(255,80,10,0)");
+    ctx.fillStyle=gr; ctx.fillRect(x-18*px, y-12*px, 52*px, 46*px);
   }
   if(style==="red"){
     const gr=ctx.createRadialGradient(x+8*px, y+24*px, 2*px, x+8*px, y+22*px, 15*px);

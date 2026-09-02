@@ -128,9 +128,10 @@
   .optCard.plCard{padding-right:78px; min-height:150px}
   .opChar{position:absolute; right:12px; bottom:14px; width:32px; height:56px}
   .opChar svg{position:relative; z-index:2}
-  .opChar .aura{left:50%; bottom:-4px; width:52px; height:64px; margin-left:-26px}
+  .opChar .aura{left:50%; bottom:-6px; width:84px; height:104px; margin-left:-42px}
+  .opChar .aura.red{width:52px; height:64px; margin-left:-26px; bottom:-4px}
   .optCard.red .opChar{filter:drop-shadow(0 0 6px rgba(255,40,70,.9))}
-  .optCard.flame .opChar{filter:drop-shadow(0 0 8px rgba(255,180,40,1))}
+  .optCard.flame .opChar{filter:drop-shadow(0 0 14px rgba(255,200,60,1))}
   .optCard.locked{opacity:.5; cursor:not-allowed}
   .optCard.locked:hover{transform:none}
   .optCard.red.on{border-color:#ff8fa3 #8a1730 #8a1730 #ff8fa3; box-shadow:0 0 20px rgba(255,77,109,.45)}
@@ -263,10 +264,10 @@
 
   /* ---------- CHARACTER FX ---------- */
   .runner.red .body{filter:drop-shadow(0 0 7px rgba(255,40,70,.95))}
-  .aura{position:absolute; left:50%; bottom:-6px; width:62px; height:76px; margin-left:-31px; z-index:1;
+  .aura{position:absolute; left:50%; bottom:-8px; width:100px; height:124px; margin-left:-50px; z-index:1;
     pointer-events:none;
-    background:radial-gradient(ellipse at 50% 78%,rgba(255,214,80,.95) 0%,rgba(255,140,20,.7) 30%,
-               rgba(255,70,10,.35) 52%,transparent 72%);
+    background:radial-gradient(ellipse at 50% 80%,rgba(255,245,170,1) 0%,rgba(255,205,60,.9) 26%,
+               rgba(255,150,30,.6) 48%,rgba(255,90,10,.25) 64%,transparent 76%);
     animation:auraPulse .28s steps(2) infinite alternate;
     filter:blur(.4px)}
   @keyframes auraPulse{from{transform:scaleY(1) scaleX(1); opacity:.95}
@@ -276,9 +277,14 @@
     animation:spark .5s steps(3) infinite; opacity:.9}
   .aura i:nth-child(2){margin-left:-16px; animation-delay:-.18s; height:10px}
   .aura i:nth-child(3){margin-left:8px;  animation-delay:-.33s; height:11px}
+  .aura i:nth-child(4){margin-left:-28px; animation-delay:-.09s; height:16px; bottom:60%}
+  .aura i:nth-child(5){margin-left:20px;  animation-delay:-.41s; height:18px; bottom:62%}
+  /* ไฟแดงของ LASER FOCUS เล็กกว่าไฟทอง PRO MAX */
+  .aura.red{width:62px; height:76px; margin-left:-31px; bottom:-6px}
+  .aura.red i:nth-child(n+4){display:none}
   @keyframes spark{from{transform:translateY(0) scale(1); opacity:.95}
                    to{transform:translateY(-16px) scale(.3); opacity:0}}
-  .runner.flame .body{filter:drop-shadow(0 0 9px rgba(255,180,40,1))}
+  .runner.flame .body{filter:drop-shadow(0 0 16px rgba(255,200,60,1)) drop-shadow(0 0 4px rgba(255,80,0,.9))}
   .aura.red{background:radial-gradient(ellipse at 50% 78%,rgba(255,150,150,.95) 0%,rgba(255,40,70,.75) 30%,
                rgba(200,0,40,.4) 52%,transparent 72%)}
   .aura.red i{background:linear-gradient(180deg,#ffd0d0,#ff2436)}
