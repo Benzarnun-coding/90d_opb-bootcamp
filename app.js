@@ -29,8 +29,10 @@ const $ = id => document.getElementById(id);
 
 /* ================= SPRITE ================= */
 /* ตัวละครประกอบจากชั้น: ร่างพื้นฐาน → เสื้อ → กางเกง → ผม → หน้า → แว่น → หมวก
-   ทุกชั้นวาดลงตาราง 16x24 ตัวอักษร แล้ว palette() แปลงตัวอักษรเป็นสี
+   ตาราง 16 กว้าง x 28 สูง — 4 แถวบนเป็นพื้นที่ว่างให้หมวกสูง/ผมตั้ง/ผมฟู
+   พิกัดในโค้ดใช้ระบบเดิม (หัวเริ่มแถว 0) แถวติดลบ = พื้นที่เหนือหัว
    SVG บนสนามกับ canvas ในการ์ดแชร์ใช้ตารางเดียวกัน หน้าตาเลยตรงกันเป๊ะ */
+const HR=4, ROWS=24+HR;
 const HEAD=[".....OOOOO......","...OOhhhhhOO....","..OhhhhhhhhhO...","..OhHHHHHHHhO...",
   ".OHHSSSSSSSHHO..",".OHSSSSSSSSSHO..",".OHSESSSSESSsO..",".OHSSSSSSSSSsO..",
   "..OSSssSSssSsO..","...OsssssssO...."];
@@ -53,17 +55,17 @@ const FRAMES=[LEGS.a, LEGS.b, LEGS.c, LEGS.b.map(r=>[...r].reverse().join(""))];
 const AV = {
   gender:["ชาย","หญิง"],
   skin:[["#ffe3cc","#e6b898"],["#ffd2a8","#d99a6c"],["#e8b482","#c48752"],["#c98a5b","#9c6236"],["#8f5a3c","#66391f"],["#5c3520","#3c2010"]],
-  hair:["สั้น","ตั้ง","ยาว","บ๊อบ","โล้น","หางม้า","มวยข้าง"],
+  hair:["สั้น","ตั้งแหลม","ยาว","บ๊อบ","โล้น","หางม้า","มวยบนหัว","โมฮอว์ก","แอฟโฟร"],
   hairColor:[["#1d1b26","#3b3850"],["#2e1c14","#5a3a22"],["#e2bd3f","#fff0a0"],["#c1442a","#ea7a55"],["#2d6cdf","#6aa2ff"],["#ff6fb5","#ffb3d9"],["#d6d6e6","#f6f6ff"],["#3fbf6a","#8ff0aa"]],
-  glasses:["ไม่ใส่","กลม","เหลี่ยม","กันแดด"],
-  top:["เสื้อยืด","ฮู้ด","แจ็กเก็ต","เสื้อกล้าม","เดรส","สูท"],
+  glasses:["ไม่ใส่","กลมทอง","เหลี่ยมดำ","กันแดด","กรอบขาวหนา"],
+  top:["เสื้อยืด","ฮู้ด","แจ็กเก็ต","เสื้อกล้าม","เดรส","สูทผูกไท","เชิ้ตขาว"],
   pants:["ขายาว","ขาสั้น","กระโปรง"],
   pantsColor:[["#3450a8","#22357a"],["#2a2a35","#15151c"],["#b89a62","#8a6f3f"],["#c0392b","#7d2419"],["#e6e6f0","#b0b0c0"],["#3f7a4a","#26512f"],["#6a3fb5","#472a7a"]],
-  hat:["ไม่ใส่","แก๊ป","ไหมพรม","มงกุฎ","ผ้าคาดหัว","แบนดานา"],
-  mouth:["ยิ้ม","เฉย","อ้า","ยิงฟัน"],
-  nose:["ไม่มี","จุด","โด่ง"]
+  hat:["ไม่ใส่","แก๊ป","ไหมพรม","มงกุฎ","ผ้าคาดหัว","หมวกทรงสูง","คาวบอย","หมวกพ่อมด"],
+  mouth:["ยิ้ม","เฉย","อ้าปาก","ยิงฟัน","หนวด","หนวดเครา"],
+  nose:["ไม่มี","จุด","โต"]
 };
-const HAT_COL=[["#000","#000"],["#d63031","#8f1f21"],["#7d5fff","#4c36a8"],["#ffcc4d","#c98a12"],["#e0202a","#8f1f21"],["#2d9cdb","#1b6a9a"]];
+const HAT_COL=[["#000","#000"],["#d63031","#8f1f21"],["#7d5fff","#4c36a8"],["#ffcc4d","#c98a12"],["#e0202a","#8f1f21"],["#1a1a22","#3a3a48"],["#c8955a","#8a6238"],["#5b3fd1","#3a2790"]];
 const DEF_AV={g:0,sk:1,hr:0,hc:1,gl:0,top:0,pt:0,pc:0,hat:0,mo:0,no:1};
 const AV_KEYS=Object.keys(DEF_AV);
 /* หน้าตาของ runner — คนที่ยังไม่เคยแต่งได้ค่าเริ่มต้น + สีชุดที่เลือกไว้ */
@@ -78,8 +80,8 @@ function randAv(seed){
   let s=(seed*9301+49297)%233280;
   const rnd=n=>{ s=(s*9301+49297)%233280; return Math.floor(s/233280*n); };
   const g=rnd(2);
-  return {g, sk:rnd(6), hr:g?[2,3,5,6][rnd(4)]:[0,1,4,0][rnd(4)], hc:rnd(8), gl:rnd(4)===0?1+rnd(3):0,
-    top:rnd(6), pt:g?rnd(3):rnd(2), pc:rnd(7), hat:rnd(3)===0?1+rnd(5):0, mo:rnd(4), no:rnd(3)};
+  return {g, sk:rnd(6), hr:g?[2,3,5,6,8][rnd(5)]:[0,1,4,7,8][rnd(5)], hc:rnd(8), gl:rnd(3)===0?1+rnd(4):0,
+    top:rnd(7), pt:g?rnd(3):rnd(2), pc:rnd(7), hat:rnd(2)===0?1+rnd(7):0, mo:g?rnd(4):rnd(6), no:rnd(3)};
 }
 
 function shift(hex,amt){
@@ -89,15 +91,15 @@ function shift(hex,amt){
 }
 /* จานสีตามโหมดของสัปดาห์: ปกติ / ฟ้า (7 ชิ้น) / แดง (LASER) / ไฟ (PRO MAX) / กระโหลก (หมดแรง)
    ตัวอักษร: O ขอบ  H/h ผม  S/s ผิว  E ตา  C/c/l ชุด  P/p กางเกง  B/b รองเท้า  K กระดูก
-             F กรอบแว่น  D เลนส์ดำ  M ปาก  R แดง  W ขาว  T เสื้อใน  G ทอง  A/a หมวก */
+             F กรอบดำ  D เลนส์ดำ  M ปาก  R แดง  W ขาว  G ทอง  N กรมท่า(สูท)  A/a หมวก */
 function palette(av, style){
   const skin=AV.skin[av.sk]||AV.skin[1], hc=AV.hairColor[av.hc]||AV.hairColor[1];
   const pc=AV.pantsColor[av.pc]||AV.pantsColor[0], hat=HAT_COL[av.hat]||HAT_COL[0];
-  const acc={F:"#2b2b33", D:"#1d1d2c", M:"#8a2f2f", R:"#e0202a", W:"#f6f6ff", T:"#eeeef8", G:"#ffcc4d", A:hat[0], a:hat[1]};
+  const acc={F:"#1c1c24", D:"#1d1d2c", M:"#8a2f2f", R:"#e0202a", W:"#f6f6ff", G:"#ffcc4d", N:"#242840", A:hat[0], a:hat[1]};
   if(style==="burnout"){
     return Object.assign({O:"#1a1622", K:"#d8d4c8", E:"#241f18", S:"#d8d4c8", s:"#a9a496",
       C:"#6b6a78", c:"#43424f", l:"#8f8e9c", P:"#3a3946", p:"#2a2934", B:"#8d8a9a", b:"#5d5b68",
-      H:"#d8d4c8", h:"#eae7dc"}, acc, {A:"#6b6a78", a:"#43424f", G:"#a9a496", R:"#7a4a4a", T:"#8f8e9c", W:"#c8c4b8"});
+      H:"#d8d4c8", h:"#eae7dc"}, acc, {A:"#6b6a78", a:"#43424f", G:"#a9a496", R:"#7a4a4a", N:"#3a3946", W:"#c8c4b8"});
   }
   const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : av.color;
   const p=Object.assign({O:"#140d2e", H:hc[0], h:hc[1], S:skin[0], s:skin[1], E:"#140d2e",
@@ -107,59 +109,85 @@ function palette(av, style){
   if(style==="flame"){ p.H="#ffd23a"; p.h="#fff8c4"; p.l="#fff3a0"; p.P="#c85a10"; p.p="#8a3606"; p.O="#3a1a05"; p.E="#ff1f1f"; }
   return p;
 }
-/* ประกอบตัวละครลงตาราง 16x24 — frame = ท่าขา 0-3 */
+/* ประกอบตัวละครลงตาราง — frame = ท่าขา 0-3 */
 function buildGrid(av, style, frame){
-  const g=[]; for(let y=0;y<24;y++) g.push(new Array(16).fill("."));
-  const fill=(rows,y0)=>rows.forEach((r,i)=>{ const row=r.padEnd(16,"."); for(let x=0;x<16;x++) g[y0+i][x]=row[x]; });
-  const set=(y,x,ch)=>{ if(y>=0&&y<24&&x>=0&&x<16) g[y][x]=ch; };
+  const g=[]; for(let y=0;y<ROWS;y++) g.push(new Array(16).fill("."));
+  const fill=(rows,y0)=>rows.forEach((r,i)=>{ const yy=y0+i+HR; if(yy<0||yy>=ROWS) return; const row=r.padEnd(16,"."); for(let x=0;x<16;x++) g[yy][x]=row[x]; });
+  const set=(y,x,ch)=>{ y+=HR; if(y>=0&&y<ROWS&&x>=0&&x<16) g[y][x]=ch; };
+  const get=(y,x)=>g[y+HR][x];
   const burn=style==="burnout";
   fill(burn?HEAD_SKULL:HEAD,0); fill(TORSO,10); fill(FRAMES[frame]||LEGS.b,17);
 
-  /* เสื้อ */
+  /* ---- เสื้อ ---- */
   const top=av.top;
-  if(top===1){ set(10,2,"O");set(10,3,"c");set(10,4,"c");set(10,11,"c");set(10,12,"c");set(10,13,"O");
-    set(12,6,"l");set(13,6,"l");set(12,9,"l");set(13,9,"l"); for(let x=5;x<=10;x++) set(15,x,"c"); }
-  if(top===2){ for(let y=11;y<=16;y++){ set(y,7,"T");set(y,8,"T"); } set(11,6,"c");set(11,9,"c");set(12,6,"c");set(12,9,"c"); }
-  if(top===3){ set(11,3,"S");set(11,4,"S");set(11,11,"S");set(11,12,"S");set(12,3,"S");set(12,12,"S"); }
-  if(top===5){ set(10,6,"W");set(10,9,"W"); for(let y=11;y<=14;y++) set(y,7,"R"); set(11,6,"W");set(11,8,"W");set(12,6,"W");set(12,8,"W"); }
-  /* กางเกง / ขาสั้น / กระโปรง / เดรส */
-  const skinLegs=y=>{ for(let x=0;x<16;x++){ if(g[y][x]==="P") g[y][x]="S"; else if(g[y][x]==="p") g[y][x]="s"; } };
-  if(top===4){ fill(["...OCCCCCCCCO...","..OCCCCCCCCCCO..","..OCCCCCCCCCCO..",".OCCCCCCCCCCCCO."],17); skinLegs(21); }
+  const bodyRe=(from,to)=>{ for(let y=10;y<=16;y++) for(let x=0;x<16;x++){ const c=get(y,x); if(from.includes(c)) set(y,x,to); } };
+  if(top===1){ /* ฮู้ด: ไหล่มีฮู้ดสีเข้ม เชือกขาว กระเป๋าหน้าท้อง */
+    set(9,2,"O");set(9,3,"c");set(9,12,"c");set(9,13,"O");
+    set(10,2,"O");set(10,3,"c");set(10,4,"c");set(10,11,"c");set(10,12,"c");set(10,13,"O");
+    set(11,6,"W");set(12,6,"W");set(13,6,"W");set(11,9,"W");set(12,9,"W");set(13,9,"W");
+    for(let x=5;x<=10;x++){ set(14,x,"c");set(15,x,"c"); } }
+  if(top===2){ /* แจ็กเก็ต: ตัวเสื้อสีเข้ม เปิดหน้าเห็นเสื้อในสีสด */
+    bodyRe("Cl","c"); for(let y=11;y<=16;y++){ set(y,7,"C");set(y,8,"C"); }
+    set(11,6,"l");set(11,9,"l");set(12,6,"l");set(12,9,"l"); }
+  if(top===3){ /* เสื้อกล้าม: ไหล่เปลือย */
+    set(10,3,"O");set(10,4,"S");set(10,11,"S");set(10,12,"O");
+    set(11,3,"S");set(11,4,"S");set(11,11,"S");set(11,12,"S");set(12,3,"S");set(12,12,"S");set(13,3,"S");set(13,12,"S"); }
+  if(top===5){ /* สูทกรมท่า เชิ้ตขาว ไทแดง */
+    bodyRe("Ccl","N"); set(10,6,"W");set(10,9,"W");
+    for(let y=11;y<=13;y++){ set(y,6,"W");set(y,8,"W"); } for(let y=11;y<=15;y++) set(y,7,"R"); }
+  if(top===6){ /* เชิ้ตขาว คอปกสีชุด กระดุมดำ */
+    bodyRe("Ccl","W"); set(10,5,"C");set(10,6,"C");set(10,9,"C");set(10,10,"C");set(11,5,"C");set(11,10,"C");
+    set(12,7,"F");set(14,7,"F");set(16,7,"F"); }
+  /* ---- กางเกง / ขาสั้น / กระโปรง / เดรส ---- */
+  const skinLegs=y=>{ for(let x=0;x<16;x++){ const c=get(y,x); if(c==="P") set(y,x,"S"); else if(c==="p") set(y,x,"s"); } };
+  if(top===4){ fill(["...OCCCCCCCCO...","..OCClCCCCCCCO..","..OCClCCCCCCCO..",".OCCClCCCCCCCCO."],17); skinLegs(21); }
   else if(av.pt===1){ skinLegs(20); skinLegs(21); }
   else if(av.pt===2){ fill(["...OPPPPPPPPO...","..OPPPPppppPO...",".OPPPPPppppppO.."],17); skinLegs(20); skinLegs(21); }
 
   if(!burn){
-    /* ผม */
+    /* ---- ผม ---- */
     const hr=av.hr;
-    if(hr===1){ fill(["....OhOhOhO....."],0); }
+    if(hr===1){ fill(["....h..h..h.....","....hh.hh.hh....","...OhhhhhhhhO..."],-2); }
     if(hr===2){ for(let y=4;y<=12;y++){ set(y,1,"O");set(y,2,"H");set(y,13,"H");set(y,14,"O"); } set(13,2,"O");set(13,13,"O"); }
     if(hr===3){ for(let y=4;y<=8;y++){ set(y,1,"O");set(y,2,"H");set(y,13,"H");set(y,14,"O"); } set(9,2,"O");set(9,13,"O"); }
     if(hr===4){ fill([".....OOOOO......","...OOSSSSSOO....","..OSSSSSSSSSO...","..OSSSSSSSSSO..."],0);
       for(let y=4;y<=7;y++) set(y,2,"S"); set(4,3,"S");set(4,11,"S");set(4,12,"S");set(5,12,"S"); }
-    if(hr===5){ set(3,13,"O"); for(let y=4;y<=8;y++){ set(y,13,"H");set(y,14,"O"); } set(9,13,"O"); }
-    if(hr===6){ set(1,12,"O");set(1,13,"O");set(2,13,"h");set(2,14,"O");set(3,13,"h");set(3,14,"O");set(4,14,"O"); }
-    /* หน้า */
+    if(hr===5){ set(3,13,"O"); for(let y=4;y<=11;y++){ set(y,13,"H");set(y,14,"O"); } set(12,13,"O"); }
+    if(hr===6){ fill(["......OhhO......",".....OhhhhO....."],-2); }
+    if(hr===7){ /* โมฮอว์ก: แถบกลางสูง ข้างโกน */
+      fill(["......OhhO......","......OhhO......","......OhhO......","....OOOhhOOO....","...OOSShhSSOO...","..OSSSShhSSSSO..","..OSSSShhSSSSO.."],-3);
+      for(let y=4;y<=7;y++) set(y,2,"S"); set(4,3,"S");set(4,11,"S");set(4,12,"S");set(5,12,"S"); }
+    if(hr===8){ /* แอฟโฟร: ทรงกลมใหญ่ */
+      fill([".....OOOOOO.....","...OOhhhhhhOO...","..OhhhhhhhhhhO..",".OhhhhhhhhhhhhO.",".OhhhhhhhhhhhhO.","OhhhhhhhhhhhhhhO","OhhhHHHHHHHHhhhO","OhhHSSSSSSSHhhhO"],-3);
+      for(let y=5;y<=8;y++){ set(y,0,"O");set(y,1,"h");set(y,14,"h");set(y,15,"O"); } set(9,1,"O");set(9,14,"O"); }
+    /* ---- หน้า ---- */
     if(av.g===1){ set(5,4,"E");set(5,9,"E"); }              // ขนตา = ตาโต
     if(av.no===1){ set(7,7,"s"); }
-    if(av.no===2){ set(6,7,"s");set(7,7,"s");set(7,8,"s"); }
+    if(av.no===2){ set(6,7,"s");set(6,8,"s");set(7,7,"s");set(7,8,"s"); }
     const mo=av.mo;
     if(mo===0){ set(8,6,"M");set(8,7,"M");set(8,8,"M");set(7,5,"M");set(7,9,"M"); }
     if(mo===1){ set(8,6,"M");set(8,7,"M");set(8,8,"M"); }
     if(mo===2){ for(let x=6;x<=8;x++){ set(7,x,"M");set(8,x,"M"); } set(8,7,"R"); }
-    if(mo===3){ for(let x=5;x<=9;x++) set(8,x,"M"); set(8,6,"W");set(8,8,"W"); }
+    if(mo===3){ for(let x=5;x<=9;x++){ set(7,x,"M");set(8,x,"M"); } for(let x=6;x<=8;x++) set(7,x,"W"); }
+    if(mo===4){ for(let x=5;x<=9;x++) set(7,x,"H"); set(8,4,"H");set(8,10,"H"); }
+    if(mo===5){ for(let x=5;x<=9;x++) set(7,x,"H"); for(let x=3;x<=12;x++){ set(8,x,"H");set(9,x,"H"); } set(10,4,"H");set(10,11,"H"); for(let x=5;x<=10;x++) set(10,x,"H"); }
   }
-  /* แว่น */
+  /* ---- แว่น (2-3 แถว ให้เห็นชัด) ---- */
   const gl=av.gl;
-  if(gl===1){ [3,5,8,10].forEach(x=>set(6,x,"F")); set(6,6,"F");set(6,7,"F"); }
-  if(gl===2){ [3,5,8,10].forEach(x=>set(6,x,"F")); [3,4,5,8,9,10].forEach(x=>set(5,x,"F")); set(6,6,"F");set(6,7,"F"); }
-  if(gl===3){ [3,4,5,8,9,10].forEach(x=>{ set(5,x,"D");set(6,x,"D"); }); set(6,6,"F");set(6,7,"F"); }
-  /* หมวก */
+  const frames=(ch)=>{ [3,5,8,10].forEach(x=>{ set(5,x,ch);set(6,x,ch); }); set(5,6,ch);set(5,7,ch); };
+  if(gl===1){ frames("G"); [3,4,5,8,9,10].forEach(x=>set(4,x,"G")); }
+  if(gl===2){ frames("F"); [3,4,5,8,9,10].forEach(x=>set(4,x,"F")); [3,4,5,8,9,10].forEach(x=>set(7,x,"F")); }
+  if(gl===3){ [3,4,5,8,9,10].forEach(x=>{ set(5,x,"D");set(6,x,"D");set(4,x,"F"); }); set(5,6,"F");set(5,7,"F"); }
+  if(gl===4){ frames("W"); [3,4,5,8,9,10].forEach(x=>{ set(4,x,"W");set(7,x,"W"); }); set(6,6,"W");set(6,7,"W"); }
+  /* ---- หมวก (ใช้พื้นที่เหนือหัว) ---- */
   const hat=av.hat;
-  if(hat===1){ fill([".....OOOOO......","...OOAAAAAOO....","..OAAAAAAAAAO...","..OAaaaaaaaaAAAO"],0); }
-  if(hat===2){ fill([".....OWWWO......","...OOAAAAAOO....","..OAAAAAAAAAO...","..OaaaaaaaaaO..."],0); }
-  if(hat===3){ fill(["....G.G.G.G.G...","...OGGGGGGGGGO..","..OGRGGGRGGGRO.."],0); }
-  if(hat===4){ for(let x=3;x<=11;x++) set(3,x,"R"); }
-  if(hat===5){ fill([".....OOOOO......","...OOAAAAAOO....","..OAAAAAAAAAO...","..OAaaaaaaaaOA.."],0); set(4,13,"A");set(4,14,"O");set(5,13,"O"); }
+  if(hat===1){ fill(["....OOOOOOO.....","...OAAAAAAAO....","..OAAAAAAAAAO...","..OAAAAAAAAAO...","..OAaaaaaaaaAAAO"],-1); }
+  if(hat===2){ fill(["......OWWO......",".....OWWWWO.....","....OAAAAAAO....","...OAAAAAAAAO...","..OAAAAAAAAAAO..","..OaaaaaaaaaaO.."],-2); }
+  if(hat===3){ fill(["...G.G.G.G.G.G..","...GGGGGGGGGGG..","..OGRGGGRGGGRGO.","..OGGGGGGGGGGGO."],-2); }
+  if(hat===4){ for(let x=3;x<=11;x++) set(3,x,"R"); set(3,12,"R");set(3,13,"R");set(4,13,"R");set(4,14,"O");set(5,14,"O"); }
+  if(hat===5){ fill(["....OAAAAAAO....","....OAAAAAAO....","....OAAAAAAO....","....OAAaaAAO....","..OOOAAAAAAOOO..",".OAAAAAAAAAAAAO."],-4); }
+  if(hat===6){ fill([".....OAAAAO.....","....OAAAAAAO....",".OAAAAAAAAAAAAO.","OAaaaaaaaaaaaaAO"],-2); }
+  if(hat===7){ fill([".......OO.......","......OAAO......",".....OAAAAO.....","....OAAaAAAO....","...OAAAAAAAAO...","OOAAAAAAAAAAAAOO"],-4); }
   return g;
 }
 function sprite(av, px=2, style="normal"){
@@ -168,15 +196,17 @@ function sprite(av, px=2, style="normal"){
   const rects=(g,y0,y1)=>{ let s=""; for(let y=y0;y<y1;y++) for(let x=0;x<16;x++){
     const c=pal[g[y][x]]; if(c) s+=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${c}"/>`; } return s; };
   const g0=buildGrid(av,style,0);
+  const LEG0=17+HR;
   const legs=FRAMES.map((_,i)=>
-    `<g class="leg k${i}" style="animation-delay:-${(i*.12).toFixed(2)}s">${rects(i?buildGrid(av,style,i):g0,17,24)}</g>`).join("");
+    `<g class="leg k${i}" style="animation-delay:-${(i*.12).toFixed(2)}s">${rects(i?buildGrid(av,style,i):g0,LEG0,ROWS)}</g>`).join("");
   /* ลำเลเซอร์ยิงไปข้างหน้าจากตา เฉพาะโหมด LASER FOCUS */
+  const ey=(6+HR)*px;
   const laser = style==="red"
-    ? `<rect x="${10*px}" y="${6*px}" width="${6*px}" height="${px}" fill="#ff2020"/>`
-    + `<rect x="${10*px}" y="${6*px}" width="${3*px}" height="${px}" fill="#fff2f2"/>`
+    ? `<rect x="${10*px}" y="${ey}" width="${6*px}" height="${px}" fill="#ff2020"/>`
+    + `<rect x="${10*px}" y="${ey}" width="${3*px}" height="${px}" fill="#fff2f2"/>`
     : "";
-  return `<svg width="${16*px}" height="${24*px}" viewBox="0 0 ${16*px} ${24*px}" shape-rendering="crispEdges">
-    ${rects(g0,0,17)}${legs}${laser}</svg>`;
+  return `<svg width="${16*px}" height="${ROWS*px}" viewBox="0 0 ${16*px} ${ROWS*px}" shape-rendering="crispEdges">
+    ${rects(g0,0,LEG0)}${legs}${laser}</svg>`;
 }
 const aura = () => `<span class="aura"><i></i><i></i><i></i></span>`;
 function runnerBox(av, px, style="normal"){
@@ -757,9 +787,10 @@ function renderTrack(){
     const s=stats(r), h=houseOf(r.house);
     const p=Math.min(s.contents/FINISH,1);
     const role=roleOf(r), rtag=role==="head"?" COACH":role==="ta"?" TA":"";
+    /* ชื่อลอยอยู่เหนือหัวและวิ่งตามตัวละคร — ใกล้เส้นชัยให้ชิดขวาแทน จะได้ไม่ล้นออกนอกสนาม */
     return `<div class="lane ${r.name===S.me?"meLane":""}" data-n="${r.name}">
-      <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
-      <div class="runner ${r.name===S.me?"me":""} ${s.style}" style="--p:${p}">
+      <div class="runner ${r.name===S.me?"me":""} ${s.style} ${p>0.72?"flip":""}" style="--p:${p}">
+        <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
         <div class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</div>
         <div class="body">${s.style==="flame"?aura():""}${sprite(avOf(r),2,s.style)}
           ${s.dayStreak?'<span class="dust"></span><span class="dust b"></span>':''}</div>
@@ -910,23 +941,23 @@ async function openProfile(name){
 function drawSpriteCanvas(ctx, x, y, px, av, style){
   const pal=palette(av,style), g=buildGrid(av,style,1);
   if(style==="flame"){
-    const gr=ctx.createRadialGradient(x+8*px, y+20*px, 2*px, x+8*px, y+18*px, 15*px);
+    const gr=ctx.createRadialGradient(x+8*px, y+24*px, 2*px, x+8*px, y+22*px, 15*px);
     gr.addColorStop(0,"rgba(255,220,90,.95)"); gr.addColorStop(.4,"rgba(255,140,20,.6)");
     gr.addColorStop(.7,"rgba(255,70,10,.25)"); gr.addColorStop(1,"rgba(255,70,10,0)");
     ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
   }
   if(style==="boost"){
-    const gr=ctx.createRadialGradient(x+8*px, y+12*px, 2*px, x+8*px, y+12*px, 13*px);
+    const gr=ctx.createRadialGradient(x+8*px, y+16*px, 2*px, x+8*px, y+16*px, 13*px);
     gr.addColorStop(0,"rgba(57,229,255,.5)"); gr.addColorStop(1,"rgba(57,229,255,0)");
     ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 36*px);
   }
-  for(let ry=0;ry<24;ry++) for(let cx=0;cx<16;cx++){
+  for(let ry=0;ry<ROWS;ry++) for(let cx=0;cx<16;cx++){
     const c=pal[g[ry][cx]]; if(!c) continue;
     ctx.fillStyle=c; ctx.fillRect(x+cx*px, y+ry*px, px, px);
   }
   if(style==="red"){
-    ctx.fillStyle="#ff2020"; ctx.fillRect(x+10*px, y+6*px, 6*px, px);
-    ctx.fillStyle="#fff2f2"; ctx.fillRect(x+10*px, y+6*px, 3*px, px);
+    ctx.fillStyle="#ff2020"; ctx.fillRect(x+10*px, y+(6+HR)*px, 6*px, px);
+    ctx.fillStyle="#fff2f2"; ctx.fillRect(x+10*px, y+(6+HR)*px, 3*px, px);
   }
 }
 function drawCard(){
@@ -957,7 +988,7 @@ function drawCard(){
   ctx.fillText(`สัปดาห์ที่ ${curWeek()} จาก ${WEEKS} · วันที่ ${S.today}`, W/2, 142);
 
   const px=22, sw=16*px;
-  drawSpriteCanvas(ctx, (W-sw)/2, 200, px, avOf(r), s.style);
+  drawSpriteCanvas(ctx, (W-sw)/2, 150, px, avOf(r), s.style);
 
   ctx.font="700 84px 'Pixelify Sans', monospace";
   ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
@@ -1050,7 +1081,7 @@ function drawCert(){
   ctx.shadowBlur=0;
 
   const px=17, sw=16*px;
-  drawSpriteCanvas(ctx,(W-sw)/2, 300, px, avOf(r), s.style);
+  drawSpriteCanvas(ctx,(W-sw)/2, 270, px, avOf(r), s.style);
 
   ctx.font="500 26px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#a49ce0";
@@ -1450,12 +1481,12 @@ function openDress(mode){
 }
 window.openDress=openDress;
 function drawDress(){
-  $("drPreview").innerHTML=runnerBox(drAv,6);
+  $("drPreview").innerHTML=runnerBox(drAv,7);
   $("drTabs").innerHTML=DR_CATS.map(([k,n])=>`<button class="drTab ${k===drCat?"on":""}" data-k="${k}">${n}</button>`).join("");
   $("drOpts").innerHTML=DR_OPTS[drCat].map((o,i)=>{
     const av=Object.assign({},drAv,{[drCat]:i});
     const label = DR_LABEL[drCat] ? DR_LABEL[drCat](i) : o;
-    return `<button class="drOpt ${drAv[drCat]===i?"on":""}" data-i="${i}">${sprite(av,3,"normal")}<span>${label}</span></button>`;
+    return `<button class="drOpt ${drAv[drCat]===i?"on":""}" data-i="${i}">${sprite(av,4,"normal")}<span>${label}</span></button>`;
   }).join("");
   $("drSwatches").innerHTML=COLORS.map(c=>
     `<button class="sw ${c===drAv.color?"sel":""}" data-c="${c}"
@@ -1499,17 +1530,18 @@ async function enterSpectator(){
   show("scArena"); showPage("pgRace");
 }
 window.leaveSpectator=()=>{
-  S.spectator=false;
-  show(BOOTSTATE&&BOOTSTATE.needsProfile&&!BOOTSTATE.needsAuth ? "scSelect" : "scAuth");
+  /* ถอด #watch แล้วโหลดใหม่ — ถ้าล็อกอินอยู่จะเข้าสนามปกติ ถ้ายังไม่ล็อกอินจะเจอหน้าแรก */
+  history.replaceState(null,"",location.pathname+location.search);
+  location.reload();
 };
 $("watchBtn").onclick=enterSpectator;
 async function boot(){
   const st=BOOTSTATE=await DB.init();
+  if(location.hash==="#watch"){ drawSelect(); await enterSpectator(); return; }   // ลิงก์ฉายจอ — ดูอย่างเดียวเสมอ
   if(st.needsAuth||st.needsProfile){
     drawSelect();
     if(st.email){ $("authWho").textContent=st.email; }
     show("scTitle");
-    if(location.hash==="#watch") enterSpectator();
     return;
   }
   await refresh();
