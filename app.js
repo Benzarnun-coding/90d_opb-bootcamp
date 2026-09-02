@@ -16,6 +16,8 @@ const HEAVY   = C.HEAVY_TARGET || 10;      // รับเป้าตั้ง�
 const WEEKS   = Math.round((SPD * NSP) / 7);
 const FINISH  = C.GOAL_TOTAL || 7 * WEEKS; // เส้นชัย = ปล่อยครบกี่ชิ้น (ส่งเกินได้)
 const NEAR    = C.NEAR_RANGE || 3;
+const TAG     = C.HASHTAG || "#CreatorBootcamp";
+const CREDIT  = C.CREDIT  || "";
 const LIVE    = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY) && !/[?&]demo\b/.test(location.search);  // ?demo = ลองในเครื่องด้วยข้อมูลปลอม
 const COLORS  = ["#ff4d6d","#4ee1ff","#5ef08c","#ffcc4d","#ff9f43","#ff7bc6","#b06bff","#3ddbb8"];
 const HOUSES  = [
@@ -330,30 +332,49 @@ function computeStats(r){
 /* ================= DATA LAYER ================= */
 const DemoDB = (()=>{
   const KEY="creatorBootcamp.demo.v3";
-  const NAMES=[["MILD","@mild.studio"],["POND","@pondcuts"],["NAMTAN","@namtan.tv"],["BAS","@basdaily"],
-    ["JAAB","@jaabmakes"],["TAE","@taeontape"],["OAK","@oak.films"],["PLOY","@ploystory"],
-    ["GIFT","@giftvlog"],["NOTE","@notemotion"],["FILM","@filmcuts"],["MAY","@maydaily"]];
+  const NAMES=["MILD","POND","NAMTAN","BAS","JAAB","TAE","OAK","PLOY","GIFT","NOTE","FILM","MAY",
+    "BEAM","FERN","KAI","NUT","PANG","BOOM","MEW","JAME","TOP","GOLF","NAN","JOY","PIM","TONG",
+    "EARTH","BELLE","AOM","KWAN","PREW","NINE","FAH","KING","ARM","TEE","PUN","MIN","ICE","NAM",
+    "PAM","KAO","DEW","PEAR","SOM","BOAT","NIDA","JIB","KATE","NONT"];
   let uid=1, db=null, onChange=()=>{};
   const save=()=>{ try{ db.uid=uid; localStorage.setItem(KEY,JSON.stringify(db)); }catch(e){} };
 
+  /* ข้อมูลปลอม 50 คน (สุ่มแบบคงที่ ทุกเครื่องเห็นเหมือนกัน)
+     วันที่ 45 = สัปดาห์ที่ 7 → PRO MAX เปิดแล้ว  มีครบทุกร่าง: ปกติ / ฟ้า / แดง / ไฟทอง / กระโหลก
+     + หัวหน้าโค้ช 1 + TA 4 + คนที่ถึงเส้นชัยแล้ว 1 */
   function build(me){
-    const today=Math.min(38,TOTAL), cw=weekOf(today);
-    const runners=NAMES.map(([n,h],i)=>({
-      id:"d"+i, name:n, handle:h, color:COLORS[(i+1)%COLORS.length], avatar:randAv(i+11),
-      house:1+(i%4), role:"student",
-      joined:[0,1,2,3,4,5].filter(s=> s<=2 || Math.random()<.7),
-      pledges:{}
+    let seed=20260902;
+    const R=()=>{ seed=(seed*1103515245+12345)%2147483648; return seed/2147483648; };
+    const today=Math.min(45,TOTAL), cw=weekOf(today);
+    const runners=NAMES.map((n,i)=>({
+      id:"d"+i, name:n, handle:"@"+n.toLowerCase()+["",".tv",".studio",".daily",".official"][i%5],
+      color:COLORS[(i*3+1)%COLORS.length], avatar:randAv(i*7+3),
+      house: i===0 ? 0 : 1+(i%4),
+      role: i<=4 ? "coach" : "student",                   // 0 = หัวหน้าโค้ช (ไม่มีบ้าน), 1-4 = TA ประจำบ้าน
+      joined:[0,1,2,3,4,5], pledges:{}
     }));
     runners.unshift({id:"me", name:me.name, handle:me.handle||("@"+me.name.toLowerCase()), color:me.color, avatar:me.avatar||{},
       house:me.house||1, role:"student", joined:me.joined, pledges:{}});
 
+    /* บทบาทพิเศษในสนามสาธิต */
+    const BURN  = new Set([7,12,18,25,31,44]);   // รับ 10/14 สัปดาห์ที่แล้วแล้วพลาด → กระโหลก
+    const FLAME = new Set([6,14,22,38]);         // สัปดาห์นี้รับ 14
+    const RED   = new Set([9,11,16,20,27,33,41,47]);
+    const FINISHER = 34;                          // KING วิ่งถึง 90 แล้ว
+
     runners.forEach((r,i)=>{
-      const grit = i===0 ? 1.02 : .3+Math.random()*.65;   // ผู้เล่นเริ่มต้นเกาะเป้าพอดี
+      const grit = i===0 ? 1.02 : i===FINISHER ? 1.3 : .55+R()*.5;
       for(let w=1; w<=cw; w++){
         if(!joinedWeek(r,w)) continue;
-        if(i===0 && w===cw) continue;                 // ผู้เล่นใหม่ยังไม่ได้เลือกเป้าสัปดาห์นี้ — ให้เจอหน้าต่างเลือกเองเหมือนของจริง
-        const roll=Math.random();
-        r.pledges[w] = w>=7 && roll<.12 ? 14 : roll<.25 ? 4 : roll<.8 ? 7 : 10;
+        if(i===0 && w===cw) continue;              // ผู้เล่นใหม่ยังไม่ได้เลือกเป้าสัปดาห์นี้
+        const roll=R();
+        let t = w>=7 && roll<.12 ? 14 : roll<.25 ? 4 : roll<.8 ? 7 : 10;
+        if(BURN.has(i)  && w===cw-1) t = R()<.5 ? 10 : 14;
+        if(BURN.has(i)  && w===cw)   t = 4;        // สัปดาห์นี้เลือกได้แค่ 4/7
+        if(FLAME.has(i) && w===cw)   t = 14;
+        if(RED.has(i)   && w===cw)   t = 10;
+        if(i===FINISHER)             t = w>=7 ? 14 : 10;
+        r.pledges[w] = t;
       }
       r._grit=grit;
     });
@@ -362,22 +383,26 @@ const DemoDB = (()=>{
     runners.forEach((r,i)=>{
       for(let d=1; d<=today; d++){
         if(!joinedIn(r,spOf(d))) continue;
-        if(i===0 && d===today) continue;              // เว้นวันนี้ให้ผู้เล่นกดเอง
-        const t=r.pledges[weekOf(d)]||7;
-        const perDay=t/7;
+        if(i===0 && d===today) continue;           // เว้นวันนี้ให้ผู้เล่นกดเอง
+        const w=weekOf(d), t=r.pledges[w]||7;
+        let perDay=t/7;
+        if(i===FINISHER) perDay=2.1;
+        if(BURN.has(i) && w===cw-1) perDay=Math.min(perDay, (t-4)/7);   // สัปดาห์ที่พลาด ทำได้ไม่ถึง
         let n=Math.floor(perDay);
-        if(Math.random() < (perDay-n)) n++;
-        if(Math.random() > r._grit) n=Math.max(0,n-1);
+        if(R() < (perDay-n)) n++;
+        if(R() > r._grit) n=Math.max(0,n-1);
         for(let k=0;k<n;k++){
-          subs.push({id:uid++, who:r.name, day:d, sp:spOf(d), plat:PLATS[(Math.random()*PLATS.length)|0],
-            url:`https://tiktok.com/${r.handle.slice(1)}/${d}-${k}-${(Math.random()*9e4|0)}`,
-            ts:Date.now()-(today-d)*864e5-(Math.random()*6e7|0)});
+          const hour = 6+Math.floor(R()*17);        // ส่วนใหญ่ส่งกลางวัน-ค่ำ
+          subs.push({id:uid++, who:r.name, day:d, sp:spOf(d), plat:PLATS[Math.floor(R()*PLATS.length)],
+            url:`https://tiktok.com/${r.handle.slice(1)}/${d}-${k}-${Math.floor(R()*9e4)}`,
+            ts:Date.now()-(today-d)*864e5-(hour*3600e3)-Math.floor(R()*3e6)});
         }
       }
       delete r._grit;
     });
     return {today, me:runners[0].name, runners, subs, uid};
   }
+
   return {
     mode:"demo", canSim:true,
     async init(){ try{ db=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){ db=null; }
@@ -1119,8 +1144,19 @@ function drawCard(){
     ctx.font="44px sans-serif"; ctx.fillStyle="#fff";
     ctx.fillText(bl.map(b=>b.e).join("  "), W/2, 1322);
   }
-  ctx.font="500 20px 'IBM Plex Sans Thai', sans-serif";
-  ctx.fillStyle="#6f68a8"; ctx.fillText("#CreatorBootcamp", W/2, H-12);
+  ctx.font="600 26px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#9a92d8"; ctx.fillText(TAG, W/2, H-14);
+  drawCredit(ctx, W, H);
+}
+/* ลายน้ำเครดิต มุมขวาล่างของการ์ด — แคปหน้าจอไปก็ยังเห็น */
+function drawCredit(ctx, W, H){
+  if(!CREDIT) return;
+  ctx.save();
+  ctx.textAlign="right";
+  ctx.font="700 26px 'Pixelify Sans', monospace";
+  ctx.fillStyle="rgba(255,204,77,.9)"; ctx.shadowColor="#000"; ctx.shadowBlur=6;
+  ctx.fillText(CREDIT, W-40, H-46);
+  ctx.restore();
 }
 /* ================= จบรุ่น: ใบประกาศ ================= */
 const finished = () => S.today > TOTAL;
@@ -1219,9 +1255,10 @@ function drawCert(){
   ctx.fillText("อันดับ "+rank+" จาก "+total+" คน  ·  ทำได้ "+s.rate+"% ของเป้าที่ตัวเองรับไว้"
     + "  ·  streak สูงสุด "+s.weekStreak+" สัปดาห์", W/2, 1224);
 
-  ctx.font="500 22px 'IBM Plex Sans Thai', sans-serif";
-  ctx.fillStyle="#6f68a8";
-  ctx.fillText("#CreatorBootcamp", W/2, 1284);
+  ctx.font="600 24px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillStyle="#9a92d8";
+  ctx.fillText(TAG, W/2, 1284);
+  drawCredit(ctx, W, H);
 }
 
 function certText(){
@@ -1230,7 +1267,7 @@ function certText(){
   return "จบแล้ว " + TOTAL + " วัน 🎓\n"
     + "ปล่อยคอนเทนต์ไปทั้งหมด " + s.contents + " ชิ้น" + (hit ? " — ครบเป้า " + FINISH + " ชิ้น 🏆" : "") + "\n"
     + h.emoji + " บ้าน " + h.name + " · ทำได้ " + s.rate + "% ของเป้าที่รับไว้\n"
-    + "#CreatorBootcamp";
+    + TAG + (CREDIT ? "\n" + CREDIT : "");
 }
 
 function shareTextOf(){
@@ -1241,7 +1278,7 @@ function shareTextOf(){
    + `${h.emoji} บ้าน ${h.name} · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`
    + (o?`สัปดาห์นี้รับเป้า ${o.name} ${o.target} ชิ้น — ทำไปแล้ว ${s.weekDone}\n`:"")
    + rivalText(r)
-   + `streak ${s.weekStreak} สัปดาห์ 🔥\n#CreatorBootcamp`;
+   + `streak ${s.weekStreak} สัปดาห์ 🔥\n${TAG}` + (CREDIT ? "\n"+CREDIT : "");
 }
 async function renderStatus(){
   const r=meR(); if(!r) return;
@@ -1546,9 +1583,12 @@ $("shDownload").onclick=async()=>{
   const a=document.createElement("a");
   a.href=URL.createObjectURL(b);
   a.download=`${meR().name}-bootcamp-${stats(meR()).contents}.png`;
-  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  toast("ดาวน์โหลดแล้ว");
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  toast("เซฟรูปแล้ว 💾<br>เอาไปโพสต์ IG / TikTok / LINE ได้เลย");
 };
+/* ปุ่มแชร์ผ่านแอปโชว์เฉพาะเครื่องที่รองรับ (มือถือส่วนใหญ่) */
+if(!(navigator.share)) $("shShare").style.display="none";
 $("shCopy").onclick=async()=>{
   try{ await navigator.clipboard.writeText($("shareText").value); toast("คัดลอกข้อความแล้ว"); }
   catch(e){ $("shareText").select(); toast("กด Ctrl+C เพื่อคัดลอก"); }
@@ -1810,6 +1850,7 @@ $("sky").insertAdjacentHTML("beforeend",
 $("parade").innerHTML=["normal","boost","red","normal","flame"].map((stl,i)=>
   `<div style="animation-duration:${7+i*1.7}s;animation-delay:-${i*2.3}s">${runnerBox(Object.assign(randAv(i+3),{color:COLORS[i]}),2,stl)}</div>`).join("");
 $("bcTitle").textContent=C.TITLE;
+$("wm").textContent = C.TITLE + (CREDIT ? " · " + CREDIT : "");
 $("bcTitle2").textContent=C.TITLE;
 document.title=C.TITLE;
 $("plat").innerHTML=PLATS.map(p=>`<option>${p}</option>`).join("");

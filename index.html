@@ -443,6 +443,10 @@
   .legend{display:flex; gap:16px; flex-wrap:wrap; color:var(--dim); font-size:12px; margin-top:14px}
   .legend i{display:inline-block; width:14px; height:14px; vertical-align:-3px; margin-right:7px; border:2px solid rgba(0,0,0,.5)}
 
+  /* ---------- ลายน้ำเครดิต มุมขวาล่างทุกหน้า ---------- */
+  .wm{position:fixed; right:10px; bottom:8px; z-index:38; pointer-events:none; font-family:var(--f-px); font-weight:700;
+    font-size:11px; letter-spacing:.5px; color:rgba(255,204,77,.85); text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.8);
+    background:rgba(10,8,32,.55); padding:4px 9px; border:2px solid rgba(255,204,77,.35)}
   /* ---------- TOAST ---------- */
   #toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(200%);
     font-family:var(--f-px); font-weight:700; font-size:17px; color:#fff; text-align:center;
@@ -682,14 +686,14 @@
           <label>ข้อความสำหรับโพสต์</label>
           <textarea class="shareTxt" id="shareText"></textarea>
           <div class="shareBtns" style="margin-top:14px">
-            <button class="btn gold" id="shShare">📣 แชร์การ์ดนี้</button>
-            <button class="btn sm" id="shDownload">⬇ ดาวน์โหลดรูป PNG</button>
+            <button class="btn gold" id="shDownload">💾 เซฟรูปการ์ด (PNG)</button>
+            <button class="btn sm" id="shShare">📣 แชร์ผ่านแอป</button>
             <button class="btn sm" id="shCopy">📋 คัดลอกข้อความ</button>
             <button class="btn sm" id="dressBtn2">👕 ห้องแต่งตัว</button>
           </div>
           <div class="hint">
-            ปุ่มแชร์จะเรียกเมนูแชร์ของเครื่อง (มือถือจะเห็นไอคอน IG / X / LINE)<br>
-            ถ้าเครื่องไม่รองรับ ให้ดาวน์โหลดรูปแล้วโพสต์เอง
+            เซฟรูปแล้วเอาไปโพสต์ IG / TikTok / LINE ได้เลย ขนาด 1080×1350 พอดีโพสต์แนวตั้ง<br>
+            บนมือถือกด "แชร์ผ่านแอป" จะเด้งเมนูแชร์ของเครื่องพร้อมรูปให้เลย
           </div>
         </div>
       </div>
@@ -810,6 +814,7 @@
 </div></div>
 
 <div id="toast"></div>
+<div id="wm" class="wm"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>

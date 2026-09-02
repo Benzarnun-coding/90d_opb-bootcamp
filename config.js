@@ -18,6 +18,9 @@ window.CFG = {
 
   /* ---- 2. ชื่อ bootcamp ที่โชว์บนหัวเว็บ -------------------- */
   TITLE: "90 DAY ONE PERSON BUSINESS BOOTCAMP",
+  /* แฮชแท็กท้ายข้อความแชร์ + บนการ์ด และเครดิตลายน้ำมุมจอ/มุมการ์ด */
+  HASHTAG: "#90DayOnePersonBusinessBootcamp",
+  CREDIT:  "By Benz Arnun",
 
   /* ---- 3. โครงสร้างรุ่น -------------------------------------
      ต้องตรงกับค่าในตาราง cohort ใน schema.sql
