@@ -351,6 +351,7 @@ const DemoDB = (()=>{
       const grit = i===0 ? 1.02 : .3+Math.random()*.65;   // ผู้เล่นเริ่มต้นเกาะเป้าพอดี
       for(let w=1; w<=cw; w++){
         if(!joinedWeek(r,w)) continue;
+        if(i===0 && w===cw) continue;                 // ผู้เล่นใหม่ยังไม่ได้เลือกเป้าสัปดาห์นี้ — ให้เจอหน้าต่างเลือกเองเหมือนของจริง
         const roll=Math.random();
         r.pledges[w] = w>=7 && roll<.12 ? 14 : roll<.25 ? 4 : roll<.8 ? 7 : 10;
       }
