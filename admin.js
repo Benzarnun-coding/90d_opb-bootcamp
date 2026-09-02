@@ -42,7 +42,34 @@ async function boot(){
   $("who").textContent = session.user.email;
   show("scAdmin");
   await load();
+  const {data:co} = await sb.from("cohort").select("discord_webhook").eq("id",1).maybeSingle();
+  if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
 }
+/* ---- Discord ---- */
+$("dcSave").onclick = async ()=>{
+  const url = $("dcHook").value.trim();
+  if(url && !/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\//.test(url)) return toast("ต้องเป็นลิงก์ webhook ของ Discord");
+  const {error} = await sb.from("cohort").update({discord_webhook: url||null}).eq("id",1);
+  if(error) return toast(error.message);
+  toast(url ? "บันทึก webhook แล้ว" : "ลบ webhook แล้ว");
+};
+$("dcTest").onclick = async ()=>{
+  $("dcTest").disabled = true;
+  const {error} = await sb.rpc("notify_discord", {msg: "✅ ทดสอบจากหน้า admin — ถ้าเห็นข้อความนี้ แจ้งเตือนอัตโนมัติพร้อมแล้ว 🏁"});
+  $("dcTest").disabled = false;
+  if(error) return toast(error.message);
+  toast("ส่งแล้ว ดูในช่อง Discord");
+};
+$("dcDigest").onclick = async ()=>{
+  $("dcDigest").disabled = true;
+  const {data, error} = await sb.rpc("digest_text");
+  if(error){ $("dcDigest").disabled = false; return toast(error.message); }
+  if(!data){ $("dcDigest").disabled = false; return toast("รุ่นยังไม่เปิด ยังไม่มีสรุป"); }
+  const r2 = await sb.rpc("notify_discord", {msg: data});
+  $("dcDigest").disabled = false;
+  if(r2.error) return toast(r2.error.message);
+  toast("ส่งสรุปแล้ว");
+};
 $("lgBtn").onclick = async ()=>{
   const email=$("lgEmail").value.trim(), password=$("lgPass").value;
   if(!email || !password) return toast("ใส่อีเมลกับรหัสก่อน");

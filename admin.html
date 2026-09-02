@@ -133,6 +133,23 @@
     </section>
 
     <section class="panel bevel">
+      <div class="titlebar"><h2>แจ้งเตือน Discord</h2><span>ทุกวัน 20:00 สรุปใครยังไม่ส่ง · ทุกต้นสัปดาห์เตือนเลือกเป้า</span></div>
+      <div class="body">
+        <label>Webhook URL ของช่อง Discord</label>
+        <input id="dcHook" placeholder="https://discord.com/api/webhooks/...">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn" id="dcSave">บันทึก</button>
+          <button class="btn" id="dcTest">ส่งข้อความทดสอบ</button>
+          <button class="btn" id="dcDigest">ส่งสรุปวันนี้เดี๋ยวนี้</button>
+        </div>
+        <div class="hint" id="dcNote">
+          สร้าง webhook: เปิด Discord → ตั้งค่าช่อง (⚙️) → Integrations → Webhooks → New Webhook → Copy Webhook URL แล้ววางที่นี่<br>
+          ระบบส่งเองทุกวัน 20:00 น. (สรุปใครยังไม่ส่ง + ตารางบ้าน) และ 09:00 น. ของวันแรกของสัปดาห์ (เตือนเลือกเป้า)
+        </div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
       <div class="titlebar"><h2>เพิ่มคนเข้ารุ่น</h2><span>อีเมลที่อยู่ในนี้ถึงจะเข้าเกมได้</span></div>
       <div class="body">
         <div class="row">

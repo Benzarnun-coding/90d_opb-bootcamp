@@ -57,15 +57,18 @@ const AV = {
   skin:[["#ffe3cc","#e6b898"],["#ffd2a8","#d99a6c"],["#e8b482","#c48752"],["#c98a5b","#9c6236"],["#8f5a3c","#66391f"],["#5c3520","#3c2010"]],
   hair:["สั้น","ตั้งแหลม","ยาว","บ๊อบ","โล้น","หางม้า","มวยบนหัว","โมฮอว์ก","แอฟโฟร"],
   hairColor:[["#1d1b26","#3b3850"],["#2e1c14","#5a3a22"],["#e2bd3f","#fff0a0"],["#c1442a","#ea7a55"],["#2d6cdf","#6aa2ff"],["#ff6fb5","#ffb3d9"],["#d6d6e6","#f6f6ff"],["#3fbf6a","#8ff0aa"]],
-  glasses:["ไม่ใส่","กลมทอง","เหลี่ยมดำ","กันแดด","กรอบขาวหนา"],
-  top:["เสื้อยืด","ฮู้ด","แจ็กเก็ต","เสื้อกล้าม","เดรส","สูทผูกไท","เชิ้ตขาว"],
+  glasses:["ไม่ใส่","กลมทอง","เหลี่ยมดำ","กันแดด","กรอบขาวหนา","แว่นหัวใจ ♀","วิเซอร์ไซเบอร์ ♂"],
+  top:["เสื้อยืด","ฮู้ด","แจ็กเก็ต","เสื้อกล้าม","เดรส","สูทผูกไท","เชิ้ตขาว",
+       "เสื้อครอป ♀","แจ็กเก็ตหนัง ♂","เกราะเงิน ♂","เดรสราตรี ♀","เกราะทอง ♂","ปีกนางฟ้า ♀","ผ้าคลุมฮีโร่ ♂"],
   pants:["ขายาว","ขาสั้น","กระโปรง"],
   pantsColor:[["#3450a8","#22357a"],["#2a2a35","#15151c"],["#b89a62","#8a6f3f"],["#c0392b","#7d2419"],["#e6e6f0","#b0b0c0"],["#3f7a4a","#26512f"],["#6a3fb5","#472a7a"]],
-  hat:["ไม่ใส่","แก๊ป","ไหมพรม","มงกุฎ","ผ้าคาดหัว","หมวกทรงสูง","คาวบอย","หมวกพ่อมด"],
+  hat:["ไม่ใส่","แก๊ป","ไหมพรม","มงกุฎ","ผ้าคาดหัว","หมวกทรงสูง","คาวบอย","หมวกพ่อมด",
+       "เบเร่ต์ ♀","หมวกฟาง ♀","แก๊ปกลับหลัง ♂","โบว์ใหญ่ ♀","หูแมว ♀","หมวกไวกิ้ง ♂","ทิอาร่าเพชร ♀","มงกุฎราชา ♂","รัศมีนางฟ้า"],
   mouth:["ยิ้ม","เฉย","อ้าปาก","ยิงฟัน","หนวด","หนวดเครา"],
   nose:["ไม่มี","จุด","โต"]
 };
-const HAT_COL=[["#000","#000"],["#d63031","#8f1f21"],["#7d5fff","#4c36a8"],["#ffcc4d","#c98a12"],["#e0202a","#8f1f21"],["#1a1a22","#3a3a48"],["#c8955a","#8a6238"],["#5b3fd1","#3a2790"]];
+const HAT_COL=[["#000","#000"],["#d63031","#8f1f21"],["#7d5fff","#4c36a8"],["#ffcc4d","#c98a12"],["#e0202a","#8f1f21"],["#1a1a22","#3a3a48"],["#c8955a","#8a6238"],["#5b3fd1","#3a2790"],
+  ["#b3213a","#7a1428"],["#e8c872","#b89a42"],["#2d6cdf","#1d47a0"],["#ff6fb5","#c23a82"],["#c9895a","#8a5a35"],["#8a8a95","#5a5a66"],["#9fd8ff","#5aa8e0"],["#ffcc4d","#c98a12"],["#fff3a0","#ffd23a"]];
 const DEF_AV={g:0,sk:1,hr:0,hc:1,gl:0,top:0,pt:0,pc:0,hat:0,mo:0,no:1};
 const AV_KEYS=Object.keys(DEF_AV);
 /* หน้าตาของ runner — คนที่ยังไม่เคยแต่งได้ค่าเริ่มต้น + สีชุดที่เลือกไว้ */
@@ -80,8 +83,8 @@ function randAv(seed){
   let s=(seed*9301+49297)%233280;
   const rnd=n=>{ s=(s*9301+49297)%233280; return Math.floor(s/233280*n); };
   const g=rnd(2);
-  return {g, sk:rnd(6), hr:g?[2,3,5,6,8][rnd(5)]:[0,1,4,7,8][rnd(5)], hc:rnd(8), gl:rnd(3)===0?1+rnd(4):0,
-    top:rnd(7), pt:g?rnd(3):rnd(2), pc:rnd(7), hat:rnd(2)===0?1+rnd(7):0, mo:g?rnd(4):rnd(6), no:rnd(3)};
+  return {g, sk:rnd(6), hr:g?[2,3,5,6,8][rnd(5)]:[0,1,4,7,8][rnd(5)], hc:rnd(8), gl:rnd(3)===0?1+rnd(6):0,
+    top:rnd(14), pt:g?rnd(3):rnd(2), pc:rnd(7), hat:rnd(2)===0?1+rnd(16):0, mo:g?rnd(4):rnd(6), no:rnd(3)};
 }
 
 function shift(hex,amt){
@@ -95,7 +98,8 @@ function shift(hex,amt){
 function palette(av, style){
   const skin=AV.skin[av.sk]||AV.skin[1], hc=AV.hairColor[av.hc]||AV.hairColor[1];
   const pc=AV.pantsColor[av.pc]||AV.pantsColor[0], hat=HAT_COL[av.hat]||HAT_COL[0];
-  const acc={F:"#1c1c24", D:"#1d1d2c", M:"#8a2f2f", R:"#e0202a", W:"#f6f6ff", G:"#ffcc4d", N:"#242840", A:hat[0], a:hat[1]};
+  const acc={F:"#1c1c24", D:"#1d1d2c", M:"#8a2f2f", R:"#e0202a", W:"#f6f6ff", G:"#ffcc4d", g:"#c98a12", N:"#242840",
+             Q:"#ff5fa8", V:"#39e5ff", A:hat[0], a:hat[1]};
   if(style==="burnout"){
     return Object.assign({O:"#1a1622", K:"#d8d4c8", E:"#241f18", S:"#d8d4c8", s:"#a9a496",
       C:"#6b6a78", c:"#43424f", l:"#8f8e9c", P:"#3a3946", p:"#2a2934", B:"#8d8a9a", b:"#5d5b68",
@@ -138,9 +142,25 @@ function buildGrid(av, style, frame){
   if(top===6){ /* เชิ้ตขาว คอปกสีชุด กระดุมดำ */
     bodyRe("Ccl","W"); set(10,5,"C");set(10,6,"C");set(10,9,"C");set(10,10,"C");set(11,5,"C");set(11,10,"C");
     set(12,7,"F");set(14,7,"F");set(16,7,"F"); }
+  /* ---- ไอเทมพิเศษ (ปลดล็อกที่ 30 / 60 / 90 ชิ้น) ---- */
+  const setE=(y,x,ch)=>{ const yy=y+HR; if(yy>=0&&yy<ROWS&&x>=0&&x<16&&g[yy][x]===".") g[yy][x]=ch; };
+  if(top===7){ for(let y=14;y<=16;y++) for(let x=0;x<16;x++){ const c=get(y,x); if("Ccl".includes(c)) set(y,x, x<10?"S":"s"); } }          // ครอป โชว์หน้าท้อง
+  if(top===8){ bodyRe("Ccl","F"); for(let y=11;y<=15;y++) set(y,7,"b"); set(11,6,"K");set(11,8,"K");set(12,5,"K");set(12,9,"K"); }             // แจ็กเก็ตหนัง
+  if(top===9){ bodyRe("Ccl","b"); [3,4,11,12].forEach(x=>{ set(10,x,"B");set(11,x,"B"); }); set(11,5,"W");set(12,5,"W");set(11,6,"W");
+    for(let x=6;x<=9;x++) set(13,x,"O"); }                                                                                                  // เกราะเงิน
+  if(top===10){ fill(["...OCCCCCCCCO...","..OCClCCCCCCCO..","..OCCCCCClCCCO..",".OCCCCCCCCCCCCO.",".OClCCCCCCCClCO.","OCCCCCCCCCCCCCCO"],17); } // เดรสราตรี
+  if(top===11){ bodyRe("Ccl","G"); [3,4,11,12].forEach(x=>{ set(10,x,"W");set(11,x,"W"); }); set(11,5,"W");set(12,5,"W");
+    for(let y=12;y<=15;y++){ set(y,10,"g");set(y,11,"g"); } for(let x=6;x<=9;x++) set(13,x,"g"); }                                          // เกราะทอง
+  if(top===12){ bodyRe("Ccl","W"); fill(["...OWWWWWWWWO...","..OWWbWWWWWWWO..","..OWWWWWWbWWWO..",".OWWWWWWWWWWWWO."],17);
+    [[9,1],[9,14],[10,0],[10,1],[10,14],[10,15],[11,0],[11,1],[11,14],[11,15],[12,0],[12,15],[13,0],[13,15],[14,1],[14,14]]
+      .forEach(([y,x])=>setE(y,x,"W")); }                                                                                                    // ปีกนางฟ้า + ชุดขาว
+  if(top===13){ for(let y=10;y<=19;y++){ setE(y,0,"R");setE(y,1,"R");setE(y,14,"R");setE(y,15,"R"); } }                                     // ผ้าคลุมฮีโร่
+  const longDress = top===4 || top===10 || top===12;
   /* ---- กางเกง / ขาสั้น / กระโปรง / เดรส ---- */
   const skinLegs=y=>{ for(let x=0;x<16;x++){ const c=get(y,x); if(c==="P") set(y,x,"S"); else if(c==="p") set(y,x,"s"); } };
   if(top===4){ fill(["...OCCCCCCCCO...","..OCClCCCCCCCO..","..OCClCCCCCCCO..",".OCCClCCCCCCCCO."],17); skinLegs(21); }
+  else if(top===12){ skinLegs(21); }
+  else if(longDress){ }
   else if(av.pt===1){ skinLegs(20); skinLegs(21); }
   else if(av.pt===2){ fill(["...OPPPPPPPPO...","..OPPPPppppPO...",".OPPPPPppppppO.."],17); skinLegs(20); skinLegs(21); }
 
@@ -180,6 +200,9 @@ function buildGrid(av, style, frame){
   if(gl===2){ frames("F"); [3,4,5,8,9,10].forEach(x=>set(4,x,"F")); [3,4,5,8,9,10].forEach(x=>set(7,x,"F")); }
   if(gl===3){ [3,4,5,8,9,10].forEach(x=>{ set(5,x,"D");set(6,x,"D");set(4,x,"F"); }); set(5,6,"F");set(5,7,"F"); }
   if(gl===4){ frames("W"); [3,4,5,8,9,10].forEach(x=>{ set(4,x,"W");set(7,x,"W"); }); set(6,6,"W");set(6,7,"W"); }
+  if(gl===5){ [[4,2],[4,4],[4,8],[4,10],[5,2],[5,3],[5,4],[5,5],[5,6],[5,8],[5,9],[5,10],[5,11],[5,12],[6,3],[6,4],[6,5],[6,9],[6,10],[6,11],[7,4],[7,10]]
+    .forEach(([y,x])=>set(y,x,"Q")); }                                                                                                       // แว่นหัวใจ
+  if(gl===6){ for(let x=2;x<=12;x++){ set(5,x,(x===2||x===12)?"O":"V"); set(6,x,(x===2||x===12)?"O":"D"); } }                              // วิเซอร์
   /* ---- หมวก (ใช้พื้นที่เหนือหัว) ---- */
   const hat=av.hat;
   if(hat===1){ fill(["....OOOOOOO.....","...OAAAAAAAO....","..OAAAAAAAAAO...","..OAAAAAAAAAO...","..OAaaaaaaaaAAAO"],-1); }
@@ -189,6 +212,15 @@ function buildGrid(av, style, frame){
   if(hat===5){ fill(["....OAAAAAAO....","....OAAAAAAO....","....OAAAAAAO....","....OAAaaAAO....","..OOOAAAAAAOOO..",".OAAAAAAAAAAAAO."],-4); }
   if(hat===6){ fill([".....OAAAAO.....","....OAAAAAAO....",".OAAAAAAAAAAAAO.","OAaaaaaaaaaaaaAO"],-2); }
   if(hat===7){ fill([".......OO.......","......OAAO......",".....OAAAAO.....","....OAAaAAAO....","...OAAAAAAAAO...","OOAAAAAAAAAAAAOO"],-4); }
+  if(hat===8){ fill(["......OaO.......",".....OAAAAAAO...","...OAAAAAAAAAO..","..OAaaaaaaaaaAO."],-1); }                                       // เบเร่ต์
+  if(hat===9){ fill([".....OAAAAO.....","....OAAAAAAO....","....OAAAAAAO....","OOAAAAAAAAAAAAOO",".OaaaaaaaaaaaaO."],-2); }                   // หมวกฟาง
+  if(hat===10){ fill(["....OOOOOOO.....","...OAAAAAAAO....","..OAAAAAAAAAO...","OAAAaaaaaaaaAO.."],0); }                                       // แก๊ปกลับหลัง
+  if(hat===11){ fill(["....OAAO.OAAO...","....OAAAOAAAO...",".....OAAaAAO...."],-2); }                                                        // โบว์ใหญ่
+  if(hat===12){ fill(["..OAAO.....OAAO.","..OARAO...OARAO.",".OAAAAOOOOOAAAAO"],-2); }                                                        // หูแมว
+  if(hat===13){ fill(["..W.........W...","..WW.......WW...","...WOOOOOOOW....","...OAAAAAAAAO...","..OAAAAAAAAAO...","..OaAAAAAAAaO..."],-2); } // ไวกิ้ง
+  if(hat===14){ fill(["....A..W..A.....","....OAAAAAAAO..."],-1); }                                                                           // ทิอาร่าเพชร
+  if(hat===15){ fill(["...G.G.G.G.G.G..","...GGGGGGGGGGG..","..OGRGGWGGGRGGO.","..OGGGGGGGGGGGO.","..OgGGGGGGGGGgO."],-3); }                  // มงกุฎราชา
+  if(hat===16){ fill([".....GGGGGG.....","....G......G....",".....GGGGGG....."],-4); }                                                        // รัศมีนางฟ้า
   return g;
 }
 function sprite(av, px=2, style="normal"){
@@ -1597,7 +1629,26 @@ const UNLOCKS = {
   "top:5": {th:"สูทผูกไท",    need:s=>s.contents>=45, how:"ปล่อยครบ 45 ชิ้น (ครึ่งทาง)"},
   "hat:3": {th:"มงกุฎ",       need:s=>s.weeksHit>=3,  how:"ทำครบเป้า 3 สัปดาห์"},
   "hr:8":  {th:"ผมแอฟโฟร",    need:s=>s.dayStreak>=7, how:"ส่งติดกัน 7 วัน"},
-  "hat:7": {th:"หมวกพ่อมด",   need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"}
+  "hat:7": {th:"หมวกพ่อมด",   need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  /* ไอเทมพิเศษ — ชุดละ 6 ชิ้น มีทั้งแนวผู้หญิงและผู้ชาย */
+  "hat:8":  {th:"เบเร่ต์",        need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "hat:9":  {th:"หมวกฟาง",       need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "hat:10": {th:"แก๊ปกลับหลัง",   need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "gl:5":   {th:"แว่นหัวใจ",      need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "top:7":  {th:"เสื้อครอป",      need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "top:8":  {th:"แจ็กเก็ตหนัง",   need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
+  "hat:11": {th:"โบว์ใหญ่",       need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  "hat:12": {th:"หูแมว",         need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  "hat:13": {th:"หมวกไวกิ้ง",     need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  "gl:6":   {th:"วิเซอร์ไซเบอร์", need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  "top:9":  {th:"เกราะเงิน",      need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  "top:10": {th:"เดรสราตรี",      need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
+  "hat:14": {th:"ทิอาร่าเพชร",    need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
+  "hat:15": {th:"มงกุฎราชา",      need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
+  "hat:16": {th:"รัศมีนางฟ้า",    need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
+  "top:11": {th:"เกราะทอง",       need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
+  "top:12": {th:"ปีกนางฟ้า",      need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
+  "top:13": {th:"ผ้าคลุมฮีโร่",   need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"}
 };
 const unlockedSet = st => new Set(Object.keys(UNLOCKS).filter(k=>UNLOCKS[k].need(st||EMPTY_ST)));
 const lockOf = (cat,i,st) => { const u=UNLOCKS[cat+":"+i]; return (u && !u.need(st||EMPTY_ST)) ? u : null; };
