@@ -291,6 +291,12 @@
   /* ร่างหมดแรง — ขยับช้า ไม่มีแสง เอียงเล็กน้อยเหมือนจะล้ม */
   .runner.burnout .body{animation:sway 1.6s ease-in-out infinite; filter:grayscale(.35) brightness(.92)}
   .runner.burnout .dust{display:none}
+  /* ร่างผอมแห้ง — สีหม่น เดินโงนเงน */
+  .runner.weak .body{animation:sway 1.3s ease-in-out infinite; filter:saturate(.55) brightness(.9)}
+  .runner.weak .dust{display:none}
+  .optCard.weak .opChar{filter:saturate(.55)}
+  .pForm.weak{border-color:#8a7a8a} .pForm.weak b{color:#d9cfd9}
+  .wkTag.weak{color:#d9cfd9; border-color:#6a5a6a}
   @keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
   .optCard.burntWarn{border-color:#a8324c #33101f #33101f #a8324c;
     background:linear-gradient(180deg,#3d1a2c,#1c0c18)}

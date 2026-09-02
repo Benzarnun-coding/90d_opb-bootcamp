@@ -26,6 +26,16 @@
 
 # config.js ห้าม cache ไม่งั้นเปลี่ยนคีย์แล้วคนยังได้ของเก่า
 [[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
   for = "/config.js"
   [headers.values]
     Cache-Control = "no-store"

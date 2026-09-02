@@ -107,6 +107,12 @@ function palette(av, style){
       C:"#6b6a78", c:"#43424f", l:"#8f8e9c", P:"#3a3946", p:"#2a2934", B:"#8d8a9a", b:"#5d5b68",
       H:"#d8d4c8", h:"#eae7dc"}, acc, {A:"#6b6a78", a:"#43424f", G:"#a9a496", R:"#7a4a4a", N:"#3a3946", W:"#c8c4b8"});
   }
+  if(style==="weak"){
+    /* หมดแรง: ผิวซีด ชุดสีหม่น ตาคล้ำ */
+    const dull=shift(av.color,-70);
+    return Object.assign({O:"#1a1622", H:shift(hc[0],-30), h:shift(hc[1],-40), S:"#e6dfd2", s:"#b9ad9a", E:"#2a2230",
+      C:dull, c:shift(dull,-40), l:shift(dull,30), P:shift(pc[0],-50), p:shift(pc[1],-50), B:"#c9c6d4", b:"#8f8ba3"}, acc, {D:"#5a4a5a"});
+  }
   const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : av.color;
   const p=Object.assign({O:"#140d2e", H:hc[0], h:hc[1], S:skin[0], s:skin[1], E:"#140d2e",
     C:suit, c:shift(suit,-62), l:shift(suit,58), P:pc[0], p:pc[1], B:"#eceaf6", b:"#a8a4c4"}, acc);
@@ -121,8 +127,12 @@ function buildGrid(av, style, frame){
   const fill=(rows,y0)=>rows.forEach((r,i)=>{ const yy=y0+i+HR; if(yy<0||yy>=ROWS) return; const row=r.padEnd(16,"."); for(let x=0;x<16;x++) g[yy][x]=row[x]; });
   const set=(y,x,ch)=>{ y+=HR; if(y>=0&&y<ROWS&&x>=0&&x<16) g[y][x]=ch; };
   const get=(y,x)=>g[y+HR][x];
-  const burn=style==="burnout";
-  fill(burn?HEAD_SKULL:HEAD,0); fill(TORSO,10); fill(FRAMES[frame]||LEGS.b,17);
+  const burn=style==="burnout", weak=style==="weak";
+  const TORSO_THIN=["....OCCCCCCO....","...OCCCCCCCCO...","..OSCCCCCCCCSO..","..OSClCCCCCCSO..","..OsCCCCCCCCsO..","...OCCCCCCCCO...","....OCCCCCCO...."];
+  fill(burn?HEAD_SKULL:HEAD,0); fill(weak?TORSO_THIN:TORSO,10); fill(FRAMES[frame]||LEGS.b,17);
+  if(weak){ /* ขาผอม: เอาคอลัมน์นอกสุดของกางเกงออก */
+    for(let y=17;y<=21;y++){ for(const x of [3,12]){ const c=get(y,x); if(c==="P"||c==="p") set(y,x,"."); } }
+  }
 
   /* ---- เสื้อ ---- */
   const top=av.top;
@@ -194,6 +204,11 @@ function buildGrid(av, style, frame){
     if(mo===4){ for(let x=5;x<=9;x++) set(7,x,"H"); set(8,4,"H");set(8,10,"H"); }
     if(mo===5){ for(let x=5;x<=9;x++) set(7,x,"H"); for(let x=3;x<=12;x++){ set(8,x,"H");set(9,x,"H"); } set(10,4,"H");set(10,11,"H"); for(let x=5;x<=10;x++) set(10,x,"H"); }
     if(style==="flame"){ set(5,4,"E");set(5,9,"E"); }       // PRO MAX: ตาแดงโตเรืองแสง
+    if(weak){ /* ตาคล้ำ ปากคว่ำ เหงื่อตก */
+      set(7,4,"D");set(7,9,"D");
+      for(let x=6;x<=8;x++) set(8,x,"S"); set(8,6,"M");set(8,7,"M");set(8,8,"M");set(9,5,"M");set(9,9,"M");
+      set(4,12,"V");set(5,13,"V");
+    }
   }
   /* ---- แว่น (2-3 แถว ให้เห็นชัด) ---- */
   const gl=av.gl;
@@ -322,11 +337,17 @@ function computeStats(r){
       burnout = my.filter(s=>weekOf(s.day)===pw).length < pt;
     }
   }
+  /* หมดแรงแบบเบา: สัปดาห์ที่แล้วรับ 4/7 แล้วทำไม่ถึง → ร่างผอมแห้งทั้งสัปดาห์ (เลือกเป้าได้ปกติ) */
+  let weak = !!r.weak;
+  if(!burnout && !weak && cw > 1){
+    const pw = cw - 1, pt = r.pledges && r.pledges[pw];
+    if(pt && pt < HEAVY && joinedWeek(r, pw)) weak = my.filter(s=>weekOf(s.day)===pw).length < pt;
+  }
   const contents=my.length;
   return {contents, activeDays:Object.keys(byDay).length, weekDone, weekTarget, target,
     pace:contents-target, rate: target?Math.round(contents/target*100):0,
-    weekStreak:ws, dayStreak:ds, byDay, weeksHit, burnout,
-    style: burnout ? "burnout" : (weekTarget ? optOf(weekTarget).style : "normal")};
+    weekStreak:ws, dayStreak:ds, byDay, weeksHit, burnout, weak,
+    style: burnout ? "burnout" : weak ? "weak" : (weekTarget ? optOf(weekTarget).style : "normal")};
 }
 
 /* ================= DATA LAYER ================= */
@@ -358,8 +379,9 @@ const DemoDB = (()=>{
 
     /* บทบาทพิเศษในสนามสาธิต */
     const BURN  = new Set([7,12,18,25,31,44]);   // รับ 10/14 สัปดาห์ที่แล้วแล้วพลาด → กระโหลก
-    const FLAME = new Set([6,14,22,38]);         // สัปดาห์นี้รับ 14
-    const RED   = new Set([9,11,16,20,27,33,41,47]);
+    const FLAME = new Set([6]);                  // PRO MAX มีคนเดียวในสาธิต
+    const RED   = new Set([9,20,33]);            // ไฟแดงมีน้อย ๆ
+    const WEAK  = new Set([8,15,23,29,36,42,48]);   // รับ 4/7 สัปดาห์ที่แล้วแล้วพลาด → ร่างผอมแห้ง
     const FINISHER = 34;                          // KING วิ่งถึง 90 แล้ว
 
     runners.forEach((r,i)=>{
@@ -368,9 +390,11 @@ const DemoDB = (()=>{
         if(!joinedWeek(r,w)) continue;
         if(i===0 && w===cw) continue;              // ผู้เล่นใหม่ยังไม่ได้เลือกเป้าสัปดาห์นี้
         const roll=R();
-        let t = w>=7 && roll<.12 ? 14 : roll<.25 ? 4 : roll<.8 ? 7 : 10;
+        let t = roll<.25 ? 4 : roll<.92 ? 7 : 10;   // ส่วนใหญ่ 7 · 10 นาน ๆ ที · 14 เฉพาะคนที่กำหนด
         if(BURN.has(i)  && w===cw-1) t = R()<.5 ? 10 : 14;
         if(BURN.has(i)  && w===cw)   t = 4;        // สัปดาห์นี้เลือกได้แค่ 4/7
+        if(WEAK.has(i)  && w===cw-1) t = R()<.5 ? 4 : 7;
+        if(WEAK.has(i)  && w===cw)   t = 7;
         if(FLAME.has(i) && w===cw)   t = 14;
         if(RED.has(i)   && w===cw)   t = 10;
         if(i===FINISHER)             t = w>=7 ? 14 : 10;
@@ -388,6 +412,7 @@ const DemoDB = (()=>{
         let perDay=t/7;
         if(i===FINISHER) perDay=2.1;
         if(BURN.has(i) && w===cw-1) perDay=Math.min(perDay, (t-4)/7);   // สัปดาห์ที่พลาด ทำได้ไม่ถึง
+        if(WEAK.has(i) && w===cw-1) perDay=Math.max(0,(t-3))/7;
         let n=Math.floor(perDay);
         if(R() < (perDay-n)) n++;
         if(R() > r._grit) n=Math.max(0,n-1);
@@ -556,13 +581,14 @@ const LiveDB = (()=>{
     },
     async fetchAll(){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
-      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups}]=await Promise.all([
+      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
         uidNow ? sb.from("pledges").select("week_no,target").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
         sb.from("v_burnout").select("profile_id"),
-        sb.from("v_house_cup").select("*")
+        sb.from("v_house_cup").select("*"),
+        sb.from("v_weak").select("profile_id")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -587,8 +613,10 @@ const LiveDB = (()=>{
         }
       }));
       const burntIds = new Set((burn||[]).map(b=>b.profile_id));
+      const weakIds  = new Set((weakRows||[]).map(b=>b.profile_id));
       runners.forEach(r=>{
         if(burntIds.has(r.id)){ r.burnout = true; r.st.burnout = true; r.st.style = "burnout"; }
+        else if(weakIds.has(r.id)){ r.weak = true; r.st.weak = true; r.st.style = "weak"; }
       });
       const me=runners.find(r=>r.id===uidNow);
       if(me) (pls||[]).forEach(x=>{ me.pledges[x.week_no]=x.target; });
@@ -839,7 +867,7 @@ function renderPledge(){
     </div>
     <div class="rival">${st.burnout
       ? `💀 สัปดาห์นี้เป็นร่างกระโหลก · ทำครบ ${st.weekTarget} ชิ้น = <b style="color:var(--gold)">ฟื้นคืนชีพ</b> ได้ป้าย REVIVED · `
-      : ""}${rivalHTML(r)}</div>` + nudge;
+      : st.weak ? `😵 สัปดาห์นี้เป็นร่างหมดแรง (พลาดเป้าสัปดาห์ที่แล้ว) · ทำครบสัปดาห์นี้แล้วสัปดาห์หน้ากลับมาปกติ · ` : ""}${rivalHTML(r)}</div>` + nudge;
 }
 
 /* ================= TRACK ================= */
@@ -1058,6 +1086,8 @@ function formLabel(r, s){
   const fin = s.contents>=FINISH ? `<br>🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว — ออร่าทองถาวร` : "";
   if(s.style==="burnout")
     return `<b>💀 ร่างกระโหลก · หมดแรง</b><br>สัปดาห์ที่แล้วรับเป้าหนัก (${HEAVY}+ ชิ้น) แล้วทำไม่ถึง สัปดาห์นี้เลือกได้แค่ 4 หรือ 7<br><span style="color:var(--dim)">ทำครบสัปดาห์นี้ = ฟื้นคืนชีพ ได้ป้าย REVIVED</span>`+fin;
+  if(s.style==="weak")
+    return `<b>😵 ร่างหมดแรง · ผอมแห้ง</b><br>สัปดาห์ที่แล้วรับเป้า ${r.weakTarget||"4/7"} ชิ้นแล้วทำไม่ถึง ผิวซีด ตาคล้ำ ตัวลีบทั้งสัปดาห์<br><span style="color:var(--dim)">ทำครบสัปดาห์นี้ = กลับมาร่างปกติสัปดาห์หน้า</span>`+fin;
   if(s.style==="flame")
     return `<b>🔥 LASER FOCUS PRO MAX</b><br>รับ 14 ชิ้น/สัปดาห์ — ไฟทองท่วมตัว ตาแดง ผมทอง<br><span style="color:var(--dim)">พลาดเป้า = สัปดาห์หน้ากลายเป็นร่างกระโหลก</span>`+fin;
   if(s.style==="red")
@@ -1568,6 +1598,7 @@ $("pushBtn").onclick=async()=>{
     let msg=`+1 CONTENT · รวม ${after.contents} ชิ้น`, kind="submit";
     if(o && before.weekDone<o.target && after.weekDone>=o.target){
       if(before.burnout){ msg=`ฟื้นคืนชีพ! 💀→🔥<br>ทำครบเป้าทั้งที่เป็นร่างกระโหลก ได้ป้าย REVIVED`; kind="revive"; }
+      else if(before.weak){ msg=`กลับมามีแรงแล้ว! 😵→💪<br>ครบเป้าสัปดาห์นี้ สัปดาห์หน้าร่างกลับมาปกติ`; kind="revive"; }
       else { msg=`ครบเป้าสัปดาห์นี้แล้ว! 🎉<br>${o.name} ${o.target}/${o.target}`; kind="target"; }
     }
     else if(o) msg=`+1 CONTENT · สัปดาห์นี้ ${after.weekDone}/${o.target}`;
