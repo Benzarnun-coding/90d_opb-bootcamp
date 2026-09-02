@@ -16,7 +16,7 @@ const HEAVY   = C.HEAVY_TARGET || 10;      // รับเป้าตั้ง�
 const WEEKS   = Math.round((SPD * NSP) / 7);
 const FINISH  = C.GOAL_TOTAL || 7 * WEEKS; // เส้นชัย = ปล่อยครบกี่ชิ้น (ส่งเกินได้)
 const NEAR    = C.NEAR_RANGE || 3;
-const LIVE    = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY);
+const LIVE    = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY) && !/[?&]demo\b/.test(location.search);  // ?demo = ลองในเครื่องด้วยข้อมูลปลอม
 const COLORS  = ["#ff4d6d","#4ee1ff","#5ef08c","#ffcc4d","#ff9f43","#ff7bc6","#b06bff","#3ddbb8"];
 const HOUSES  = [
   {id:1, key:"wisdom",     name:"WISDOM",     th:"ปัญญา",    color:"#4ee1ff", emoji:"🦉"},
@@ -28,6 +28,9 @@ const houseOf = id => HOUSES.find(h=>h.id===id) || HOUSES[0];
 const $ = id => document.getElementById(id);
 
 /* ================= SPRITE ================= */
+/* ตัวละครประกอบจากชั้น: ร่างพื้นฐาน → เสื้อ → กางเกง → ผม → หน้า → แว่น → หมวก
+   ทุกชั้นวาดลงตาราง 16x24 ตัวอักษร แล้ว palette() แปลงตัวอักษรเป็นสี
+   SVG บนสนามกับ canvas ในการ์ดแชร์ใช้ตารางเดียวกัน หน้าตาเลยตรงกันเป๊ะ */
 const HEAD=[".....OOOOO......","...OOhhhhhOO....","..OhhhhhhhhhO...","..OhHHHHHHHhO...",
   ".OHHSSSSSSSHHO..",".OHSSSSSSSSSHO..",".OHSESSSSESSsO..",".OHSSSSSSSSSsO..",
   "..OSSssSSssSsO..","...OsssssssO...."];
@@ -46,61 +49,139 @@ const LEGS={
      "....OPOOpO......","...OBBBOBBBO....","...OBBBOBBBO...."]};
 const FRAMES=[LEGS.a, LEGS.b, LEGS.c, LEGS.b.map(r=>[...r].reverse().join(""))];
 
+/* ---- ตัวเลือกในห้องแต่งตัว (เก็บเป็น index ลง profiles.avatar) ---- */
+const AV = {
+  gender:["ชาย","หญิง"],
+  skin:[["#ffe3cc","#e6b898"],["#ffd2a8","#d99a6c"],["#e8b482","#c48752"],["#c98a5b","#9c6236"],["#8f5a3c","#66391f"],["#5c3520","#3c2010"]],
+  hair:["สั้น","ตั้ง","ยาว","บ๊อบ","โล้น","หางม้า","มวยข้าง"],
+  hairColor:[["#1d1b26","#3b3850"],["#2e1c14","#5a3a22"],["#e2bd3f","#fff0a0"],["#c1442a","#ea7a55"],["#2d6cdf","#6aa2ff"],["#ff6fb5","#ffb3d9"],["#d6d6e6","#f6f6ff"],["#3fbf6a","#8ff0aa"]],
+  glasses:["ไม่ใส่","กลม","เหลี่ยม","กันแดด"],
+  top:["เสื้อยืด","ฮู้ด","แจ็กเก็ต","เสื้อกล้าม","เดรส","สูท"],
+  pants:["ขายาว","ขาสั้น","กระโปรง"],
+  pantsColor:[["#3450a8","#22357a"],["#2a2a35","#15151c"],["#b89a62","#8a6f3f"],["#c0392b","#7d2419"],["#e6e6f0","#b0b0c0"],["#3f7a4a","#26512f"],["#6a3fb5","#472a7a"]],
+  hat:["ไม่ใส่","แก๊ป","ไหมพรม","มงกุฎ","ผ้าคาดหัว","แบนดานา"],
+  mouth:["ยิ้ม","เฉย","อ้า","ยิงฟัน"],
+  nose:["ไม่มี","จุด","โด่ง"]
+};
+const HAT_COL=[["#000","#000"],["#d63031","#8f1f21"],["#7d5fff","#4c36a8"],["#ffcc4d","#c98a12"],["#e0202a","#8f1f21"],["#2d9cdb","#1b6a9a"]];
+const DEF_AV={g:0,sk:1,hr:0,hc:1,gl:0,top:0,pt:0,pc:0,hat:0,mo:0,no:1};
+const AV_KEYS=Object.keys(DEF_AV);
+/* หน้าตาของ runner — คนที่ยังไม่เคยแต่งได้ค่าเริ่มต้น + สีชุดที่เลือกไว้ */
+const avOf = r => {
+  const av=Object.assign({}, DEF_AV), src=(r&&r.avatar)||{};
+  AV_KEYS.forEach(k=>{ if(Number.isInteger(src[k])) av[k]=src[k]; });
+  av.color=(r&&r.color)||COLORS[0];
+  return av;
+};
+/* สุ่มหน้าตาแบบคงที่ตาม seed — ใช้กับขบวนหน้าแรกและข้อมูลปลอมในโหมด DEMO */
+function randAv(seed){
+  let s=(seed*9301+49297)%233280;
+  const rnd=n=>{ s=(s*9301+49297)%233280; return Math.floor(s/233280*n); };
+  const g=rnd(2);
+  return {g, sk:rnd(6), hr:g?[2,3,5,6][rnd(4)]:[0,1,4,0][rnd(4)], hc:rnd(8), gl:rnd(4)===0?1+rnd(3):0,
+    top:rnd(6), pt:g?rnd(3):rnd(2), pc:rnd(7), hat:rnd(3)===0?1+rnd(5):0, mo:rnd(4), no:rnd(3)};
+}
+
 function shift(hex,amt){
   const n=parseInt(hex.slice(1),16);
   const ch=i=>Math.max(0,Math.min(255,((n>>(16-8*i))&255)+amt));
   return "#"+[0,1,2].map(i=>ch(i).toString(16).padStart(2,"0")).join("");
 }
-/* จานสีตามโหมดของสัปดาห์: ปกติ / แดง (LASER) / ไฟ (PRO MAX ผมทอง) */
-function palette(color, style){
-  /* สี่ขั้น ให้ดูออกจากอีกฝั่งของสนามว่าใครอยู่สถานะไหน
-       ปกติ    — สีที่ตัวเองเลือก ผมน้ำตาล ตาดำ
-       LASER   — ชุดแดงเลือดนกทับสีส่วนตัว + ตายิงเลเซอร์
-       PRO MAX — ชุดทอง ผมทอง ตาแดง + ไฟลุกรอบตัว
-       BURNOUT — ร่างกระโหลกสีกระดูก หมดแรง เลือกเป้าหนักไม่ได้ทั้งสัปดาห์ */
+/* จานสีตามโหมดของสัปดาห์: ปกติ / ฟ้า (7 ชิ้น) / แดง (LASER) / ไฟ (PRO MAX) / กระโหลก (หมดแรง)
+   ตัวอักษร: O ขอบ  H/h ผม  S/s ผิว  E ตา  C/c/l ชุด  P/p กางเกง  B/b รองเท้า  K กระดูก
+             F กรอบแว่น  D เลนส์ดำ  M ปาก  R แดง  W ขาว  T เสื้อใน  G ทอง  A/a หมวก */
+function palette(av, style){
+  const skin=AV.skin[av.sk]||AV.skin[1], hc=AV.hairColor[av.hc]||AV.hairColor[1];
+  const pc=AV.pantsColor[av.pc]||AV.pantsColor[0], hat=HAT_COL[av.hat]||HAT_COL[0];
+  const acc={F:"#2b2b33", D:"#1d1d2c", M:"#8a2f2f", R:"#e0202a", W:"#f6f6ff", T:"#eeeef8", G:"#ffcc4d", A:hat[0], a:hat[1]};
   if(style==="burnout"){
-    return {O:"#1a1622", K:"#d8d4c8", E:"#241f18", S:"#d8d4c8", s:"#a9a496",
-      C:"#6b6a78", c:"#43424f", l:"#8f8e9c",
-      P:"#3a3946", p:"#2a2934", B:"#8d8a9a", b:"#5d5b68",
-      H:"#d8d4c8", h:"#eae7dc"};
+    return Object.assign({O:"#1a1622", K:"#d8d4c8", E:"#241f18", S:"#d8d4c8", s:"#a9a496",
+      C:"#6b6a78", c:"#43424f", l:"#8f8e9c", P:"#3a3946", p:"#2a2934", B:"#8d8a9a", b:"#5d5b68",
+      H:"#d8d4c8", h:"#eae7dc"}, acc, {A:"#6b6a78", a:"#43424f", G:"#a9a496", R:"#7a4a4a", T:"#8f8e9c", W:"#c8c4b8"});
   }
-  const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : color;
-  const p = {O:"#140d2e", H:"#2e1c14", h:"#5a3a22", S:"#ffd2a8", s:"#d99a6c",
-    E:"#140d2e",
-    C:suit, c:shift(suit,-62), l:shift(suit,58),
-    P:"#3450a8", p:"#22357a", B:"#eceaf6", b:"#a8a4c4"};
-  if(style==="red"){
-    p.E="#fff2f2";                      // ตาขาวร้อน ต้นทางของลำเลเซอร์
-  }
-  if(style==="flame"){
-    p.H="#ffd23a"; p.h="#fff8c4";      // ผมทองแบบซูเปอร์ไซย่า
-    p.l="#fff3a0";                      // ไฮไลต์ชุดขาวร้อน
-    p.P="#c85a10"; p.p="#8a3606";      // กางเกงส้มเข้ม
-    p.O="#3a1a05";                      // เส้นขอบอุ่นขึ้น ไม่ตัดกับไฟ
-    p.E="#ff1f1f";                      // ตาแดงเรือง
-  }
+  const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : av.color;
+  const p=Object.assign({O:"#140d2e", H:hc[0], h:hc[1], S:skin[0], s:skin[1], E:"#140d2e",
+    C:suit, c:shift(suit,-62), l:shift(suit,58), P:pc[0], p:pc[1], B:"#eceaf6", b:"#a8a4c4"}, acc);
+  if(style==="boost"){ p.E="#39e5ff"; }                      // ตาเรืองแสงฟ้า
+  if(style==="red"){ p.E="#fff2f2"; }                        // ตาขาวร้อน ต้นทางเลเซอร์
+  if(style==="flame"){ p.H="#ffd23a"; p.h="#fff8c4"; p.l="#fff3a0"; p.P="#c85a10"; p.p="#8a3606"; p.O="#3a1a05"; p.E="#ff1f1f"; }
   return p;
 }
-function sprite(color, px=2, style="normal"){
-  const pal=palette(color,style);
-  const rects=(rows,yOff)=>rows.map((row,y)=>
-    [...row.padEnd(16,".")].slice(0,16).map((ch,x)=>
-      pal[ch]?`<rect x="${x*px}" y="${(y+yOff)*px}" width="${px}" height="${px}" fill="${pal[ch]}"/>`:"").join("")).join("");
-  const legs=FRAMES.map((f,i)=>
-    `<g class="leg k${i}" style="animation-delay:-${(i*.12).toFixed(2)}s">${rects(f,17)}</g>`).join("");
-  const head = style==="burnout" ? HEAD_SKULL : HEAD;
+/* ประกอบตัวละครลงตาราง 16x24 — frame = ท่าขา 0-3 */
+function buildGrid(av, style, frame){
+  const g=[]; for(let y=0;y<24;y++) g.push(new Array(16).fill("."));
+  const fill=(rows,y0)=>rows.forEach((r,i)=>{ const row=r.padEnd(16,"."); for(let x=0;x<16;x++) g[y0+i][x]=row[x]; });
+  const set=(y,x,ch)=>{ if(y>=0&&y<24&&x>=0&&x<16) g[y][x]=ch; };
+  const burn=style==="burnout";
+  fill(burn?HEAD_SKULL:HEAD,0); fill(TORSO,10); fill(FRAMES[frame]||LEGS.b,17);
+
+  /* เสื้อ */
+  const top=av.top;
+  if(top===1){ set(10,2,"O");set(10,3,"c");set(10,4,"c");set(10,11,"c");set(10,12,"c");set(10,13,"O");
+    set(12,6,"l");set(13,6,"l");set(12,9,"l");set(13,9,"l"); for(let x=5;x<=10;x++) set(15,x,"c"); }
+  if(top===2){ for(let y=11;y<=16;y++){ set(y,7,"T");set(y,8,"T"); } set(11,6,"c");set(11,9,"c");set(12,6,"c");set(12,9,"c"); }
+  if(top===3){ set(11,3,"S");set(11,4,"S");set(11,11,"S");set(11,12,"S");set(12,3,"S");set(12,12,"S"); }
+  if(top===5){ set(10,6,"W");set(10,9,"W"); for(let y=11;y<=14;y++) set(y,7,"R"); set(11,6,"W");set(11,8,"W");set(12,6,"W");set(12,8,"W"); }
+  /* กางเกง / ขาสั้น / กระโปรง / เดรส */
+  const skinLegs=y=>{ for(let x=0;x<16;x++){ if(g[y][x]==="P") g[y][x]="S"; else if(g[y][x]==="p") g[y][x]="s"; } };
+  if(top===4){ fill(["...OCCCCCCCCO...","..OCCCCCCCCCCO..","..OCCCCCCCCCCO..",".OCCCCCCCCCCCCO."],17); skinLegs(21); }
+  else if(av.pt===1){ skinLegs(20); skinLegs(21); }
+  else if(av.pt===2){ fill(["...OPPPPPPPPO...","..OPPPPppppPO...",".OPPPPPppppppO.."],17); skinLegs(20); skinLegs(21); }
+
+  if(!burn){
+    /* ผม */
+    const hr=av.hr;
+    if(hr===1){ fill(["....OhOhOhO....."],0); }
+    if(hr===2){ for(let y=4;y<=12;y++){ set(y,1,"O");set(y,2,"H");set(y,13,"H");set(y,14,"O"); } set(13,2,"O");set(13,13,"O"); }
+    if(hr===3){ for(let y=4;y<=8;y++){ set(y,1,"O");set(y,2,"H");set(y,13,"H");set(y,14,"O"); } set(9,2,"O");set(9,13,"O"); }
+    if(hr===4){ fill([".....OOOOO......","...OOSSSSSOO....","..OSSSSSSSSSO...","..OSSSSSSSSSO..."],0);
+      for(let y=4;y<=7;y++) set(y,2,"S"); set(4,3,"S");set(4,11,"S");set(4,12,"S");set(5,12,"S"); }
+    if(hr===5){ set(3,13,"O"); for(let y=4;y<=8;y++){ set(y,13,"H");set(y,14,"O"); } set(9,13,"O"); }
+    if(hr===6){ set(1,12,"O");set(1,13,"O");set(2,13,"h");set(2,14,"O");set(3,13,"h");set(3,14,"O");set(4,14,"O"); }
+    /* หน้า */
+    if(av.g===1){ set(5,4,"E");set(5,9,"E"); }              // ขนตา = ตาโต
+    if(av.no===1){ set(7,7,"s"); }
+    if(av.no===2){ set(6,7,"s");set(7,7,"s");set(7,8,"s"); }
+    const mo=av.mo;
+    if(mo===0){ set(8,6,"M");set(8,7,"M");set(8,8,"M");set(7,5,"M");set(7,9,"M"); }
+    if(mo===1){ set(8,6,"M");set(8,7,"M");set(8,8,"M"); }
+    if(mo===2){ for(let x=6;x<=8;x++){ set(7,x,"M");set(8,x,"M"); } set(8,7,"R"); }
+    if(mo===3){ for(let x=5;x<=9;x++) set(8,x,"M"); set(8,6,"W");set(8,8,"W"); }
+  }
+  /* แว่น */
+  const gl=av.gl;
+  if(gl===1){ [3,5,8,10].forEach(x=>set(6,x,"F")); set(6,6,"F");set(6,7,"F"); }
+  if(gl===2){ [3,5,8,10].forEach(x=>set(6,x,"F")); [3,4,5,8,9,10].forEach(x=>set(5,x,"F")); set(6,6,"F");set(6,7,"F"); }
+  if(gl===3){ [3,4,5,8,9,10].forEach(x=>{ set(5,x,"D");set(6,x,"D"); }); set(6,6,"F");set(6,7,"F"); }
+  /* หมวก */
+  const hat=av.hat;
+  if(hat===1){ fill([".....OOOOO......","...OOAAAAAOO....","..OAAAAAAAAAO...","..OAaaaaaaaaAAAO"],0); }
+  if(hat===2){ fill([".....OWWWO......","...OOAAAAAOO....","..OAAAAAAAAAO...","..OaaaaaaaaaO..."],0); }
+  if(hat===3){ fill(["....G.G.G.G.G...","...OGGGGGGGGGO..","..OGRGGGRGGGRO.."],0); }
+  if(hat===4){ for(let x=3;x<=11;x++) set(3,x,"R"); }
+  if(hat===5){ fill([".....OOOOO......","...OOAAAAAOO....","..OAAAAAAAAAO...","..OAaaaaaaaaOA.."],0); set(4,13,"A");set(4,14,"O");set(5,13,"O"); }
+  return g;
+}
+function sprite(av, px=2, style="normal"){
+  if(typeof av==="string") av=Object.assign({},DEF_AV,{color:av});
+  const pal=palette(av,style);
+  const rects=(g,y0,y1)=>{ let s=""; for(let y=y0;y<y1;y++) for(let x=0;x<16;x++){
+    const c=pal[g[y][x]]; if(c) s+=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${c}"/>`; } return s; };
+  const g0=buildGrid(av,style,0);
+  const legs=FRAMES.map((_,i)=>
+    `<g class="leg k${i}" style="animation-delay:-${(i*.12).toFixed(2)}s">${rects(i?buildGrid(av,style,i):g0,17,24)}</g>`).join("");
   /* ลำเลเซอร์ยิงไปข้างหน้าจากตา เฉพาะโหมด LASER FOCUS */
   const laser = style==="red"
     ? `<rect x="${10*px}" y="${6*px}" width="${6*px}" height="${px}" fill="#ff2020"/>`
     + `<rect x="${10*px}" y="${6*px}" width="${3*px}" height="${px}" fill="#fff2f2"/>`
     : "";
   return `<svg width="${16*px}" height="${24*px}" viewBox="0 0 ${16*px} ${24*px}" shape-rendering="crispEdges">
-    ${rects(head,0)}${rects(TORSO,10)}${legs}${laser}</svg>`;
+    ${rects(g0,0,17)}${legs}${laser}</svg>`;
 }
 const aura = () => `<span class="aura"><i></i><i></i><i></i></span>`;
-function runnerBox(color, px, style="normal"){
+function runnerBox(av, px, style="normal"){
   return `<div class="runner ${style}" style="position:relative;transform:none;width:auto">
-    <div class="body">${style==="flame"?aura():""}${sprite(color,px,style)}</div></div>`;
+    <div class="body">${style==="flame"?aura():""}${sprite(av,px,style)}</div></div>`;
 }
 
 /* ================= MATH ================= */
@@ -116,7 +197,10 @@ const curSp     = () => spOf(S.today);
 const curWeek   = () => weekOf(S.today);
 const joinedIn  = (r,s) => r.joined.includes(s);
 const joinedWeek= (r,w) => joinedIn(r, spOfWeek(w));
-const meR       = () => S.runners.find(r=>r.name===S.me) || S.runners[0];
+const meR       = () => S.spectator ? null : (S.runners.find(r=>r.name===S.me) || S.runners[0]);
+/* บทบาทในสนาม: student / ta (โค้ชประจำบ้าน ชื่อเขียว) / head (หัวหน้าโค้ช ชื่อแดง โผล่ทุกบ้าน) */
+const roleOf    = r => r.role!=="coach" ? "student" : (r.house ? "ta" : "head");
+const nameColor = r => roleOf(r)==="ta" ? "#5ef08c" : roleOf(r)==="head" ? "#ff4d6d" : r.color;
 const optOf     = t => PLEDGES.find(o=>o.target===t) || PLEDGES[1];
 const styleOf   = r => { const t=r.pledges&&r.pledges[curWeek()]; return t?optOf(t).style:"normal"; };
 
@@ -190,12 +274,12 @@ const DemoDB = (()=>{
   function build(me){
     const today=Math.min(38,TOTAL), cw=weekOf(today);
     const runners=NAMES.map(([n,h],i)=>({
-      id:"d"+i, name:n, handle:h, color:COLORS[(i+1)%COLORS.length],
+      id:"d"+i, name:n, handle:h, color:COLORS[(i+1)%COLORS.length], avatar:randAv(i+11),
       house:1+(i%4), role:"student",
       joined:[0,1,2,3,4,5].filter(s=> s<=2 || Math.random()<.7),
       pledges:{}
     }));
-    runners.unshift({id:"me", name:me.name, handle:me.handle||("@"+me.name.toLowerCase()), color:me.color,
+    runners.unshift({id:"me", name:me.name, handle:me.handle||("@"+me.name.toLowerCase()), color:me.color, avatar:me.avatar||{},
       house:me.house||1, role:"student", joined:me.joined, pledges:{}});
 
     runners.forEach((r,i)=>{
@@ -236,7 +320,9 @@ const DemoDB = (()=>{
     async signIn(){}, async signInGoogle(){},
     async signOut(){ try{localStorage.removeItem(KEY);}catch(e){} db=null; },
     async createProfile(p){ db=build(p); uid=db.uid; save(); },
+    async updateAvatar(av, color){ const r=db.runners.find(x=>x.name===db.me); r.avatar=av; r.color=color; save(); onChange(); },
     async fetchAll(){
+      if(!db) db=build({name:"YOU", color:COLORS[0], joined:ALL_SPRINTS, avatar:{}});   // โหมดคนดูใน DEMO ยังไม่ได้สร้างตัวละคร
       const postedToday = db.subs.some(s=>s.who===db.me && s.day===db.today);
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday,
               started:true, daysUntil:0, startDate:null};
@@ -340,7 +426,7 @@ const LiveDB = (()=>{
     },
     async signOut(){ await sb.auth.signOut(); location.reload(); },
     async createProfile(p){
-      const {error}=await sb.from("profiles").insert({id:session.user.id, name:p.name, color:p.color});
+      const {error}=await sb.from("profiles").insert({id:session.user.id, name:p.name, color:p.color, avatar:p.avatar||{}});
       if(error){
         /* บอกให้ตรงว่าชนตรงไหน ไม่งั้นผู้ใช้จะเปลี่ยนชื่อไปเรื่อย ๆ ทั้งที่ปัญหาอยู่ที่อื่น */
         const m = error.message || "";
@@ -356,20 +442,24 @@ const LiveDB = (()=>{
     /* ดึงเฉพาะผลสรุปที่ Postgres คิดมาแล้ว
        250 คน = 250 แถว + ฟีด 50 แถว + คำสัญญาของตัวเองอีก 12 แถว
        แทนที่จะลากงานทั้งรุ่นสองหมื่นกว่าแถวมาคำนวณในเครื่องนักเรียน */
+    async updateAvatar(av, color){
+      const {error}=await sb.from("profiles").update({avatar:av, color}).eq("id",session.user.id);
+      if(error) throw new Error(error.message);
+    },
     async fetchAll(){
-      const uidNow = session.user.id;
+      const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
       const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
-        sb.from("pledges").select("week_no,target").eq("profile_id",uidNow),
+        uidNow ? sb.from("pledges").select("week_no,target").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
         sb.from("v_burnout").select("profile_id")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
       const runners=(board||[]).map(b=>({
-        id:b.id, name:b.name, handle:b.handle, color:b.color,
-        house:b.house_id||1, role:b.role,
+        id:b.id, name:b.name, handle:b.handle, color:b.color, avatar:b.avatar||{},
+        house:b.house_id||0, role:b.role,          // 0 = หัวหน้าโค้ช ไม่ประจำบ้าน
         joined:(b.joined||[]).slice().sort((x,y)=>x-y),
         pledges:{},
         st:{
@@ -412,9 +502,12 @@ const LiveDB = (()=>{
         started  = new Date() >= new Date(co.start_date + "T00:00:00");
       }
       if(!todayIdx || !isFinite(todayIdx)) todayIdx=todayFrom(co.start_date);
-      const {count:todayCount}=await sb.from("submissions")
-        .select("id",{count:"exact",head:true})
-        .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved");
+      let todayCount=0;
+      if(uidNow){
+        const q=await sb.from("submissions").select("id",{count:"exact",head:true})
+          .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved");
+        todayCount=q.count||0;
+      }
       return {
         today: todayIdx,
         me: me ? me.name : null,
@@ -488,7 +581,7 @@ const LiveDB = (()=>{
 const DB = LIVE ? LiveDB : DemoDB;
 
 /* ================= STATE ================= */
-let S = {today:1, me:null, runners:[], subs:[], raceFilter:"near", boardFilter:"all"};
+let S = {today:1, me:null, runners:[], subs:[], raceFilter:"near", boardFilter:"all", spectator:false};
 let BOOTSTATE = null;
 
 /* ================= UI HELPERS ================= */
@@ -525,16 +618,26 @@ function cutoffLeft(){
   const s=Math.floor((c-now)/1000);
   return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(v=>String(v).padStart(2,"0")).join(":");
 }
-/* โค้ชไม่ลงแข่ง — ไม่โผล่บนสนาม ไม่อยู่ในกระดาน ไม่ถ่วงค่าเฉลี่ยของบ้าน
-   ถ้าโค้ชอยากวิ่งด้วย ให้สมัครอีกบัญชีเป็นนักเรียน */
+/* ทุกคนวิ่ง — TA อยู่ในลู่ของบ้านตัวเอง หัวหน้าโค้ชโผล่ทุกบ้าน
+   แต่ค่าเฉลี่ยบ้านและเลขอันดับคิดจากนักเรียนเท่านั้น */
 const students = () => S.runners.filter(r => r.role !== "coach");
-const ranked = () => [...students()].sort((a,b)=>{
+const rankOf   = name => ranked().filter(r=>roleOf(r)==="student").findIndex(r=>r.name===name)+1;
+const ranked = () => [...S.runners].sort((a,b)=>{
   const A=stats(a), B=stats(b);
   return B.contents-A.contents || B.rate-A.rate || B.weekStreak-A.weekStreak;
 });
 
 /* ================= PLEDGE CARD ================= */
 function renderPledge(){
+  if(S.spectator){
+    $("pledgeCard").innerHTML =
+      '<div class="paceNum on">👀</div>'
+      + '<div class="pledgeTxt"><span class="big normal">โหมดคนดู</span><br>'
+      + 'เห็นสนามแข่งและกระดานแบบเรียลไทม์ · กดที่เลนหรือแถวเพื่อดูโปรไฟล์<br>'
+      + '<span style="color:var(--dim)">ส่งงานหรือรับเป้าต้องเป็นนักเรียนในรุ่นเท่านั้น</span></div>'
+      + '<button class="btn go" style="max-width:260px" onclick="leaveSpectator()">▶ เข้าสู่ระบบเพื่อลงแข่ง</button>';
+    return;
+  }
   const r=meR(); if(!r) return;
   if(!S.started){
     const d = new Date((S.startDate||"") + "T00:00:00");
@@ -578,7 +681,7 @@ function renderPledge(){
   const o=optOf(st.weekTarget);
   const pct=Math.min(100, st.weekDone/st.weekTarget*100);
   const dash=2*Math.PI*44;
-  const ringColor = o.style==="flame" ? "#ffb020" : o.style==="red" ? "#ff2436" : r.color;
+  const ringColor = o.style==="flame" ? "#ffb020" : o.style==="red" ? "#ff2436" : o.style==="boost" ? "#39e5ff" : r.color;
   const dayLeft = weekEnd(cw)-S.today+1;
   /* เตือนว่าวันนี้ยังไม่ได้ส่งงาน — ตัวเดียวที่ทำงานได้โดยไม่ต้องพึ่งบริการภายนอก */
   const left = cutoffLeft().split(":");
@@ -625,13 +728,13 @@ function renderPledge(){
 function raceList(){
   const all=ranked();
   if(S.raceFilter==="all") return all;
-  if(S.raceFilter!=="near") return all.filter(r=>r.house===+S.raceFilter);
+  if(S.raceFilter!=="near") return all.filter(r=>r.house===+S.raceFilter || roleOf(r)==="head");
   const i=all.findIndex(r=>r.name===S.me);
   if(i<0) return all.slice(0,NEAR*2+1);
   return all.slice(Math.max(0,i-NEAR), i+NEAR+1);
 }
 function renderFilters(){
-  const mk=(cur,pfx)=>[`<button class="fBtn ${cur==="near"?"on":""}" data-f="near"
+  const mk=(cur,pfx)=>[S.spectator ? "" : `<button class="fBtn ${cur==="near"?"on":""}" data-f="near"
       style="${cur==="near"?"background:linear-gradient(180deg,#5b51c4,#332a80)":""}">ใกล้ฉัน</button>`,
     `<button class="fBtn ${cur==="all"?"on":""}" data-f="all"
       style="${cur==="all"?"background:linear-gradient(180deg,#5b51c4,#332a80)":""}">ทั้งรุ่น</button>`]
@@ -653,11 +756,12 @@ function renderTrack(){
   $("lanes").innerHTML = list.length ? list.map(r=>{
     const s=stats(r), h=houseOf(r.house);
     const p=Math.min(s.contents/FINISH,1);
+    const role=roleOf(r), rtag=role==="head"?" COACH":role==="ta"?" TA":"";
     return `<div class="lane ${r.name===S.me?"meLane":""}" data-n="${r.name}">
-      <span class="name"><i>${h.emoji}</i> ${r.name}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
-      <div class="runner ${r.name===S.me?"me":""} ${s.dayStreak?"":"idle"} ${s.style}" style="--p:${p}">
+      <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
+      <div class="runner ${r.name===S.me?"me":""} ${s.style}" style="--p:${p}">
         <div class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</div>
-        <div class="body">${s.style==="flame"?aura():""}${sprite(r.color,2,s.style)}
+        <div class="body">${s.style==="flame"?aura():""}${sprite(avOf(r),2,s.style)}
           ${s.dayStreak?'<span class="dust"></span><span class="dust b"></span>':''}</div>
         <div class="shadow"></div>
       </div></div>`;
@@ -675,7 +779,7 @@ function renderHouses(){
     const avg = sts.length ? sts.reduce((a,s)=>a+s.contents,0)/sts.length : 0;
     const rate= sts.length ? sts.reduce((a,s)=>a+s.rate,0)/sts.length : 0;
     const behind = sts.filter(s=>s.pace<-3).length;
-    const laser = sts.filter(s=>s.style!=="normal").length;
+    const laser = sts.filter(s=>s.style==="red"||s.style==="flame").length;
     return {h, mem:mem.length, avg, rate, behind, laser};
   }).sort((a,b)=>b.rate-a.rate || b.avg-a.avg);
 
@@ -693,7 +797,7 @@ function renderHouses(){
 }
 function boardList(){
   const all=ranked();
-  return S.boardFilter==="all"||S.boardFilter==="near" ? all : all.filter(r=>r.house===+S.boardFilter);
+  return S.boardFilter==="all"||S.boardFilter==="near" ? all : all.filter(r=>r.house===+S.boardFilter || roleOf(r)==="head");
 }
 function renderBoard(){
   renderHouses();
@@ -701,18 +805,19 @@ function renderBoard(){
   const list=boardList();
   $("board").innerHTML=list.map(r=>{
     const s=stats(r), h=houseOf(r.house);
-    const i=full.findIndex(x=>x.name===r.name);
-    const medal=i===0?"👑":i===1?"🥈":i===2?"🥉":String(i+1).padStart(2,"0");
+    const role=roleOf(r);
+    const i=role==="student" ? rankOf(r.name)-1 : -1;
+    const medal=role==="head"?"🎓":role==="ta"?"TA":i===0?"👑":i===1?"🥈":i===2?"🥉":String(i+1).padStart(2,"0");
     const o=s.weekTarget?optOf(s.weekTarget):null;
     const wk = o ? `<span class="wkTag ${s.weekDone>=s.weekTarget?"hit":o.style}">${s.weekDone}/${s.weekTarget}${o.style==="red"?" 🔴":o.style==="flame"?" 🔥":""}</span>`
                  : `<span class="wkTag normal" style="opacity:.5">—</span>`;
     const pc = s.pace>0?"var(--green)":s.pace<0?"var(--orange)":"var(--cyan)";
     return `<tr class="${r.name===S.me?"me":""}" data-n="${r.name}" id="row-${r.name}">
       <td class="rk ${i<3?"top"+(i+1):""}">${medal}</td>
-      <td class="nm" style="color:${r.color}">${r.name}
+      <td class="nm" style="color:${nameColor(r)}">${r.name}
         <span style="font-family:var(--f-th);font-size:11px;color:var(--dim)">${r.handle}</span></td>
-      <td class="hideSm"><span class="hs">${h.emoji}</span>
-        <span style="color:${h.color};font-size:12px">${h.name}</span></td>
+      <td class="hideSm">${role==="head" ? '<span style="color:#ff4d6d;font-size:12px">🎓 หัวหน้าโค้ช</span>'
+        : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>${role==="ta"?' <span style="color:#5ef08c;font-size:11px">TA</span>':""}`}</td>
       <td class="num" style="color:${r.color}">${s.contents}</td>
       <td>${wk}</td>
       <td class="hideSm streak">${s.weekStreak}🔥</td>
@@ -781,11 +886,13 @@ async function openProfile(name){
   $("pMap").innerHTML=`<div class="noJoin">กำลังโหลด…</div>`;
   $("modal").classList.add("on");
   const s=stats(r), h=houseOf(r.house);
-  const rank=ranked().findIndex(x=>x.name===name)+1;
-  $("mSprite").innerHTML=runnerBox(r.color,3,s.style);
-  $("mName").innerHTML=`<span style="color:${r.color}">${r.name}</span>
+  const role=roleOf(r);
+  $("mSprite").innerHTML=runnerBox(avOf(r),3,s.style);
+  $("mName").innerHTML=`<span style="color:${nameColor(r)}">${r.name}</span>
     <span style="font-family:var(--f-th);font-size:12px;color:var(--dim)"> ${r.handle}</span>`;
-  $("mRank").textContent=`${h.emoji} ${h.name} · อันดับ ${rank} จาก ${students().length} · ลงไว้ ${r.joined.length}/${NSP} สปรินต์`;
+  $("mRank").textContent = role==="head" ? `🎓 หัวหน้าโค้ช · วิ่งอยู่ทุกบ้าน`
+    : role==="ta" ? `${h.emoji} ${h.name} · TA ประจำบ้าน`
+    : `${h.emoji} ${h.name} · อันดับ ${rankOf(name)} จาก ${students().length} · ลงไว้ ${r.joined.length}/${NSP} สปรินต์`;
   $("mStats").innerHTML=[
     ["CONTENTS", s.contents],["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
     ["STREAK 🔥", s.weekStreak+" สัปดาห์"],["ห่างจากเป้า", (s.pace>0?"+":"")+s.pace]
@@ -800,20 +907,23 @@ async function openProfile(name){
 }
 
 /* ================= STATUS CARD ================= */
-function drawSpriteCanvas(ctx, x, y, px, color, style){
-  const pal=palette(color,style);
-  const put=(rows,yOff)=>rows.forEach((row,ry)=>[...row.padEnd(16,".")].slice(0,16).forEach((ch,cx)=>{
-    if(!pal[ch]) return;
-    ctx.fillStyle=pal[ch];
-    ctx.fillRect(x+cx*px, y+(ry+yOff)*px, px, px);
-  }));
+function drawSpriteCanvas(ctx, x, y, px, av, style){
+  const pal=palette(av,style), g=buildGrid(av,style,1);
   if(style==="flame"){
-    const g=ctx.createRadialGradient(x+8*px, y+20*px, 2*px, x+8*px, y+18*px, 15*px);
-    g.addColorStop(0,"rgba(255,220,90,.95)"); g.addColorStop(.4,"rgba(255,140,20,.6)");
-    g.addColorStop(.7,"rgba(255,70,10,.25)"); g.addColorStop(1,"rgba(255,70,10,0)");
-    ctx.fillStyle=g; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
+    const gr=ctx.createRadialGradient(x+8*px, y+20*px, 2*px, x+8*px, y+18*px, 15*px);
+    gr.addColorStop(0,"rgba(255,220,90,.95)"); gr.addColorStop(.4,"rgba(255,140,20,.6)");
+    gr.addColorStop(.7,"rgba(255,70,10,.25)"); gr.addColorStop(1,"rgba(255,70,10,0)");
+    ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
   }
-  put(style==="burnout" ? HEAD_SKULL : HEAD, 0); put(TORSO,10); put(LEGS.b,17);
+  if(style==="boost"){
+    const gr=ctx.createRadialGradient(x+8*px, y+12*px, 2*px, x+8*px, y+12*px, 13*px);
+    gr.addColorStop(0,"rgba(57,229,255,.5)"); gr.addColorStop(1,"rgba(57,229,255,0)");
+    ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 36*px);
+  }
+  for(let ry=0;ry<24;ry++) for(let cx=0;cx<16;cx++){
+    const c=pal[g[ry][cx]]; if(!c) continue;
+    ctx.fillStyle=c; ctx.fillRect(x+cx*px, y+ry*px, px, px);
+  }
   if(style==="red"){
     ctx.fillStyle="#ff2020"; ctx.fillRect(x+10*px, y+6*px, 6*px, px);
     ctx.fillStyle="#fff2f2"; ctx.fillRect(x+10*px, y+6*px, 3*px, px);
@@ -847,7 +957,7 @@ function drawCard(){
   ctx.fillText(`สัปดาห์ที่ ${curWeek()} จาก ${WEEKS} · วันที่ ${S.today}`, W/2, 142);
 
   const px=22, sw=16*px;
-  drawSpriteCanvas(ctx, (W-sw)/2, 200, px, r.color, s.style);
+  drawSpriteCanvas(ctx, (W-sw)/2, 200, px, avOf(r), s.style);
 
   ctx.font="700 84px 'Pixelify Sans', monospace";
   ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
@@ -885,8 +995,8 @@ function drawCard(){
   if(s.style!=="normal"){
     const o=optOf(s.weekTarget);
     ctx.font="700 34px 'Pixelify Sans', monospace";
-    ctx.fillStyle=s.style==="flame"?"#ffb020":"#ff4d6d";
-    ctx.fillText(`${s.style==="flame"?"🔥":"🔴"} ${o.name} MODE`, W/2, 178);
+    ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":"#39e5ff";
+    ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔴":"🔵"} ${o.name} MODE`, W/2, 178);
   }
   ctx.font="500 24px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#6f68a8"; ctx.fillText("#CreatorBootcamp", W/2, H-34);
@@ -940,7 +1050,7 @@ function drawCert(){
   ctx.shadowBlur=0;
 
   const px=17, sw=16*px;
-  drawSpriteCanvas(ctx,(W-sw)/2, 300, px, r.color, s.style);
+  drawSpriteCanvas(ctx,(W-sw)/2, 300, px, avOf(r), s.style);
 
   ctx.font="500 26px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#a49ce0";
@@ -1083,8 +1193,6 @@ async function renderAdmin(){
 
 /* ================= HUD ================= */
 function renderHud(){
-  const r=meR(); if(!r) return;
-  const h=houseOf(r.house), s=stats(r);
   $("hudWeek").textContent=curWeek();
   $("hudWeeks").textContent=WEEKS;
   $("hudSprint").textContent = inOvertime() ? "ต่อเวลา" : (curSp()+1);
@@ -1092,7 +1200,19 @@ function renderHud(){
   $("hudDay").textContent=S.today;
   $("hudTotal").textContent=TOTAL;
   $("hudClock").textContent=cutoffLeft();
-  $("meLine").innerHTML=`${h.emoji} <span style="color:${h.color}">${h.name}</span> ·
+  $("submitPanel").style.display = S.spectator ? "none" : "";
+  $("statusNav").style.display   = S.spectator ? "none" : "";
+  if(S.spectator){
+    $("meLine").innerHTML=`👀 <span style="color:var(--cyan)">โหมดคนดู</span> · นักเรียน ${students().length} คน · คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
+    $("adminNav").style.display="none";
+    $("modeTag").textContent = DB.mode==="live"?"LIVE · ดูอย่างเดียว":"DEMO · ดูอย่างเดียว";
+    $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
+    return;
+  }
+  const r=meR(); if(!r) return;
+  const h=houseOf(r.house), s=stats(r);
+  const roleLbl = roleOf(r)==="head" ? '🎓 <span style="color:#ff4d6d">หัวหน้าโค้ช</span>' : `${h.emoji} <span style="color:${h.color}">${h.name}</span>${roleOf(r)==="ta"?' · <span style="color:#5ef08c">TA</span>':""}`;
+  $("meLine").innerHTML=`${roleLbl} ·
     ${r.name} · ปล่อยแล้ว <b style="color:${r.color}">${s.contents}</b> คอนเทนต์ ·
     คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
   $("who").textContent=r.name;
@@ -1105,7 +1225,7 @@ function renderHud(){
   $("pushBtn").disabled = !!blocked;
   $("pushBtn").textContent = blocked || "▶ SUBMIT";
   $("simBtn").style.display = DB.canSim?"":"none";
-  $("adminNav").style.display = (DB.mode==="demo" || r.role==="coach") ? "" : "none";
+  $("adminNav").style.display = (DB.mode==="demo" || roleOf(r)==="head") ? "" : "none";
   $("outBtn").textContent = DB.mode==="live"?"SIGN OUT":"RESET DEMO";
   $("modeTag").textContent = DB.mode==="live"?"LIVE":"DEMO MODE";
   $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
@@ -1117,13 +1237,13 @@ function renderAll(){
 }
 
 /* ================= ONBOARDING ================= */
-let pickColor=COLORS[0], pickPledge=7;
+let pickColor=COLORS[0], pickPledge=7, pickAv=Object.assign({},DEF_AV);
 const ALL_SPRINTS = SPRINTS.map((_,i)=>i);   // ทุกคนลงครบทุกสปรินต์อัตโนมัติ
 function drawSelect(){
   $("swatches").innerHTML=COLORS.map(c=>
     `<button class="sw ${c===pickColor?"sel":""}" data-c="${c}"
       style="background:linear-gradient(180deg,${shift(c,40)},${c} 55%,${shift(c,-50)})"></button>`).join("");
-  $("myPreview").innerHTML=runnerBox(pickColor,4);
+  $("myPreview").innerHTML=runnerBox(Object.assign({},pickAv,{color:pickColor}),4);
   $("myLabel").textContent=$("myName").value.trim().toUpperCase()||"RUNNER";
   $("myEmailLbl").textContent=(BOOTSTATE&&BOOTSTATE.email)||"เข้าสู่ระบบแล้ว";
 }
@@ -1143,12 +1263,13 @@ function drawPledgePick(){
     return `<button class="optCard plCard ${o.style} ${pickPledge===o.target?"on":""} ${locked}"
       data-t="${o.target}" ${locked?"disabled":""}>
       <div class="tick">${pickPledge===o.target?"[✓]":"[  ]"}</div>
-      <div class="opChar">${o.style==="flame"?aura():""}${sprite(me.color,2,o.style)}</div>
+      <div class="opChar">${o.style==="flame"?aura():""}${sprite(avOf(me),2,o.style)}</div>
       <div class="no">${o.target} ชิ้น</div>
       <div class="nm">${o.name}</div>
       <div class="th">${o.th}</div>
       <div class="wk">${o.style==="red"?"🔴 ตัวละครเป็นสีแดงทั้งสัปดาห์"
         : o.style==="flame"?"🔥 ตัวละครติดไฟ โหมดซูเปอร์ไซย่า"
+        : o.style==="boost"?"🔵 ตาเรืองแสงสีฟ้าทั้งสัปดาห์"
         : "เฉลี่ย "+(o.target/7).toFixed(1)+" ชิ้นต่อวัน"}</div>
       ${note?`<div class="lockTag">${note}</div>`:""}</button>`;
   }).join("");
@@ -1197,7 +1318,7 @@ $("joinBtn").onclick=async()=>{
   try{
     /* handle ไม่ต้องกรอกแล้ว ฐานข้อมูลเติมให้จากอีเมลที่ล็อกอิน */
     await DB.createProfile({name:nm.toUpperCase().slice(0,10),
-      color:pickColor, joined:ALL_SPRINTS, house:1+((Date.now())%4)});
+      color:pickColor, avatar:pickAv, joined:ALL_SPRINTS, house:1+((Date.now())%4)});
     await boot();
   }catch(err){ toast(err.message); $("joinBtn").disabled=false; }
 };
@@ -1272,6 +1393,7 @@ $("plSave").onclick=async()=>{
     const o=optOf(pickPledge);
     toast(o.style==="flame" ? `🔥 ${o.name}<br>ตัวละครติดไฟแล้ว`
         : o.style==="red" ? `🔴 ${o.name}<br>ตัวละครเป็นสีแดงสัปดาห์นี้`
+        : o.style==="boost" ? `🔵 ${o.name}<br>ตาเรืองแสงฟ้าสัปดาห์นี้`
         : `รับเป้า ${o.target} ชิ้นแล้ว`);
   }catch(err){ toast(err.message); }
   $("plSave").disabled=false;
@@ -1315,24 +1437,83 @@ $("shShare").onclick=async()=>{
   }catch(e){ if(e.name!=="AbortError") toast("แชร์ไม่สำเร็จ ลองดาวน์โหลดรูปแทน"); }
 };
 
+/* ================= DRESSING ROOM ================= */
+const DR_CATS=[["g","เพศ"],["sk","สีผิว"],["hr","ทรงผม"],["hc","สีผม"],["gl","แว่นตา"],["top","เสื้อ"],["pt","กางเกง"],["pc","สีกางเกง"],["hat","หมวก"],["mo","ปาก"],["no","จมูก"]];
+const DR_OPTS={g:AV.gender, sk:AV.skin, hr:AV.hair, hc:AV.hairColor, gl:AV.glasses, top:AV.top, pt:AV.pants, pc:AV.pantsColor, hat:AV.hat, mo:AV.mouth, no:AV.nose};
+const DR_LABEL={sk:i=>"โทน "+(i+1), hc:i=>["ดำ","น้ำตาล","ทอง","แดง","น้ำเงิน","ชมพู","ขาว","เขียว"][i], pc:i=>["น้ำเงิน","ดำ","กากี","แดง","ขาว","เขียว","ม่วง"][i]};
+let drAv=null, drCat="g", drMode="select";
+/* mode: "select" = ตอนสมัคร (เก็บไว้ในเครื่องจนกดเข้าร่วม)  "arena" = แก้ทีหลัง (บันทึกลงฐานข้อมูลทันที) */
+function openDress(mode){
+  drMode=mode;
+  drAv = mode==="select" ? Object.assign({},pickAv,{color:pickColor}) : avOf(meR());
+  drCat="g"; drawDress(); $("dressModal").classList.add("on");
+}
+window.openDress=openDress;
+function drawDress(){
+  $("drPreview").innerHTML=runnerBox(drAv,6);
+  $("drTabs").innerHTML=DR_CATS.map(([k,n])=>`<button class="drTab ${k===drCat?"on":""}" data-k="${k}">${n}</button>`).join("");
+  $("drOpts").innerHTML=DR_OPTS[drCat].map((o,i)=>{
+    const av=Object.assign({},drAv,{[drCat]:i});
+    const label = DR_LABEL[drCat] ? DR_LABEL[drCat](i) : o;
+    return `<button class="drOpt ${drAv[drCat]===i?"on":""}" data-i="${i}">${sprite(av,3,"normal")}<span>${label}</span></button>`;
+  }).join("");
+  $("drSwatches").innerHTML=COLORS.map(c=>
+    `<button class="sw ${c===drAv.color?"sel":""}" data-c="${c}"
+      style="background:linear-gradient(180deg,${shift(c,40)},${c} 55%,${shift(c,-50)})"></button>`).join("");
+}
+$("drTabs").onclick=e=>{ const b=e.target.closest(".drTab"); if(b){ drCat=b.dataset.k; drawDress(); } };
+$("drOpts").onclick=e=>{
+  const b=e.target.closest(".drOpt"); if(!b) return;
+  const i=+b.dataset.i; drAv[drCat]=i;
+  /* เปลี่ยนเพศแล้วสลับทรงผมเริ่มต้นให้ ถ้ายังใช้ทรงพื้นฐานอยู่ */
+  if(drCat==="g"){ if(i===1 && [0,1,4].includes(drAv.hr)) drAv.hr=2; if(i===0 && [2,3].includes(drAv.hr)) drAv.hr=0; }
+  drawDress();
+};
+$("drSwatches").onclick=e=>{ const b=e.target.closest(".sw"); if(b){ drAv.color=b.dataset.c; drawDress(); } };
+$("drRandom").onclick=()=>{ drAv=Object.assign(randAv(Date.now()%9973),{color:COLORS[Math.floor(Math.random()*COLORS.length)]}); drawDress(); };
+$("drSave").onclick=async()=>{
+  const av={}; AV_KEYS.forEach(k=>{ av[k]=drAv[k]; });
+  if(drMode==="select"){ pickAv=av; pickColor=drAv.color; drawSelect(); $("dressModal").classList.remove("on"); return; }
+  $("drSave").disabled=true;
+  try{ await DB.updateAvatar(av, drAv.color); await refresh(); $("dressModal").classList.remove("on"); toast("เปลี่ยนชุดแล้ว 👕"); }
+  catch(err){ toast(err.message); }
+  $("drSave").disabled=false;
+};
+$("dressBtn").onclick=()=>openDress("select");
+$("dressBtn2").onclick=()=>openDress("arena");
+
 /* ================= BOOT ================= */
 async function refresh(){
   const d=await DB.fetchAll();
-  S.today=d.today; S.me=d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
+  S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
   S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
   renderAll();
 }
+/* โหมดคนดู — ไม่ต้องล็อกอิน เห็นสนามแบบเรียลไทม์ แต่ส่งงานไม่ได้ (ฐานข้อมูลกันอยู่แล้ว)
+   เปิดลิงก์ #watch ไปฉายบนจอในห้องเรียนได้เลย */
+async function enterSpectator(){
+  S.spectator=true; S.raceFilter="all"; S.boardFilter="all";
+  try{ await refresh(); }catch(e){ toast("โหลดสนามไม่ได้: "+e.message); S.spectator=false; return; }
+  if(!S._subbed){ DB.subscribe(()=>refresh()); S._subbed=true; }
+  show("scArena"); showPage("pgRace");
+}
+window.leaveSpectator=()=>{
+  S.spectator=false;
+  show(BOOTSTATE&&BOOTSTATE.needsProfile&&!BOOTSTATE.needsAuth ? "scSelect" : "scAuth");
+};
+$("watchBtn").onclick=enterSpectator;
 async function boot(){
   const st=BOOTSTATE=await DB.init();
   if(st.needsAuth||st.needsProfile){
     drawSelect();
     if(st.email){ $("authWho").textContent=st.email; }
     show("scTitle");
+    if(location.hash==="#watch") enterSpectator();
     return;
   }
   await refresh();
-  DB.subscribe(()=>refresh());
+  DB.subscribe(()=>refresh()); S._subbed=true;
   show("scArena");
   if(!(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
 }
@@ -1341,8 +1522,8 @@ async function boot(){
 $("sky").insertAdjacentHTML("beforeend",
   [[9,26,"18s"],[46,14,"26s"],[74,32,"21s"],[24,44,"32s"]].map(([l,t,d])=>
     `<div class="cloud" style="left:${l}%;top:${t}%;width:${34+l%20}px;animation-duration:${d};animation-delay:-${l/4}s"></div>`).join(""));
-$("parade").innerHTML=["normal","normal","red","normal","flame"].map((stl,i)=>
-  `<div style="animation-duration:${7+i*1.7}s;animation-delay:-${i*2.3}s">${runnerBox(COLORS[i],2,stl)}</div>`).join("");
+$("parade").innerHTML=["normal","boost","red","normal","flame"].map((stl,i)=>
+  `<div style="animation-duration:${7+i*1.7}s;animation-delay:-${i*2.3}s">${runnerBox(Object.assign(randAv(i+3),{color:COLORS[i]}),2,stl)}</div>`).join("");
 $("bcTitle").textContent=C.TITLE;
 $("bcTitle2").textContent=C.TITLE;
 document.title=C.TITLE;

@@ -52,7 +52,7 @@ window.CFG = {
   /* ---- 6. คำสัญญารายสัปดาห์ ----------------------------------
      ทุกต้นสัปดาห์นักเรียนเลือกเองว่าสัปดาห์นี้จะปล่อยกี่ชิ้น
      unlockWeek = เปิดให้เลือกตั้งแต่สัปดาห์ที่เท่าไหร่
-     style      = หน้าตาตัวละครในสัปดาห์นั้น (normal / red / flame)
+     style      = หน้าตาตัวละครในสัปดาห์นั้น (normal / boost / red / flame)
      ถ้าแก้ตรงนี้ ต้องแก้ตาราง pledge_options ในฐานข้อมูลให้ตรงกันด้วย   */
   /* true  = ซ่อนตัวเลือกที่ยังไม่ปลดล็อกไปเลย นักเรียนจะไม่รู้ว่ามีอะไรรออยู่ (เซอร์ไพรส์)
      false = โชว์ไว้แต่กดไม่ได้ พร้อมป้ายบอกว่าปลดล็อกสัปดาห์ไหน                      */
@@ -66,7 +66,7 @@ window.CFG = {
     { target: 4,  key:"compromise",  name:"COMPROMISE",
       th:"สัปดาห์นี้งานยุ่ง เอาแค่ไม่หลุด",   unlockWeek:1, style:"normal" },
     { target: 7,  key:"recommended", name:"RECOMMENDED",
-      th:"วันละชิ้น จังหวะที่โตได้จริง",       unlockWeek:1, style:"normal" },
+      th:"วันละชิ้น จังหวะที่โตได้จริง",       unlockWeek:1, style:"boost" },
     { target:10,  key:"laser",       name:"LASER FOCUS",
       th:"เร่งเครื่องสัปดาห์นี้",              unlockWeek:1, style:"red" },
     { target:14,  key:"promax",      name:"LASER FOCUS PRO MAX",

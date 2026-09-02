@@ -436,6 +436,32 @@
   #toast.on{transform:translateX(-50%) translateY(0)}
   footer{color:var(--dim); font-size:12px; text-align:center; margin-top:26px; line-height:2}
 
+  /* ---------- BOOST (7 ชิ้น) ---------- */
+  .runner.boost .body{filter:drop-shadow(0 0 6px rgba(57,229,255,.9))}
+  .optCard.boost .opChar{filter:drop-shadow(0 0 6px rgba(57,229,255,.9))}
+  .optCard.boost.on{border-color:#9af0ff #0a6f8a #0a6f8a #9af0ff; box-shadow:0 0 18px rgba(57,229,255,.4)}
+  .optCard.boost.on .no,.optCard.boost.on .tick{color:#9af0ff; text-shadow:0 2px 0 #000,0 0 12px rgba(57,229,255,.9)}
+  .pledgeTxt .big.boost{color:#9af0ff; text-shadow:0 2px 0 #000,0 0 14px rgba(57,229,255,.8)}
+  .wkTag.boost{color:#9af0ff; border-color:#1d7f9a; box-shadow:0 0 8px rgba(57,229,255,.4)}
+  /* ---------- ROLES: TA เขียว หัวหน้าโค้ชแดง ---------- */
+  .lane .name.ta{color:#5ef08c; text-shadow:0 2px 0 #000,0 0 8px rgba(94,240,140,.6)}
+  .lane .name.head{color:#ff4d6d; text-shadow:0 2px 0 #000,0 0 8px rgba(255,77,109,.7)}
+  /* ---------- DRESSING ROOM ---------- */
+  .dress{display:grid; grid-template-columns:210px 1fr; gap:18px}
+  .drStage{display:grid; place-content:center; gap:12px; padding:18px; min-height:240px; text-align:center;
+    background:linear-gradient(180deg,#120d30,#1c1544); border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  .drTabs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px}
+  .drTab{font-family:var(--f-th); font-size:12px; padding:7px 10px; cursor:pointer; background:#1c1544; border:2px solid #3a3288; color:#cdc7ff}
+  .drTab.on{background:linear-gradient(180deg,#5b51c4,#332a80); color:#fff; border-color:var(--gold)}
+  .drOpts{display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:8px; max-height:300px; overflow:auto; padding:2px}
+  .drOpt{cursor:pointer; padding:8px 4px 6px; text-align:center; background:#120d30; border:3px solid; color:var(--dim);
+    font-family:var(--f-th); font-size:11px; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  .drOpt svg{display:block; margin:0 auto 5px}
+  .drOpt.on{border-color:var(--gold) var(--goldLo) var(--goldLo) var(--gold); color:#fff; background:#2a2360}
+  .press.watch{font-size:15px; padding:11px 22px; margin-top:16px; animation:none;
+    background:linear-gradient(180deg,#5b51c4,#332a80 60%,#221c50); border-color:#9d97ff #1a1450 #1a1450 #9d97ff; text-shadow:0 2px 0 #000}
+  @media(max-width:700px){ .dress{grid-template-columns:1fr} }
+
   /* ---------- MOBILE ---------- */
   @media(max-width:700px){
     .track{min-width:520px; padding:26px 10px 10px}
@@ -464,6 +490,7 @@
     <h1 class="logo" id="bcTitle">CREATOR BOOTCAMP</h1>
     <p class="tagline" id="titleSub"></p>
     <div class="press" id="startBtn">▶ PRESS START</div>
+    <br><div class="press watch" id="watchBtn">👀 ดูการแข่ง · ไม่ต้องล็อกอิน</div>
     <div class="coin">UPLOAD CONTENT · RUN THE TRACK</div>
   </div>
   <div class="parade" id="parade"></div>
@@ -503,7 +530,8 @@
       </div>
       <label>SUIT COLOR</label>
       <div class="swatches" id="swatches"></div>
-      <button class="btn go" id="joinBtn" style="margin-top:22px">▶ เข้าร่วม BOOTCAMP</button>
+      <button class="btn sm" id="dressBtn" style="margin-top:16px;width:100%;padding:12px">👕 ห้องแต่งตัว — เพศ · ผิว · ผม · แว่น · เสื้อ · กางเกง · หมวก · หน้า</button>
+      <button class="btn go" id="joinBtn" style="margin-top:14px">▶ เข้าร่วม BOOTCAMP</button>
     </div>
   </div>
 </section>
@@ -528,7 +556,7 @@
   <nav class="nav">
     <button class="navBtn on" data-page="pgRace">🏁 RACE<small>สนามแข่ง</small></button>
     <button class="navBtn" data-page="pgBoard">🏆 SCOREBOARD<small>อันดับทั้งรุ่น</small></button>
-    <button class="navBtn" data-page="pgStatus">📣 MY STATUS<small>การ์ดไว้แชร์</small></button>
+    <button class="navBtn" data-page="pgStatus" id="statusNav">📣 MY STATUS<small>การ์ดไว้แชร์</small></button>
     <button class="navBtn" data-page="pgAdmin" id="adminNav" style="display:none">⚙️ ADMIN<small>สำหรับหัวหน้าโค้ช</small></button>
   </nav>
 
@@ -536,7 +564,7 @@
   <div class="page on" id="pgRace">
     <section class="pledgeCard bevel" id="pledgeCard"></section>
 
-    <section class="panel bevel">
+    <section class="panel bevel" id="submitPanel">
       <div class="titlebar"><h2>SUBMIT CONTENT</h2><span>วางลิงก์งานที่เพิ่งปล่อย — นับทันที</span></div>
       <div class="body">
         <div class="row">
@@ -614,6 +642,7 @@
             <button class="btn gold" id="shShare">📣 แชร์การ์ดนี้</button>
             <button class="btn sm" id="shDownload">⬇ ดาวน์โหลดรูป PNG</button>
             <button class="btn sm" id="shCopy">📋 คัดลอกข้อความ</button>
+            <button class="btn sm" id="dressBtn2">👕 ห้องแต่งตัว</button>
           </div>
           <div class="hint">
             ปุ่มแชร์จะเรียกเมนูแชร์ของเครื่อง (มือถือจะเห็นไอคอน IG / X / LINE)<br>
@@ -689,6 +718,24 @@
     <div class="optGrid" id="plPick"></div>
     <div class="tally" id="plNote"></div>
     <button class="btn go" id="plSave" style="margin-top:16px">▶ รับเป้านี้</button>
+  </div>
+</div></div>
+
+<!-- ============ DRESSING ROOM ============ -->
+<div class="modal" id="dressModal"><div class="sheet bevel" style="max-width:860px">
+  <div class="titlebar"><h2>DRESSING ROOM</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="body dress">
+    <div class="drStage">
+      <div id="drPreview"></div>
+      <button class="btn sm" id="drRandom">🎲 สุ่มหน้าตา</button>
+    </div>
+    <div>
+      <div class="drTabs" id="drTabs"></div>
+      <div class="drOpts" id="drOpts"></div>
+      <label>SUIT COLOR</label>
+      <div class="swatches" id="drSwatches"></div>
+      <button class="btn go" id="drSave" style="margin-top:16px">▶ ใส่ชุดนี้</button>
+    </div>
   </div>
 </div></div>
 

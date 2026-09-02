@@ -59,7 +59,7 @@ $("outBtn").onclick = $("deniedOut").onclick = async ()=>{ await sb.auth.signOut
 async function load(){
   const [{data:r, error:e1}, {data:p}] = await Promise.all([
     sb.from("roster").select("email,house_id,full_name,claimed_by,claimed_at,added_at").order("house_id").order("email"),
-    sb.from("profiles").select("id,name,role")
+    sb.from("profiles").select("id,name,role,house_id")
   ]);
   if(e1){ toast("อ่านรายชื่อไม่ได้: "+e1.message); return; }
   roster = r || [];
@@ -98,8 +98,14 @@ function render(){
 
   $("rows").innerHTML = list.length ? list.map((x,i)=>{
     const pr = names[x.claimed_by];
+    const curRole = !pr ? "" : pr.role!=="coach" ? "student" : (pr.house_id ? "ta" : "head");
     const st = x.claimed_by
-      ? `<span class="tag ok">สมัครแล้ว · ${esc(pr ? pr.name : "?")}${pr && pr.role==="coach" ? " (โค้ช)" : ""}</span>`
+      ? `<span class="tag ok">${esc(pr ? pr.name : "?")}</span>
+         <select data-role="${esc(x.email)}" style="min-width:150px">
+           <option value="student" ${curRole==="student"?"selected":""}>นักเรียน</option>
+           <option value="ta" ${curRole==="ta"?"selected":""}>TA · ชื่อเขียว</option>
+           <option value="head" ${curRole==="head"?"selected":""}>หัวหน้าโค้ช · ชื่อแดง</option>
+         </select>`
       : `<span class="tag no">ยังไม่สมัคร</span>`;
     const act = x.claimed_by
       ? `<button class="btn xs danger" data-kick="${esc(x.email)}">เตะออก</button>`
@@ -168,6 +174,14 @@ $("adAdd").onclick = async ()=>{
 
 /* ย้ายบ้าน / ลบ / เตะออก */
 $("rows").onchange = async e => {
+  const rs = e.target.closest("select[data-role]");
+  if(rs){
+    rs.disabled = true;
+    const {error} = await sb.rpc("admin_set_role", {em: rs.dataset.role, new_role: rs.value});
+    if(error){ toast(error.message); await load(); return; }
+    toast(`ตั้ง ${rs.dataset.role}<br>เป็น ${rs.options[rs.selectedIndex].text} แล้ว`);
+    await load(); return;
+  }
   const s = e.target.closest("select[data-move]"); if(!s) return;
   const em = s.dataset.move, hid = +s.value;
   s.disabled = true;
