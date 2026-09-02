@@ -143,6 +143,10 @@ Site URL ใส่ URL จริงหลัง deploy, Redirect URLs ใส่ 
 **ต้องเป็น https** เพราะปุ่มแชร์การ์ดใช้ `navigator.share` ซึ่งไม่ทำงานบน http
 เสร็จแล้วกลับไปแก้ Site URL ในข้อ 5 ให้ตรงกับ URL จริง
 
+**สถานะปัจจุบัน (2 ก.ย. 2026):** ขึ้นแล้วที่ https://opb-bootcamp.netlify.app
+Site URL + Redirect URLs ใน Supabase ชี้มาที่นี่แล้ว
+อัปเดตเว็บ: แก้ไฟล์ → zip `index.html app.js config.js 404.html netlify.toml` → ลากไปวางที่ Netlify > opb-bootcamp > Deploys
+
 ### 7. ตั้งตัวเองเป็นหัวหน้าโค้ช
 
 เข้าเว็บ สมัครด้วยอีเมลตัวเองหนึ่งครั้ง แล้วรัน

@@ -1,5 +1,7 @@
 # 90 Day One Person Business Bootcamp
 
+**LIVE:** https://opb-bootcamp.netlify.app (Netlify project `opb-bootcamp`, Supabase `vbbaefceiswuidylwzmp`)
+
 เว็บแอปแข่งปล่อยคอนเทนต์สำหรับ bootcamp 12 สัปดาห์ หน้าตาเป็นเกมพิกเซล 16-bit
 นักเรียนเลือกเองทุกสัปดาห์ว่าจะปล่อยกี่ชิ้น ส่งลิงก์แล้วตัวละครวิ่งทันที
 ทุกคนเห็นสนามแข่งเดียวกันแบบเรียลไทม์
