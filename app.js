@@ -385,7 +385,7 @@ const DemoDB = (()=>{
     const FINISHER = 34;                          // KING วิ่งถึง 90 แล้ว
 
     runners.forEach((r,i)=>{
-      const grit = i===0 ? 1.02 : i===FINISHER ? 1.3 : .55+R()*.5;
+      const grit = i===0 ? 1.02 : i===FINISHER ? 1.3 : .8+R()*.25;   // ส่วนใหญ่ทำได้ตามเป้า คนที่พลาดคือชุดที่กำหนดไว้
       for(let w=1; w<=cw; w++){
         if(!joinedWeek(r,w)) continue;
         if(i===0 && w===cw) continue;              // ผู้เล่นใหม่ยังไม่ได้เลือกเป้าสัปดาห์นี้
@@ -409,7 +409,7 @@ const DemoDB = (()=>{
         if(!joinedIn(r,spOf(d))) continue;
         if(i===0 && d===today) continue;           // เว้นวันนี้ให้ผู้เล่นกดเอง
         const w=weekOf(d), t=r.pledges[w]||7;
-        let perDay=t/7;
+        let perDay=t/7*1.25;                        // เผื่อไว้ให้คนทั่วไปทำครบเป้า
         if(i===FINISHER) perDay=2.1;
         if(BURN.has(i) && w===cw-1) perDay=Math.min(perDay, (t-4)/7);   // สัปดาห์ที่พลาด ทำได้ไม่ถึง
         if(WEAK.has(i) && w===cw-1) perDay=Math.max(0,(t-3))/7;
