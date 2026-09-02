@@ -1023,7 +1023,15 @@ async function openProfile(name){
   $("modal").classList.add("on");
   const s=stats(r), h=houseOf(r.house);
   const role=roleOf(r);
-  $("mSprite").innerHTML=runnerBox(avOf(r),3,s.style);
+  /* ตัวใหญ่ + ร่างปัจจุบัน (กระโหลก / ไฟ / ตาฟ้า) ให้เห็นชัดว่าตอนนี้เขาอยู่สถานะไหน */
+  $("mSprite").innerHTML=runnerBox(avOf(r),6,s.style);
+  $("mForm").className="pForm "+s.style;
+  $("mForm").innerHTML=formLabel(r,s);
+  $("mWeek").innerHTML = s.weekTarget
+    ? `สัปดาห์ที่ ${curWeek()} · ทำแล้ว <b style="color:#fff">${s.weekDone}</b> จากเป้า ${s.weekTarget} ชิ้น
+       ${s.weekDone>=s.weekTarget?"· ครบเป้าแล้ว 🎉":"· ขาดอีก "+(s.weekTarget-s.weekDone)}
+       <div class="bar"><i style="width:${Math.min(100,s.weekDone/s.weekTarget*100)}%;background:linear-gradient(180deg,${shift(r.color,55)},${r.color} 55%,${shift(r.color,-55)})"></i></div>`
+    : (inOvertime() ? "ช่วงต่อเวลา · ไม่มีเป้ารายสัปดาห์" : "ยังไม่ได้เลือกเป้าของสัปดาห์นี้");
   $("mName").innerHTML=`<span style="color:${nameColor(r)}">${r.name}</span>
     <span style="font-family:var(--f-th);font-size:12px;color:var(--dim)"> ${r.handle}</span>`;
   $("mRank").textContent = role==="head" ? `🎓 หัวหน้าโค้ช · วิ่งอยู่ทุกบ้าน`
@@ -1042,6 +1050,23 @@ async function openProfile(name){
     .map(f=>`<li><span class="plat">${f.plat}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
       <span class="when">${ago(f.ts)}</span></li>`).join("") || `<li style="color:var(--dim)">ยังไม่มีงาน</li>`;
+}
+
+/* ป้ายอธิบายร่างปัจจุบันของตัวละคร */
+function formLabel(r, s){
+  const o = s.weekTarget ? optOf(s.weekTarget) : null;
+  const fin = s.contents>=FINISH ? `<br>🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว — ออร่าทองถาวร` : "";
+  if(s.style==="burnout")
+    return `<b>💀 ร่างกระโหลก · หมดแรง</b><br>สัปดาห์ที่แล้วรับเป้าหนัก (${HEAVY}+ ชิ้น) แล้วทำไม่ถึง สัปดาห์นี้เลือกได้แค่ 4 หรือ 7<br><span style="color:var(--dim)">ทำครบสัปดาห์นี้ = ฟื้นคืนชีพ ได้ป้าย REVIVED</span>`+fin;
+  if(s.style==="flame")
+    return `<b>🔥 LASER FOCUS PRO MAX</b><br>รับ 14 ชิ้น/สัปดาห์ — ไฟทองท่วมตัว ตาแดง ผมทอง<br><span style="color:var(--dim)">พลาดเป้า = สัปดาห์หน้ากลายเป็นร่างกระโหลก</span>`+fin;
+  if(s.style==="red")
+    return `<b>🔴 LASER FOCUS</b><br>รับ 10 ชิ้น/สัปดาห์ — ไฟแดงลุกทั้งตัว<br><span style="color:var(--dim)">พลาดเป้า = สัปดาห์หน้ากลายเป็นร่างกระโหลก</span>`+fin;
+  if(s.style==="boost")
+    return `<b>🔵 RECOMMENDED</b><br>รับ 7 ชิ้น/สัปดาห์ — ตาเรืองแสงฟ้า วันละชิ้น`+fin;
+  if(o && o.target<=4)
+    return `<b>🟢 COMPROMISE</b><br>รับ 4 ชิ้น/สัปดาห์ — สัปดาห์นี้เอาแค่ไม่หลุด`+fin;
+  return `<b>⚪ ร่างปกติ</b><br>${inOvertime()?"ช่วงต่อเวลา ไม่มีเป้ารายสัปดาห์":"ยังไม่ได้เลือกเป้าของสัปดาห์นี้"}`+fin;
 }
 
 /* ================= STATUS CARD ================= */

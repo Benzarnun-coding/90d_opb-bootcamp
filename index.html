@@ -484,6 +484,24 @@
     background:linear-gradient(180deg,#5b51c4,#332a80 60%,#221c50); border-color:#9d97ff #1a1450 #1a1450 #9d97ff; text-shadow:0 2px 0 #000}
   @media(max-width:700px){ .dress{grid-template-columns:1fr} }
 
+  /* ---------- PROFILE HERO ---------- */
+  .pHero{display:grid; grid-template-columns:180px 1fr; gap:16px; margin-bottom:18px}
+  .pStage{display:grid; place-content:center; min-height:210px; padding:16px; position:relative; overflow:hidden;
+    background:linear-gradient(180deg,#120d30,#1c1544); border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  .pStage::before{content:""; position:absolute; inset:0; background:repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 3px,transparent 3px 6px)}
+  .pStage .runner{z-index:2}
+  .pStage .runner .body{zoom:1}
+  .pForm{margin-top:12px; padding:10px 12px; font-size:13px; line-height:1.7; color:#e6e1ff;
+    background:rgba(13,10,34,.7); border:2px solid var(--line)}
+  .pForm b{font-family:var(--f-px); font-size:15px; letter-spacing:.5px}
+  .pForm.burnout{border-color:#8a8a95} .pForm.burnout b{color:#d8d4c8}
+  .pForm.red{border-color:#ff4d6d} .pForm.red b{color:#ff8fa3; text-shadow:0 0 10px rgba(255,77,109,.8)}
+  .pForm.flame{border-color:#ffb020} .pForm.flame b{color:#ffd24d; text-shadow:0 0 12px rgba(255,180,40,.9)}
+  .pForm.boost{border-color:#1d7f9a} .pForm.boost b{color:#9af0ff; text-shadow:0 0 10px rgba(57,229,255,.8)}
+  .pForm.normal b{color:var(--gold)}
+  .pWeek{margin-top:10px; font-size:12px; color:var(--dim)}
+  .pWeek .bar{margin-top:6px}
+  @media(max-width:700px){ .pHero{grid-template-columns:1fr} .pStage{min-height:170px} }
   /* ---------- GAMIFICATION ---------- */
   .rival{flex-basis:100%; margin-top:10px; font-size:13px; color:#cdc7ff; line-height:1.7}
   .badges{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
@@ -788,17 +806,17 @@
 
 <!-- ============ PROFILE ============ -->
 <div class="modal" id="modal"><div class="sheet bevel">
-  <div class="titlebar">
-    <div style="display:flex;align-items:center;gap:16px">
-      <div id="mSprite"></div>
-      <div>
-        <div class="px" style="font-size:22px;text-shadow:0 2px 0 #000" id="mName">—</div>
+  <div class="titlebar"><h2>RUNNER PROFILE</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="body">
+    <div class="pHero">
+      <div class="pStage" id="mSprite"></div>
+      <div class="pInfo">
+        <div class="px" style="font-size:24px;text-shadow:0 2px 0 #000" id="mName">—</div>
         <div style="color:#cdc7ff;font-size:12px;margin-top:5px" id="mRank">—</div>
+        <div class="pForm" id="mForm"></div>
+        <div class="pWeek" id="mWeek"></div>
       </div>
     </div>
-    <div class="closeX" data-close>[ X ]</div>
-  </div>
-  <div class="body">
     <div class="statGrid" style="grid-template-columns:repeat(4,1fr)" id="mStats"></div>
     <div style="margin-top:14px"><label>ป้ายรางวัล</label><div id="mBadges"></div></div>
     <div style="margin-top:22px">
