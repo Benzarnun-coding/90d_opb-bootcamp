@@ -314,9 +314,25 @@ const LiveDB = (()=>{
       const {data:prof}=await sb.from("profiles").select("id").eq("id",session.user.id).maybeSingle();
       return {needsAuth:false, needsProfile:!prof, email:session.user.email};
     },
-    async signIn(email){
-      const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split("#")[0]}});
-      if(error) throw new Error(error.message);
+    /* อีเมล + รหัสเดียวกันทั้งรุ่น — ไม่พึ่งอีเมลส่งลิงก์ (ติดเพดาน 2 ฉบับ/ชม.)
+       เข้าครั้งแรก: เช็คว่าอยู่ในรายชื่อ แล้วสมัครให้เอง (Supabase ตั้ง autoconfirm ไว้) */
+    async signIn(email, password){
+      const r1=await sb.auth.signInWithPassword({email,password});
+      if(!r1.error) return;                                    // onAuthStateChange จะรีโหลดให้
+      if(!/invalid login credentials/i.test(r1.error.message)) throw new Error(r1.error.message);
+      const {data:ok,error:e2}=await sb.rpc("email_allowed",{em:email});
+      if(e2) throw new Error(e2.message);
+      if(!ok) throw new Error("อีเมลนี้ไม่อยู่ในรายชื่อรุ่น<br>ติดต่อทีมงานให้เพิ่มชื่อก่อน");
+      const r2=await sb.auth.signUp({email,password});
+      if(r2.error){
+        if(/already registered/i.test(r2.error.message)) throw new Error("รหัสไม่ถูกต้อง");
+        throw new Error(r2.error.message);
+      }
+      /* อีเมลนี้มีบัญชีอยู่แล้วแต่รหัสผิด — Supabase คืน user ปลอมที่ไม่มี identities */
+      if(!r2.data.session){
+        const ids=(r2.data.user&&r2.data.user.identities)||[];
+        throw new Error(ids.length ? "สมัครแล้วแต่ยังเข้าไม่ได้ — เปิด autoconfirm ใน Supabase" : "รหัสไม่ถูกต้อง");
+      }
     },
     async signInGoogle(){
       const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href.split("#")[0]}});
@@ -1022,7 +1038,8 @@ async function renderAdmin(){
   const demo = DB.mode==="demo";
   $("adNote").innerHTML = demo
     ? "โหมด DEMO — หน้านี้แสดงให้ดูหน้าตาเท่านั้น เพิ่มรายชื่อจริงไม่ได้ ต้องต่อ Supabase ก่อน"
-    : "อีเมลที่เพิ่มตรงนี้คือประตูเข้าระบบ ใครไม่มีชื่อจะสมัครไม่ได้ และหนึ่งอีเมลสมัครได้ครั้งเดียว";
+    : "อีเมลที่เพิ่มตรงนี้คือประตูเข้าระบบ ใครไม่มีชื่อจะสมัครไม่ได้ และหนึ่งอีเมลสมัครได้ครั้งเดียว"
+      + ' · <a href="admin.html" style="color:var(--cyan)">เปิดหน้าจัดการเต็ม (ย้ายบ้าน / ลบ / เตะออก) →</a>';
   $("adHouse").innerHTML = HOUSES.map(h=>
     '<option value="'+h.id+'">'+h.emoji+' '+h.name+' · '+h.th+'</option>').join("");
 
@@ -1165,12 +1182,14 @@ $("plPick").onclick=e=>{
 };
 $("startBtn").onclick=()=>{ drawSelect(); show(BOOTSTATE&&BOOTSTATE.needsAuth?"scAuth":"scSelect"); };
 $("authBtn").onclick=async()=>{
-  const em=$("email").value.trim();
+  const em=$("email").value.trim(), pw=$("pass").value;
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return toast("ใส่อีเมลให้ถูกก่อน");
+  if(!pw) return toast("ใส่รหัสเข้าก่อน");
   $("authBtn").disabled=true;
-  try{ await DB.signIn(em); $("authNote").textContent="ส่งลิงก์เข้าอีเมลแล้ว — เปิดอีเมลแล้วกดลิงก์"; }
+  try{ await DB.signIn(em, pw); $("authNote").textContent="กำลังเข้า…"; }
   catch(err){ toast(err.message); $("authBtn").disabled=false; }
 };
+$("pass").onkeydown=e=>{ if(e.key==="Enter") $("authBtn").click(); };
 $("joinBtn").onclick=async()=>{
   const nm=$("myName").value.trim();
   if(!nm) return toast("ใส่ชื่อก่อน");

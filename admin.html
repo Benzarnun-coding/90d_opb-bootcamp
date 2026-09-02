@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADMIN · Bootcamp</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0a0820; --deep:#141033; --mid:#221c50; --panel:#2a2360;
+    --bevelHi:#7b74d6; --bevelLo:#150f36; --line:#4a41a0;
+    --ink:#f2f0ff; --dim:#a49ce0; --gold:#ffcc4d; --goldLo:#c98a12;
+    --cyan:#4ee1ff; --green:#5ef08c; --red:#ff4d6d; --orange:#ff9f43;
+    --f-px:"Pixelify Sans","Trebuchet MS",monospace;
+    --f-th:"IBM Plex Sans Thai",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--void); color:var(--ink); font-family:var(--f-th); min-height:100vh;
+    background-image:linear-gradient(180deg,#150f3a,#0a0820 60%)}
+  .wrap{max-width:1100px; margin:0 auto; padding:22px 16px 60px}
+  .px{font-family:var(--f-px); font-weight:700}
+  h1{font-family:var(--f-px); font-size:26px; margin:0; color:var(--gold); text-shadow:0 3px 0 #000}
+  .bevel{background:linear-gradient(180deg,var(--panel),var(--mid) 55%,var(--deep));
+    border:3px solid; border-color:var(--bevelHi) var(--bevelLo) var(--bevelLo) var(--bevelHi);
+    box-shadow:0 0 0 3px var(--void),0 8px 0 rgba(0,0,0,.45)}
+  .panel{margin-bottom:20px}
+  .titlebar{background:linear-gradient(180deg,#5b51c4,#3d3490 48%,#2b2470); border-bottom:3px solid var(--bevelLo);
+    padding:11px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+  .titlebar h2{margin:0; font-family:var(--f-px); font-size:17px; color:var(--gold); text-shadow:0 2px 0 #000}
+  .titlebar span{font-size:12px; color:#cdc7ff}
+  .body{padding:16px}
+  label{display:block; font-family:var(--f-px); font-weight:700; font-size:13px; color:#cdc7ff; margin:12px 0 6px; letter-spacing:.5px}
+  input,select,textarea{width:100%; font-family:var(--f-th); font-size:14px; color:var(--ink); padding:11px 12px;
+    background:linear-gradient(180deg,#0e0928,#171043); border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
+  textarea{min-height:150px; resize:vertical; line-height:1.7}
+  .btn{font-family:var(--f-px); font-weight:700; cursor:pointer; color:#fff; border:3px solid; padding:10px 16px; font-size:14px;
+    background:linear-gradient(180deg,#5b51c4,#332a80 60%,#221c50); border-color:#9d97ff #1a1450 #1a1450 #9d97ff;
+    box-shadow:0 0 0 2px var(--void),0 4px 0 rgba(0,0,0,.5); text-shadow:0 2px 0 #000}
+  .btn:active{transform:translateY(3px); box-shadow:0 0 0 2px var(--void),0 1px 0 rgba(0,0,0,.5)}
+  .btn.go{background:linear-gradient(180deg,#4fd67e,#22a054 60%,#137a3c); border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4; width:100%; font-size:17px; padding:13px}
+  .btn.danger{background:linear-gradient(180deg,#e0526e,#a8203f 60%,#6a1028); border-color:#ffb0c0 #3a0a16 #3a0a16 #ffb0c0}
+  .btn.xs{font-size:11px; padding:5px 9px}
+  .btn:disabled{filter:grayscale(.8) brightness(.6); cursor:not-allowed; transform:none}
+  .hint{color:var(--dim); font-size:12px; margin-top:10px; line-height:1.9}
+  .hint b{color:var(--gold)}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .houseGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px}
+  .houseCard{padding:14px; border:3px solid; background:linear-gradient(180deg,#1a1442,#100c2c); cursor:pointer; position:relative}
+  .houseCard.on{outline:3px solid var(--gold); outline-offset:2px}
+  .houseCard .hr{font-size:26px}
+  .houseCard .hn{font-family:var(--f-px); font-weight:700; font-size:18px; margin-top:4px; text-shadow:0 2px 0 #000}
+  .houseCard .hv{font-family:var(--f-px); font-weight:700; font-size:30px; color:#fff; margin-top:6px; text-shadow:0 3px 0 #000}
+  .houseCard .hl{font-size:11px; color:var(--dim)}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th{font-family:var(--f-px); font-size:12px; color:#cdc7ff; text-align:left; padding:8px 8px; border-bottom:3px solid var(--bevelLo); letter-spacing:.5px}
+  td{padding:8px; border-bottom:1px solid #2a2360; vertical-align:middle}
+  tr:hover td{background:rgba(123,116,214,.08)}
+  td select{padding:6px 8px; font-size:12px; width:auto; min-width:140px}
+  .tag{font-family:var(--f-px); font-size:11px; padding:2px 7px; border:2px solid var(--line); color:#cdc7ff; white-space:nowrap}
+  .tag.ok{border-color:#2fbf6a; color:#8affb0}
+  .tag.no{border-color:#a8324c; color:#ff8fa3}
+  .filters{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+  .filters input{width:auto; flex:1; min-width:180px}
+  .fBtn{font-family:var(--f-px); font-size:12px; padding:7px 11px; cursor:pointer; color:#cdc7ff;
+    background:#1c1544; border:2px solid #3a3288}
+  .fBtn.on{background:linear-gradient(180deg,#5b51c4,#332a80); color:#fff; border-color:var(--gold)}
+  .screen{display:none} .screen.on{display:block}
+  .card{max-width:480px; margin:60px auto}
+  #toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(200%); font-family:var(--f-px); font-weight:700;
+    font-size:16px; color:#fff; padding:14px 24px; z-index:45; text-shadow:0 2px 0 #000; max-width:90vw; text-align:center; line-height:1.6;
+    background:linear-gradient(180deg,#4b41a8,#2a2270 60%,#1a1450); border:3px solid; border-color:var(--gold) var(--goldLo) var(--goldLo) var(--gold);
+    transition:transform .28s cubic-bezier(.2,1.4,.4,1)}
+  #toast.on{transform:translateX(-50%) translateY(0)}
+  .top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
+  .top a{color:var(--cyan); font-size:13px}
+  .scroll{overflow-x:auto}
+  @media(max-width:700px){ .row{grid-template-columns:1fr} .hideSm{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== LOGIN ===== -->
+  <section class="screen" id="scLogin">
+    <div class="card bevel">
+      <div class="titlebar"><h2>ADMIN SIGN IN</h2><span>หัวหน้าโค้ชเท่านั้น</span></div>
+      <div class="body">
+        <label>EMAIL</label>
+        <input id="lgEmail" type="email" autocomplete="email" placeholder="coach@email.com">
+        <label>รหัสเข้า</label>
+        <input id="lgPass" type="password" autocomplete="current-password">
+        <button class="btn go" id="lgBtn" style="margin-top:18px">▶ เข้าสู่ระบบ</button>
+        <div class="hint">ใช้อีเมลกับรหัสเดียวกับที่เข้าเกม แต่ต้องเป็นบัญชีที่ตั้งเป็นหัวหน้าโค้ชไว้</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== DENIED ===== -->
+  <section class="screen" id="scDenied">
+    <div class="card bevel">
+      <div class="titlebar"><h2>ไม่มีสิทธิ์</h2></div>
+      <div class="body">
+        <p style="line-height:1.9">บัญชี <b id="deniedWho"></b> ไม่ใช่หัวหน้าโค้ช<br>หน้านี้เปิดให้เฉพาะบัญชีที่ตั้ง role = coach และไม่ประจำบ้านไหน</p>
+        <button class="btn" id="deniedOut">ออกจากระบบ</button>
+        <a href="index.html" class="btn" style="text-decoration:none;display:inline-block;margin-left:8px">กลับหน้าเกม</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ADMIN ===== -->
+  <section class="screen" id="scAdmin">
+    <div class="top">
+      <div>
+        <h1 id="ttl">ADMIN</h1>
+        <div style="color:var(--dim);font-size:12px;margin-top:6px">จัดการรายชื่อและบ้าน · <span id="who"></span></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="index.html" class="btn" style="text-decoration:none">🏁 หน้าเกม</a>
+        <button class="btn" id="outBtn">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>บ้านทั้ง 4</h2><span>คลิกการ์ดเพื่อกรองรายชื่อ · ตัวเลข = สมัครแล้ว / มีชื่อทั้งหมด</span></div>
+      <div class="body"><div class="houseGrid" id="houses"></div></div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>เพิ่มคนเข้ารุ่น</h2><span>อีเมลที่อยู่ในนี้ถึงจะเข้าเกมได้</span></div>
+      <div class="body">
+        <div class="row">
+          <div>
+            <label>อีเมล (บรรทัดละคน)</label>
+            <textarea id="adEmails" placeholder="somchai@gmail.com
+nid@hotmail.com, นิด ใจดี
+(ใส่ชื่อต่อท้ายคั่นด้วย , ได้ ไม่ใส่ก็ได้)"></textarea>
+          </div>
+          <div>
+            <label>เข้าบ้าน</label>
+            <select id="adHouse"></select>
+            <button class="btn go" id="adAdd" style="margin-top:14px">▶ เพิ่มเข้ารายชื่อ</button>
+            <div class="hint" id="adResult">
+              วางจาก Excel / Google Sheets ได้เลย · อีเมลที่มีอยู่แล้วจะถูกข้าม ไม่ทับบ้านเดิม<br>
+              รหัสเข้าเกมของทุกคนคือรหัสเดียวกัน แจ้งนักเรียนพร้อมลิงก์เว็บ
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2 id="listTitle">รายชื่อทั้งหมด</h2><span id="listSub"></span></div>
+      <div class="body">
+        <div class="filters">
+          <input id="q" placeholder="ค้นหาอีเมล / ชื่อ">
+          <button class="fBtn on" data-f="all">ทั้งหมด</button>
+          <button class="fBtn" data-f="unclaimed">ยังไม่สมัคร</button>
+          <button class="fBtn" data-f="claimed">สมัครแล้ว</button>
+        </div>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>EMAIL</th><th class="hideSm">ชื่อ</th><th>บ้าน</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <div class="hint">
+          <b>ย้ายบ้าน</b> เปลี่ยนที่ช่องบ้านได้ทันที มีผลกับคนที่สมัครแล้วด้วย ·
+          <b>ลบ</b> ได้เฉพาะคนที่ยังไม่สมัคร ·
+          <b>เตะออก</b> ลบบัญชีและงานทั้งหมดของคนนั้น ถ้าเพิ่มอีเมลกลับเขาจะเริ่มใหม่จากศูนย์
+        </div>
+      </div>
+    </section>
+  </section>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

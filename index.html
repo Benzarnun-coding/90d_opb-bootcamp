@@ -474,10 +474,12 @@
   <div class="card bevel">
     <div class="titlebar"><h2>SIGN IN</h2><span id="authWho"></span></div>
     <div class="body">
-      <p class="lede">ใส่อีเมลที่ใช้สมัคร bootcamp ระบบจะส่งลิงก์เข้าอีเมล กดลิงก์แล้วเข้าใช้งานได้เลย ไม่ต้องตั้งรหัสผ่าน</p>
+      <p class="lede">ใส่อีเมลที่ลงทะเบียนไว้กับ bootcamp และรหัสที่ทีมงานแจก<br>เข้าครั้งแรกระบบจะสร้างบัญชีให้อัตโนมัติ ไม่ต้องรออีเมล</p>
       <label>EMAIL</label>
       <input id="email" type="email" placeholder="you@email.com" autocomplete="email">
-      <button class="btn go" id="authBtn" style="margin-top:18px">▶ ส่งลิงก์เข้าอีเมล</button>
+      <label style="margin-top:14px">รหัสเข้า</label>
+      <input id="pass" type="password" placeholder="รหัสที่ทีมงานแจก" autocomplete="current-password">
+      <button class="btn go" id="authBtn" style="margin-top:18px">▶ เข้าสู่ระบบ</button>
       <button class="btn sm" id="googleBtn" style="display:none;width:100%;margin-top:12px;padding:13px">เข้าด้วย GOOGLE</button>
       <div class="hint" id="authNote">ต้องเป็นอีเมลที่อยู่ในรายชื่อรุ่นเท่านั้น ถ้าเข้าไม่ได้ให้ติดต่อทีมงาน</div>
     </div>

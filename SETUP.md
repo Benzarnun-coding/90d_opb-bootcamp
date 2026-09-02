@@ -129,10 +129,13 @@ SUPABASE_ANON_KEY: "eyJhbGciOi...",
 **Authentication → URL Configuration**
 Site URL ใส่ URL จริงหลัง deploy, Redirect URLs ใส่ URL เดียวกันบวก `http://localhost:5173`
 
-**ที่ 250 คนต้องใช้ Google login ไม่มีทางเลือกอื่น** อีเมลในตัวของ Supabase ส่งได้แค่ไม่กี่ฉบับ
-ต่อชั่วโมง วันเปิดรุ่นจะมีคนเข้าได้ 3–4 คนแล้วที่เหลือค้าง
-ไปที่ **Authentication → Sign In / Providers → Google** ทำตามขั้นตอนที่หน้านั้นบอก
-แล้วตั้ง `GOOGLE_AUTH: true` ใน `config.js`
+**ล็อกอินแบบง่าย (ใช้อยู่ตอนนี้):** อีเมล + รหัสเดียวกันทั้งรุ่น
+นักเรียนพิมพ์อีเมลที่อยู่ในรายชื่อ + รหัสที่ทีมงานแจก → เข้าครั้งแรกระบบสมัครให้เอง ไม่มีอีเมลยืนยัน
+ต้องเปิด **Authentication → Sign In / Providers → Email → Confirm email = OFF** (autoconfirm) — ตั้งไว้แล้ว
+ข้อแลกเปลี่ยน: ใครรู้อีเมลเพื่อน + รหัสกลาง ก็เข้าเป็นเพื่อนได้ ถ้าเจอคนแกล้ง ค่อยเปลี่ยนมาใช้ Google login ทีหลัง
+(ตั้ง GOOGLE_AUTH: true ใน config.js + ตั้งค่า provider ใน Supabase)
+
+**หน้าจัดการรายชื่อ:** `admin.html` — เพิ่มคน / ย้ายบ้าน / ลบ / เตะออก ล็อกอินด้วยบัญชีหัวหน้าโค้ช
 
 ### 6. เอาเว็บขึ้นออนไลน์
 

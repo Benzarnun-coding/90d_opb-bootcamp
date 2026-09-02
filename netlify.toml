@@ -34,3 +34,8 @@
   for = "/app.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/admin.js"
+  [headers.values]
+    Cache-Control = "no-cache"
