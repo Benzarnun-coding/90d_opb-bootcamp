@@ -167,35 +167,66 @@ document.querySelector(".filters").onclick = e => {
 };
 $("q").oninput = e => { q = e.target.value.trim(); render(); };
 
-/* เพิ่มคน — อีเมลที่มีแล้วข้าม ไม่ทับบ้านเดิม */
+/* เพิ่มคน — วางได้ทั้งแถวจาก Google Sheets/Forms
+   - หาอีเมลจากตรงไหนของบรรทัดก็ได้ (คอลัมน์แรกจะเป็น timestamp ก็ไม่เป็นไร)
+   - ถ้าในบรรทัดมีชื่อบ้าน (WISDOM/JUSTICE/COURAGE/DISCIPLINE) ใช้บ้านนั้น ไม่งั้นใช้ที่เลือกในช่อง
+   - อีเมลที่มีอยู่แล้ว = "แอดทับ" ย้ายไปบ้านใหม่ (หนึ่งอีเมลอยู่ได้บ้านเดียว)
+   - ส่งเป็นชุดละ 150 แถว กี่ร้อยคนก็ได้ */
+const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/;
+function houseInLine(line){
+  const u = line.toUpperCase();
+  const hit = HOUSES.find(h=>u.includes(h.name));
+  return hit ? hit.id : 0;
+}
 $("adAdd").onclick = async ()=>{
   const lines = $("adEmails").value.split(/[\n\r]+/).map(s=>s.trim()).filter(Boolean);
-  const house = +$("adHouse").value;
-  const have = new Set(roster.map(x=>x.email.toLowerCase()));
-  const rows = [], bad = [], dup = [];
-  const seen = new Set();
+  const defHouse = +$("adHouse").value;
+  const cur = {}; roster.forEach(x=>{ cur[x.email.toLowerCase()] = x; });
+  const rows = [], bad = [];
+  const seen = new Map();                       // email → row (บรรทัดหลังชนะ)
   lines.forEach(line=>{
-    const parts = line.split(/[,\t]/).map(s=>s.trim());
-    const em = parts[0].toLowerCase();
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ bad.push(line); return; }
-    if(have.has(em) || seen.has(em)){ dup.push(em); return; }
-    seen.add(em);
-    rows.push({email:em, house_id:house, full_name:parts.slice(1).join(" ")||null});
+    const m = line.match(EMAIL_RE);
+    if(!m){ bad.push(line); return; }
+    const em = m[0].toLowerCase();
+    const house = houseInLine(line) || defHouse;
+    /* ชื่อ = ข้อความที่เหลือหลังตัดอีเมล/วันที่/ชื่อบ้านออก (ถ้ามี) */
+    let name = line.replace(m[0],"").replace(/\d{1,2}\/\d{1,2}\/\d{2,4}[^\t,|]*/g,"").replace(/[\t,|]+/g," ").trim();
+    if(/WISDOM|JUSTICE|COURAGE|DISCIPLINE/i.test(name) || name.length>60) name = "";
+    seen.set(em, {email:em, house_id:house, full_name:name||null});
   });
-  if(!rows.length){
-    $("adResult").innerHTML = '<span style="color:var(--red)">ไม่มีอีเมลใหม่ที่ใช้ได้</span>'
-      + (dup.length ? `<br>มีอยู่แล้ว ${dup.length}` : "") + (bad.length ? `<br>ไม่ใช่อีเมล ${bad.length}` : "");
+  const all = [...seen.values()];
+  if(!all.length){
+    $("adResult").innerHTML = '<span style="color:var(--red)">ไม่เจออีเมลในข้อความที่วาง</span>' + (bad.length ? `<br>ไม่ใช่อีเมล ${bad.length} บรรทัด` : "");
     return;
   }
+  const added = all.filter(r=>!cur[r.email]);
+  const moved = all.filter(r=>cur[r.email] && cur[r.email].house_id!==r.house_id);
+  const same  = all.filter(r=>cur[r.email] && cur[r.email].house_id===r.house_id);
+  /* ไม่ทับชื่อจริงเดิมด้วยค่าว่าง */
+  const payload = all.map(r=>({email:r.email, house_id:r.house_id, full_name:r.full_name || (cur[r.email]?cur[r.email].full_name:null)}));
+
   $("adAdd").disabled = true;
-  const {error} = await sb.from("roster").insert(rows);
+  $("adResult").innerHTML = `กำลังส่ง ${payload.length} รายชื่อ…`;
+  let failed = null;
+  for(let i=0; i<payload.length; i+=150){
+    const {error} = await sb.from("roster").upsert(payload.slice(i,i+150), {onConflict:"email"});
+    if(error){ failed = error.message; break; }
+  }
+  /* คนที่สมัครแล้วและถูกย้ายบ้าน ต้องอัปเดตโปรไฟล์ด้วย (RLS ให้แก้ผ่านฟังก์ชันเท่านั้น) */
+  const movedClaimed = moved.filter(r=>cur[r.email].claimed_by);
+  for(const r of movedClaimed){
+    const {error} = await sb.rpc("admin_set_house", {em:r.email, hid:r.house_id});
+    if(error){ failed = failed || error.message; }
+  }
   $("adAdd").disabled = false;
-  if(error){ $("adResult").innerHTML = '<span style="color:var(--red)">'+esc(error.message)+'</span>'; return toast(error.message); }
-  $("adResult").innerHTML = `เพิ่มแล้ว <b>${rows.length}</b> คน เข้าบ้าน ${houseOf(house).emoji} ${houseOf(house).name}`
-    + (dup.length ? `<br><span style="color:var(--orange)">ข้าม ${dup.length} อีเมลที่มีอยู่แล้ว</span>` : "")
-    + (bad.length ? `<br><span style="color:var(--red)">ข้าม ${bad.length} บรรทัดที่ไม่ใช่อีเมล</span>` : "");
+  if(failed){ $("adResult").innerHTML = '<span style="color:var(--red)">'+esc(failed)+'</span>'; toast(failed); await load(); return; }
+  const byHouse = h => all.filter(r=>r.house_id===h.id).length;
+  $("adResult").innerHTML =
+    `<b>เพิ่มใหม่ ${added.length}</b> · ย้ายบ้าน ${moved.length}${movedClaimed.length?` (สมัครแล้ว ${movedClaimed.length})`:""} · เหมือนเดิม ${same.length}`
+    + `<br>` + HOUSES.map(h=>`${h.emoji} ${h.name} ${byHouse(h)}`).join(" · ")
+    + (bad.length ? `<br><span style="color:var(--red)">ข้าม ${bad.length} บรรทัดที่ไม่มีอีเมล</span>` : "");
   $("adEmails").value = "";
-  toast(`เพิ่ม ${rows.length} คนแล้ว`);
+  toast(`เพิ่ม ${added.length} · ย้าย ${moved.length}`);
   await load();
 };
 
@@ -236,6 +267,43 @@ $("rows").onclick = async e => {
     if(error) return toast(error.message);
     toast(`เตะ ${em} ออกแล้ว`); await load();
   }
+};
+
+/* ================= งานที่ส่ง — แก้แพลตฟอร์มให้นักเรียน ================= */
+const PLATS = C.PLATFORMS || ["TikTok","YouTube","Instagram","Facebook","X","Blog"];
+async function findSubs(){
+  const qq = $("sbQ").value.trim().toLowerCase();
+  if(!qq) return toast("พิมพ์ชื่อหรืออีเมลก่อน");
+  /* หาโปรไฟล์จากอีเมลในรายชื่อ หรือจากชื่อบนสนาม */
+  let pid = null, label = "";
+  const byEmail = roster.find(x=>x.email.toLowerCase()===qq) || roster.find(x=>x.email.toLowerCase().startsWith(qq));
+  if(byEmail && byEmail.claimed_by){ pid = byEmail.claimed_by; label = ((names[pid]||{}).name||"?")+" · "+byEmail.email; }
+  if(!pid){
+    const hit = Object.values(names).find(p=>(p.name||"").toLowerCase()===qq) || Object.values(names).find(p=>(p.name||"").toLowerCase().includes(qq));
+    if(hit){ pid = hit.id; const em = roster.find(x=>x.claimed_by===hit.id); label = hit.name + (em?" · "+em.email:""); }
+  }
+  if(!pid){ $("sbWho").textContent=""; $("sbList").innerHTML = '<tr><td colspan="5" style="color:var(--dim);padding:16px">ไม่เจอคนนี้ (ต้องสมัครแล้วถึงจะมีงาน)</td></tr>'; return; }
+  const {data, error} = await sb.from("submissions").select("id,platform,url,day_index,created_at,status")
+    .eq("profile_id", pid).order("created_at",{ascending:false}).limit(40);
+  if(error) return toast(error.message);
+  $("sbWho").textContent = label + ` · ${(data||[]).length} ชิ้นล่าสุด`;
+  $("sbList").innerHTML = (data||[]).length ? data.map(s=>`<tr>
+      <td style="color:var(--dim);white-space:nowrap">วันที่ ${s.day_index}</td>
+      <td><select data-sub="${s.id}">${PLATS.map(p=>`<option ${p===s.platform?"selected":""}>${p}</option>`).join("")}</select></td>
+      <td style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--cyan)">${esc(s.url)}</a></td>
+      <td style="color:var(--dim);font-size:12px;white-space:nowrap">${new Date(s.created_at).toLocaleString("th-TH")}</td>
+      <td>${s.status!=="approved"?`<span class="tag no">${esc(s.status)}</span>`:""}</td></tr>`).join("")
+    : '<tr><td colspan="5" style="color:var(--dim);padding:16px">ยังไม่มีงานที่ส่ง</td></tr>';
+}
+$("sbFind").onclick = findSubs;
+$("sbQ").onkeydown = e => { if(e.key==="Enter") findSubs(); };
+$("sbList").onchange = async e => {
+  const s = e.target.closest("select[data-sub]"); if(!s) return;
+  s.disabled = true;
+  const {error} = await sb.from("submissions").update({platform: s.value}).eq("id", +s.dataset.sub);
+  s.disabled = false;
+  if(error) return toast(error.message);
+  toast(`เปลี่ยนเป็น ${s.value} แล้ว`);
 };
 
 boot();

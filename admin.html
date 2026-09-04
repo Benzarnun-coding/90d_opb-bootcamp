@@ -157,15 +157,15 @@
             <label>อีเมล (บรรทัดละคน)</label>
             <textarea id="adEmails" placeholder="somchai@gmail.com
 nid@hotmail.com, นิด ใจดี
-(ใส่ชื่อต่อท้ายคั่นด้วย , ได้ ไม่ใส่ก็ได้)"></textarea>
+9/2/2026 20:49  ploy@gmail.com  2. COURAGE - Idea Stage ...   ← วางทั้งแถวจากชีทฟอร์มก็ได้ ระบบหาอีเมล+บ้านให้เอง"></textarea>
           </div>
           <div>
             <label>เข้าบ้าน</label>
             <select id="adHouse"></select>
             <button class="btn go" id="adAdd" style="margin-top:14px">▶ เพิ่มเข้ารายชื่อ</button>
             <div class="hint" id="adResult">
-              วางจาก Excel / Google Sheets ได้เลย · อีเมลที่มีอยู่แล้วจะถูกข้าม ไม่ทับบ้านเดิม<br>
-              รหัสเข้าเกมของทุกคนคือรหัสเดียวกัน แจ้งนักเรียนพร้อมลิงก์เว็บ
+              วางกี่ร้อยคนก็ได้ · ถ้าในบรรทัดมีชื่อบ้าน (WISDOM / JUSTICE / COURAGE / DISCIPLINE) จะใช้บ้านนั้น ไม่งั้นใช้ช่องด้านบน<br>
+              <b>อีเมลที่มีอยู่แล้ว = แอดทับ</b> ย้ายไปบ้านใหม่ทันที (หนึ่งคนอยู่ได้บ้านเดียว) · รหัสเข้าเกมของทุกคนคือรหัสเดียวกัน
             </div>
           </div>
         </div>
@@ -191,6 +191,22 @@ nid@hotmail.com, นิด ใจดี
           <b>ลบ</b> ได้เฉพาะคนที่ยังไม่สมัคร ·
           <b>เตะออก</b> ลบบัญชีและงานทั้งหมดของคนนั้น ถ้าเพิ่มอีเมลกลับเขาจะเริ่มใหม่จากศูนย์
         </div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>งานที่ส่ง · แก้แพลตฟอร์ม</h2><span>นักเรียนเลือกแพลตฟอร์มผิด แก้ให้ตรงนี้</span></div>
+      <div class="body">
+        <div class="filters">
+          <input id="sbQ" placeholder="ชื่อบนสนาม หรืออีเมล">
+          <button class="btn" id="sbFind">ค้นหางาน</button>
+          <span id="sbWho" style="color:var(--dim);font-size:13px"></span>
+        </div>
+        <div class="scroll"><table>
+          <thead><tr><th>วัน</th><th>แพลตฟอร์ม</th><th>ลิงก์</th><th>ส่งเมื่อ</th><th></th></tr></thead>
+          <tbody id="sbList"><tr><td colspan="5" style="color:var(--dim);padding:16px">พิมพ์ชื่อหรืออีเมลแล้วกดค้นหา</td></tr></tbody>
+        </table></div>
+        <div class="hint">เปลี่ยนที่ dropdown ได้เลย บันทึกทันที · ลิงก์และวันที่ส่งแก้ไม่ได้ (กันสับสนเรื่องคะแนน)</div>
       </div>
     </section>
   </section>
