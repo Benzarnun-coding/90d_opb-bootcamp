@@ -1462,6 +1462,8 @@ function renderHud(){
   $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
 }
 function renderAll(){
+  /* แถบเตือนโหมดทดลอง — กันคนเข้าใจผิดว่าส่งงานจริงแล้ว */
+  $("demoBar").style.display = DB.mode==="demo" ? "" : "none";
   renderFilters(); renderPledge(); renderTrack(); renderFeed(); renderHud();
   if($("pgBoard").classList.contains("on")) renderBoard();
   if($("pgStatus").classList.contains("on")) renderStatus();
