@@ -718,7 +718,21 @@ const LiveDB = (()=>{
       const {error}=await sb.from("submissions").insert({
         profile_id:session.user.id, url, url_key:url, platform, day_index:1, sprint_idx:0});
       if(error){
-        if(error.code==="23505"||/duplicate/i.test(error.message)) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
+        if(error.code==="23505"||/duplicate/i.test(error.message)){
+          /* บอกให้ชัดว่าลิงก์นี้ชนกับของใคร — ของตัวเองหรือคนอื่น */
+          let who=null;
+          try{
+            const {data:key}=await sb.rpc("norm_url",{u:url});
+            const {data:row}=await sb.from("submissions").select("profile_id,created_at").eq("url_key",key).maybeSingle();
+            if(row){
+              const mine=row.profile_id===session.user.id;
+              const r=S.runners.find(x=>x.id===row.profile_id);
+              who = mine ? `คุณส่งลิงก์นี้ไปแล้วเมื่อ ${ago(new Date(row.created_at).getTime())}<br>ดูได้ที่ MY STATUS → งานที่ส่งล่าสุด`
+                         : `ลิงก์นี้ ${r?r.name:"คนอื่น"} ส่งไปแล้วเมื่อ ${ago(new Date(row.created_at).getTime())}<br>ถ้าเป็นงานของคุณจริง แจ้งทีมงาน`;
+            }
+          }catch(e){}
+          throw new Error(who || "ลิงก์นี้ถูกส่งไปแล้ว");
+        }
         throw new Error(error.message.replace(/^.*?:\s*/,""));
       }
     },
