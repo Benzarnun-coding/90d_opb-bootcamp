@@ -479,6 +479,10 @@ const DemoDB = (()=>{
       db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now()});
       save(); onChange();
     },
+    async fixPlatform(id, platform){
+      const s=db.subs.find(x=>x.id===id && x.who===db.me); if(!s) throw new Error("ไม่พบงานชิ้นนี้");
+      s.plat=platform; save(); onChange();
+    },
     async setPledge(week, target){
       const r=db.runners.find(x=>x.name===db.me);
       const cur=r.pledges[week];
@@ -693,6 +697,11 @@ const LiveDB = (()=>{
         if(error.code==="23505"||/duplicate/i.test(error.message)) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
         throw new Error(error.message.replace(/^.*?:\s*/,""));
       }
+    },
+    /* แก้แพลตฟอร์มของงานตัวเอง — trigger ฝั่ง DB ยอมให้เปลี่ยนแค่ช่องนี้ */
+    async fixPlatform(id, platform){
+      const {error}=await sb.from("submissions").update({platform}).eq("id",id).eq("profile_id",session.user.id);
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
     },
     async setPledge(week,target){
       const {error}=await sb.from("pledges")
@@ -1357,6 +1366,7 @@ async function renderStatus(){
   $("shBadges").innerHTML = S.myDet ? badgesHTML(earnedBadges(r,S.myDet), true) : "";
   try{ const det=await DB.detail(r); S.myDet=det; $("mMap").innerHTML=mapHTML(r, det.byDay);
     $("shBadges").innerHTML=badgesHTML(earnedBadges(r,det), true);
+    renderMyFeed(det.recent||[]);
     (finished() ? drawCert() : drawCard());          // วาดใหม่ให้มีป้ายบนการ์ด
   }catch(e){ console.error(e); $("mMap").innerHTML=`<div class="noJoin">โหลดแผนที่ไม่สำเร็จ</div>`; }
 }
@@ -1876,6 +1886,24 @@ function celebrate(kind){
   if(kind==="unlock"){ SFX.unlock(); confetti(30); }
   if(kind==="revive"){ SFX.revive(); jumpMe(); confetti(70); }
 }
+
+/* ================= งานของฉัน — แก้แพลตฟอร์มเองได้ ================= */
+function renderMyFeed(list){
+  $("myFeed").innerHTML = list.length ? list.map(f=>`<li>
+      <select class="platFix" data-fix="${f.id}">${PLATS.map(p=>`<option ${p===f.plat?"selected":""}>${p}</option>`).join("")}</select>
+      <span class="sp">วันที่ ${f.day}</span>
+      <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
+      <span class="when">${ago(f.ts)}</span></li>`).join("")
+    : `<li style="color:var(--dim)">ยังไม่มีงานที่ส่ง</li>`;
+}
+$("myFeed").onchange=async e=>{
+  const s=e.target.closest("select[data-fix]"); if(!s) return;
+  const id = isNaN(+s.dataset.fix) ? s.dataset.fix : +s.dataset.fix;
+  s.disabled=true;
+  try{ await DB.fixPlatform(id, s.value); toast(`เปลี่ยนเป็น ${s.value} แล้ว`); await refresh(); }
+  catch(err){ toast(err.message); }
+  s.disabled=false;
+};
 
 /* ================= BOOT ================= */
 async function refresh(){

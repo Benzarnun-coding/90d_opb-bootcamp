@@ -404,6 +404,7 @@
     background:linear-gradient(180deg,#37307f,#221c56);
     border:2px solid; border-color:var(--line) #100c2e #100c2e var(--line)}
   .feed .sp{color:var(--gold); border-color:var(--goldLo) #100c2e #100c2e var(--goldLo)}
+  .feed .platFix{width:auto; padding:4px 8px; font-size:12px; font-family:var(--f-th)}
   .feed a{color:var(--cyan); text-decoration:none; word-break:break-all; flex:1; min-width:140px}
   .feed a:hover{text-decoration:underline; color:#fff}
   .feed .when{margin-left:auto; color:var(--dim); font-size:11px; white-space:nowrap}
@@ -739,6 +740,11 @@
           <span style="opacity:.45">แถวจาง = ไม่ได้ลงสปรินต์นี้</span>
         </div>
       </div>
+    </section>
+    <section class="panel bevel">
+      <div class="titlebar"><h2>งานที่ส่งล่าสุด</h2><span>เลือกแพลตฟอร์มผิด? เปลี่ยนที่ dropdown ได้เลย</span></div>
+      <ul class="feed" id="myFeed"></ul>
+      <div class="hint" style="padding:0 16px 14px">แก้ได้เฉพาะแพลตฟอร์ม · ลิงก์และวันที่ส่งแก้ไม่ได้ (ถ้าส่งผิดลิงก์ให้ส่งใหม่ แล้วแจ้งทีมงานให้ลบอันเก่า)</div>
     </section>
   </div>
 
