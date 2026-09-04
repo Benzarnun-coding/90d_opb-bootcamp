@@ -74,9 +74,15 @@ const HAT_COL=[["#000","#000"],["#d63031","#8f1f21"],["#7d5fff","#4c36a8"],["#ff
 const DEF_AV={g:0,sk:1,hr:0,hc:1,gl:0,top:0,pt:0,pc:0,hat:0,mo:0,no:1};
 const AV_KEYS=Object.keys(DEF_AV);
 /* หน้าตาของ runner — คนที่ยังไม่เคยแต่งได้ค่าเริ่มต้น + สีชุดที่เลือกไว้ */
+/* มงกุฎไม่ใช่สกินที่เลือกเองได้ — ใส่ได้เฉพาะ King of the Week (ที่ 1 ของบ้านในสัปดาห์นี้) */
+const CROWN_HATS = new Set([3,14,15]);
+const KING_HAT   = 15;
+const isKingNow  = r => !!(r && S.kingsNow && S.kingsNow.has(r.id));
 const avOf = r => {
   const av=Object.assign({}, DEF_AV), src=(r&&r.avatar)||{};
   AV_KEYS.forEach(k=>{ if(Number.isInteger(src[k])) av[k]=src[k]; });
+  if(CROWN_HATS.has(av.hat)) av.hat=0;
+  if(isKingNow(r)) av.hat=KING_HAT;
   av.color=(r&&r.color)||COLORS[0];
   return av;
 };
@@ -452,7 +458,17 @@ const DemoDB = (()=>{
         });
         if(best) cups.push(best);
       }
-      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, cups,
+      /* ประวัติ King of the Week: ที่ 1 ของบ้านในแต่ละสัปดาห์ที่จบแล้ว */
+      const kings=[];
+      for(let w=1; w<cw; w++){
+        HOUSES.forEach(hs=>{
+          const best=db.runners.filter(r=>r.role==="student"&&r.house===hs.id&&r.pledges[w])
+            .map(r=>({r, done:db.subs.filter(s=>s.who===r.name&&weekOf(s.day)===w).length}))
+            .filter(x=>x.done>0).sort((a,b)=>b.done-a.done)[0];
+          if(best) kings.push({week_no:w, house_id:hs.id, profile_id:best.r.id, name:best.r.name, done:best.done});
+        });
+      }
+      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, cups, kings,
               started:true, daysUntil:0, startDate:null};
     },
     async rosterList(){
@@ -591,14 +607,15 @@ const LiveDB = (()=>{
     },
     async fetchAll(){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
-      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows}]=await Promise.all([
+      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
         uidNow ? sb.from("pledges").select("week_no,target").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
         sb.from("v_burnout").select("profile_id"),
         sb.from("v_house_cup").select("*"),
-        sb.from("v_weak").select("profile_id")
+        sb.from("v_weak").select("profile_id"),
+        sb.from("v_week_kings").select("*")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -661,6 +678,7 @@ const LiveDB = (()=>{
         postedToday: (todayCount||0) > 0,
         started, daysUntil, startDate: co.start_date,
         cups: cups||[],
+        kings: kingRows||[],
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -936,7 +954,7 @@ function renderTrack(){
       <div class="runner ${r.name===S.me?"me":""} ${s.style} ${r.house===champHouse()&&roleOf(r)==="student"?"cup":""} ${s.contents>=FINISH?"champ":""}" style="--p:${p}">
         <div class="body">
           <div class="lbl ${side}" style="bottom:${(ROWS-top)*2}px">
-            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
+            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
             <span class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</span>
           </div>
           ${hasAura(s.style)?aura(s.style):""}${sprite(av,2,s.style)}
@@ -1003,7 +1021,7 @@ function renderBoard(){
     const pc = s.pace>0?"var(--green)":s.pace<0?"var(--orange)":"var(--cyan)";
     return `<tr class="${r.name===S.me?"me":""}" data-n="${r.name}" id="row-${r.name}">
       <td class="rk ${i<3?"top"+(i+1):""}">${medal}</td>
-      <td class="nm" style="color:${nameColor(r)}">${r.name}
+      <td class="nm" style="color:${nameColor(r)}">${isKingNow(r)?"👑 ":""}${r.name}
         <span style="font-family:var(--f-th);font-size:11px;color:var(--dim)">${r.handle}</span></td>
       <td class="hideSm">${role==="head" ? '<span style="color:#ff4d6d;font-size:12px">🎓 หัวหน้าโค้ช</span>'
         : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>${role==="ta"?' <span style="color:#5ef08c;font-size:11px">TA</span>':""}`}</td>
@@ -1108,7 +1126,10 @@ async function openProfile(name){
 /* ป้ายอธิบายร่างปัจจุบันของตัวละคร */
 function formLabel(r, s){
   const o = s.weekTarget ? optOf(s.weekTarget) : null;
-  const fin = s.contents>=FINISH ? `<br>🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว — ออร่าทองถาวร` : "";
+  const kw=(S.kings||[]).filter(k=>k.profile_id===r.id).map(k=>"W"+k.week_no);
+  const fin = (s.contents>=FINISH ? `<br>🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว — ออร่าทองถาวร` : "")
+    + (isKingNow(r) ? `<br><span style="color:var(--gold)">👑 KING OF THE WEEK — ที่ 1 ของบ้าน ${houseOf(r.house).name} สัปดาห์นี้ (มงกุฎติดจนกว่าจะมีคนแซง)</span>` : "")
+    + (kw.length ? `<br><span style="color:var(--gold)">👑 เคยเป็น King of the Week: ${kw.join(", ")}</span>` : "");
   if(s.style==="burnout")
     return `<b>💀 ร่างกระโหลก · หมดแรง</b><br>สัปดาห์ที่แล้วรับเป้าหนัก (${HEAVY}+ ชิ้น) แล้วทำไม่ถึง สัปดาห์นี้เลือกได้แค่ 4 หรือ 7<br><span style="color:var(--dim)">ทำครบสัปดาห์นี้ = ฟื้นคืนชีพ ได้ป้าย REVIVED</span>`+fin;
   if(s.style==="weak")
@@ -1725,6 +1746,7 @@ function drawDress(){
   $("drTabs").innerHTML=DR_CATS.map(([k,n])=>`<button class="drTab ${k===drCat?"on":""}" data-k="${k}">${n}</button>`).join("");
   const st = drMode==="arena" ? stats(meR()) : EMPTY_ST;
   $("drOpts").innerHTML=DR_OPTS[drCat].map((o,i)=>{
+    if(drCat==="hat" && CROWN_HATS.has(i)) return "";           // มงกุฎเลือกเองไม่ได้ ต้องเป็น King of the Week
     const av=Object.assign({},drAv,{[drCat]:i});
     const label = DR_LABEL[drCat] ? DR_LABEL[drCat](i) : o;
     const lock = lockOf(drCat,i,st);
@@ -1767,7 +1789,6 @@ const UNLOCKS = {
   "hat:6": {th:"หมวกคาวบอย",  need:s=>s.contents>=20, how:"ปล่อยครบ 20 ชิ้น"},
   "hat:5": {th:"หมวกทรงสูง",  need:s=>s.contents>=30, how:"ปล่อยครบ 30 ชิ้น"},
   "top:5": {th:"สูทผูกไท",    need:s=>s.contents>=45, how:"ปล่อยครบ 45 ชิ้น (ครึ่งทาง)"},
-  "hat:3": {th:"มงกุฎ",       need:s=>s.weeksHit>=3,  how:"ทำครบเป้า 3 สัปดาห์"},
   "hr:8":  {th:"ผมแอฟโฟร",    need:s=>s.dayStreak>=7, how:"ส่งติดกัน 7 วัน"},
   "hat:7": {th:"หมวกพ่อมด",   need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
   /* ไอเทมพิเศษ — ชุดละ 6 ชิ้น มีทั้งแนวผู้หญิงและผู้ชาย */
@@ -1783,8 +1804,6 @@ const UNLOCKS = {
   "gl:6":   {th:"วิเซอร์ไซเบอร์", need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
   "top:9":  {th:"เกราะเงิน",      need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
   "top:10": {th:"เดรสราตรี",      need:s=>s.contents>=60, how:"ปล่อยครบ 60 ชิ้น"},
-  "hat:14": {th:"ทิอาร่าเพชร",    need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
-  "hat:15": {th:"มงกุฎราชา",      need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
   "hat:16": {th:"รัศมีนางฟ้า",    need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
   "top:11": {th:"เกราะทอง",       need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
   "top:12": {th:"ปีกนางฟ้า",      need:s=>s.contents>=90, how:"ถึงเส้นชัย 90 ชิ้น"},
@@ -1829,7 +1848,9 @@ const BADGES=[
   {k:"c30",     e:"🥉", n:"30 CONTENTS",  th:"ปล่อยครบ 30 ชิ้น",                    test:c=>c.st.contents>=30},
   {k:"c60",     e:"🥈", n:"60 CONTENTS",  th:"ปล่อยครบ 60 ชิ้น",                    test:c=>c.st.contents>=60},
   {k:"c90",     e:"🏆", n:"FINISHER",     th:"ถึงเส้นชัย 90 ชิ้น",                  test:c=>c.st.contents>=FINISH},
-  {k:"cup",     e:"👑", n:"HOUSE CUP",    th:"บ้านของคุณชนะถ้วยรายสัปดาห์",         test:c=>c.cups>0}
+  {k:"cup",     e:"🏆", n:"HOUSE CUP",    th:"บ้านของคุณชนะถ้วยรายสัปดาห์",         test:c=>c.cups>0},
+  {k:"king",    e:"👑", n:"KING OF WEEK", th:"ที่ 1 ของบ้านในสัปดาห์ที่จบไป (ได้ใส่มงกุฎราชา)", test:c=>c.kingWeeks.length>0,
+                label:c=>c.kingWeeks.length>1?`KING ×${c.kingWeeks.length}`:"KING OF WEEK"}
 ];
 function badgeCtx(r, det){
   const st=stats(r), weeks=((det&&det.weeks)||[]).slice().sort((a,b)=>a.week_no-b.week_no);
@@ -1845,13 +1866,14 @@ function badgeCtx(r, det){
     else if(burnedAt!==null && w.hit && w.week_no>burnedAt) revived=true;
   });
   const cups=(S.cups||[]).filter(c=>c.house_id===r.house).length;
-  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups};
+  const kingWeeks=(S.kings||[]).filter(k=>k.profile_id===r.id).map(k=>k.week_no).sort((a,b)=>a-b);
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks};
 }
-const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)); };
+const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)).map(b=>Object.assign({},b,{n:b.label?b.label(c):b.n})); };
 function badgesHTML(list, showAll){
   const html=BADGES.map(b=>{
-    const on=list.includes(b); if(!on && !showAll) return "";
-    return `<span class="badge ${on?"on":""}" title="${b.th}"><i>${b.e}</i><b>${b.n}</b><small>${b.th}</small></span>`;
+    const got=list.find(x=>x.k===b.k), on=!!got; if(!on && !showAll) return "";
+    return `<span class="badge ${on?"on":""}" title="${b.th}"><i>${b.e}</i><b>${on?got.n:b.n}</b><small>${b.th}</small></span>`;
   }).join("");
   return html ? `<div class="badges">${html}</div>` : `<div class="noJoin" style="padding:10px">ยังไม่มีป้าย — ปล่อยชิ้นแรกก็ได้ป้ายแรกแล้ว</div>`;
 }
@@ -1939,6 +1961,14 @@ async function refresh(){
   S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
   S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
   S.cups = d.cups||[];
+  S.kings = d.kings||[];                       // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
+  /* King ของสัปดาห์นี้ (สด): นักเรียนที่ทำชิ้นสัปดาห์นี้มากสุดของแต่ละบ้าน (ต้องรับเป้าไว้และมีอย่างน้อย 1 ชิ้น) */
+  S.kingsNow = new Set();
+  HOUSES.forEach(h=>{
+    const best = S.runners.filter(r=>roleOf(r)==="student" && r.house===h.id && stats(r).weekDone>0)
+      .sort((a,b)=>stats(b).weekDone-stats(a).weekDone || stats(b).contents-stats(a).contents)[0];
+    if(best) S.kingsNow.add(best.id);
+  });
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
   renderAll();
 }
