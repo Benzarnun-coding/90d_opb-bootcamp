@@ -314,6 +314,9 @@
   @media(max-width:880px){.cols{grid-template-columns:1fr}}
   label{display:block; font-family:var(--f-px); font-weight:700; font-size:13px;
     color:var(--cyan); margin:0 0 7px; text-shadow:0 2px 0 #000; letter-spacing:1px}
+  /* color-scheme:dark ทำให้เมนู dropdown ของ Windows เป็นโทนมืดตามเว็บ (Mac มืดอยู่แล้ว) */
+  select, option{color-scheme:dark}
+  option{background:#171043; color:var(--ink)}
   input,select{font-family:var(--f-th); font-size:14px; width:100%; padding:11px 12px; color:var(--ink);
     background:linear-gradient(180deg,#0e0928,#171043);
     border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo); outline:none}
@@ -730,6 +733,7 @@
             <button class="btn sm" id="shShare">📣 แชร์ผ่านแอป</button>
             <button class="btn sm" id="shCopy">📋 คัดลอกข้อความ</button>
             <button class="btn sm" id="dressBtn2">👕 ห้องแต่งตัว</button>
+            <button class="btn sm" id="renameBtn">✏️ แก้ชื่อ</button>
           </div>
           <div class="hint">
             เซฟรูปแล้วเอาไปโพสต์ IG / TikTok / LINE ได้เลย ขนาด 1080×1350 พอดีโพสต์แนวตั้ง<br>

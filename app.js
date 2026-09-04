@@ -479,6 +479,12 @@ const DemoDB = (()=>{
       db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now()});
       save(); onChange();
     },
+    async rename(name){
+      if(db.runners.some(r=>r.name.toUpperCase()===name.toUpperCase() && r.name!==db.me)) throw new Error("ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น");
+      const r=db.runners.find(x=>x.name===db.me);
+      db.subs.forEach(s=>{ if(s.who===db.me) s.who=name; });
+      r.name=name; db.me=name; save(); onChange();
+    },
     async fixPlatform(id, platform){
       const s=db.subs.find(x=>x.id===id && x.who===db.me); if(!s) throw new Error("ไม่พบงานชิ้นนี้");
       s.plat=platform; save(); onChange();
@@ -696,6 +702,15 @@ const LiveDB = (()=>{
       if(error){
         if(error.code==="23505"||/duplicate/i.test(error.message)) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
         throw new Error(error.message.replace(/^.*?:\s*/,""));
+      }
+    },
+    /* เปลี่ยนชื่อบนสนาม — ห้ามซ้ำทั้งรุ่น ยาวไม่เกิน 10 ตัว */
+    async rename(name){
+      const {error}=await sb.from("profiles").update({name}).eq("id",session.user.id);
+      if(error){
+        if(/profiles_name_key/i.test(error.message)) throw new Error("ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น");
+        if(/name_len/i.test(error.message)) throw new Error("ชื่อยาวได้ไม่เกิน 10 ตัวอักษร");
+        throw new Error(error.message);
       }
     },
     /* แก้แพลตฟอร์มของงานตัวเอง — trigger ฝั่ง DB ยอมให้เปลี่ยนแค่ช่องนี้ */
@@ -1898,6 +1913,17 @@ function renderMyFeed(list){
       <span class="when">${ago(f.ts)}</span></li>`).join("")
     : `<li style="color:var(--dim)">ยังไม่มีงานที่ส่ง</li>`;
 }
+/* แก้ชื่อตัวเองจากหน้า MY STATUS */
+$("renameBtn").onclick=async()=>{
+  const cur=meR(); if(!cur) return;
+  const v=prompt("ชื่อใหม่บนสนาม (ไม่เกิน 10 ตัวอักษร ห้ามซ้ำกับคนอื่น)", cur.name);
+  if(v===null) return;
+  const name=v.trim().toUpperCase().slice(0,10);
+  if(!name) return toast("ใส่ชื่อก่อน");
+  if(name===cur.name) return;
+  try{ await DB.rename(name); await refresh(); toast(`เปลี่ยนชื่อเป็น ${name} แล้ว`); }
+  catch(err){ toast(err.message); }
+};
 $("myFeed").onchange=async e=>{
   const s=e.target.closest("select[data-fix]"); if(!s) return;
   const id = isNaN(+s.dataset.fix) ? s.dataset.fix : +s.dataset.fix;
