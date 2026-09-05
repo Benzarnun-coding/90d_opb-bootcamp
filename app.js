@@ -1000,6 +1000,7 @@ function renderPledge(){
 function raceList(){
   const all=ranked();
   if(S.raceFilter==="all") return all;
+  if(S.raceFilter==="ta") return all.filter(r=>roleOf(r)!=="student");
   if(S.raceFilter!=="near") return all.filter(r=>r.house===+S.raceFilter || roleOf(r)==="head");
   const i=all.findIndex(r=>r.name===S.me);
   if(i<0) return all.slice(0,NEAR*2+1);
@@ -1012,7 +1013,9 @@ function renderFilters(){
       style="${cur==="all"?"background:linear-gradient(180deg,#5b51c4,#332a80)":""}">ทั้งรุ่น</button>`]
     .concat(HOUSES.map(h=>`<button class="fBtn ${cur===String(h.id)?"on":""}" data-f="${h.id}"
       style="${cur===String(h.id)?`background:linear-gradient(180deg,${h.color},${shift(h.color,-90)});color:#0d0a22`:""}">
-      ${h.id===champHouse()?"🏆 ":""}${h.emoji} ${h.name}</button>`)).join("");
+      ${h.id===champHouse()?"🏆 ":""}${h.emoji} ${h.name}</button>`))
+    .concat(S.runners.some(r=>roleOf(r)!=="student") ? [`<button class="fBtn ${cur==="ta"?"on":""}" data-f="ta"
+      style="${cur==="ta"?"background:linear-gradient(180deg,#5ef08c,#1f8a4a);color:#0d0a22":"color:#5ef08c"}">🎓 TA ROOM</button>`] : []).join("");
   const meBtn = S.spectator ? "" : `<button class="fBtn goMe" data-me="1">📍 ตัวฉัน</button>`;
   $("raceFilters").innerHTML=mk(S.raceFilter,"r")+meBtn;
   $("boardFilters").innerHTML=mk(S.boardFilter,"b");
@@ -1047,12 +1050,37 @@ function renderTrack(){
       </div></div>`;
   }).join("") : `<div class="noJoin">ยังไม่มีใครในกลุ่มนี้</div>`;
 
+  renderTaRoom();
   $("trackTitle").textContent=`RACE TRACK · ${FINISH} CONTENTS`;
   const cc=champCup();
   $("trackSub").textContent = cc
     ? `🏆 บ้านแชมป์สัปดาห์ที่แล้ว: ${houseOf(cc.house_id).emoji} ${houseOf(cc.house_id).name} (เฉลี่ย ${cc.avg_pieces} ชิ้น/คน) · ระยะทาง = จำนวนคอนเทนต์`
     : "ระยะทาง = จำนวนคอนเทนต์ · เส้นฟ้า = เป้าของคุณ ณ สัปดาห์นี้";
 }
+
+/* ห้องรวม TA + หัวหน้าโค้ช — เรียงตามจำนวนชิ้น */
+function renderTaRoom(){
+  const list=ranked().filter(r=>roleOf(r)!=="student");
+  $("taPanel").hidden = !list.length;
+  if(!list.length) return;
+  const total=list.reduce((n,r)=>n+stats(r).contents,0);
+  $("taSub").textContent=`${list.length} คน · เฉลี่ย ${(total/list.length).toFixed(1)} ชิ้น/คน · คลิกดูโปรไฟล์`;
+  $("taRoom").innerHTML=list.map((r,i)=>{
+    const s=stats(r), h=houseOf(r.house), role=roleOf(r), p=Math.min(1,s.contents/FINISH);
+    return `<div class="taRow ${r.name===S.me?"me":""} ${s.style}" data-n="${r.name}">
+      <div class="taRank">${i===0?"👑":"#"+(i+1)}</div>
+      <div class="taSpr">${hasAura(s.style)?aura(s.style):""}${sprite(avOf(r),2,s.style)}</div>
+      <div class="taInfo">
+        <div class="taName" style="color:${nameColor(r)}">${role==="head"?"🎓":h.emoji} ${r.name}
+          <small>${role==="head"?"หัวหน้าโค้ช":"TA · "+h.name}</small></div>
+        <div class="taBar"><i style="width:${p*100}%;background:${role==="head"?"linear-gradient(90deg,#ff4d6d,#ff8a9a)":"linear-gradient(90deg,#1f8a4a,#5ef08c)"}"></i>
+          <span>${s.contents} / ${FINISH}${s.contents>=FINISH?" 🏆":""}</span></div>
+        <div class="taMeta">สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b> ชิ้น · ทำแล้ว ${s.activeDays} วัน${s.dayStreak>=2?` · <em class="stk">🔥${s.dayStreak}</em>`:""}${s.burnout?" · 💀":s.weak?" · 😵":""}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+$("taRoom").onclick=e=>{ const t=e.target.closest(".taRow"); if(t) openProfile(t.dataset.n); };
 
 /* ================= SCOREBOARD ================= */
 function renderHouses(){
@@ -1088,6 +1116,7 @@ function renderHouses(){
 }
 function boardList(){
   const all=ranked();
+  if(S.boardFilter==="ta") return all.filter(r=>roleOf(r)!=="student");
   return S.boardFilter==="all"||S.boardFilter==="near" ? all : all.filter(r=>r.house===+S.boardFilter || roleOf(r)==="head");
 }
 function renderBoard(){

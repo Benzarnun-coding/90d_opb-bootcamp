@@ -137,7 +137,7 @@ $("outBtn").onclick = $("deniedOut").onclick = async ()=>{ await sb.auth.signOut
 /* ================= DATA ================= */
 async function load(){
   const [{data:r, error:e1}, {data:p}] = await Promise.all([
-    sb.from("roster").select("email,house_id,full_name,claimed_by,claimed_at,added_at").order("house_id").order("email"),
+    sb.from("roster").select("email,house_id,full_name,claimed_by,claimed_at,added_at,role").order("house_id").order("email"),
     sb.from("profiles").select("id,name,role,house_id")
   ]);
   if(e1){ toast("อ่านรายชื่อไม่ได้: "+e1.message); return; }
@@ -177,15 +177,15 @@ function render(){
 
   $("rows").innerHTML = list.length ? list.map((x,i)=>{
     const pr = names[x.claimed_by];
-    const curRole = !pr ? "" : pr.role!=="coach" ? "student" : (pr.house_id ? "ta" : "head");
-    const st = x.claimed_by
-      ? `<span class="tag ok">${esc(pr ? pr.name : "?")}</span>
-         <select data-role="${esc(x.email)}" style="min-width:150px">
+    const curRole = !pr ? (x.role==="ta" ? "ta" : "student") : pr.role!=="coach" ? "student" : (pr.house_id ? "ta" : "head");
+    const roleSel = `<select data-role="${esc(x.email)}" style="min-width:150px">
            <option value="student" ${curRole==="student"?"selected":""}>นักเรียน</option>
            <option value="ta" ${curRole==="ta"?"selected":""}>TA · ชื่อเขียว</option>
-           <option value="head" ${curRole==="head"?"selected":""}>หัวหน้าโค้ช · ชื่อแดง</option>
-         </select>`
-      : `<span class="tag no">ยังไม่สมัคร</span>`;
+           ${x.claimed_by ? `<option value="head" ${curRole==="head"?"selected":""}>หัวหน้าโค้ช · ชื่อแดง</option>` : ""}
+         </select>`;
+    const st = x.claimed_by
+      ? `<span class="tag ok">${esc(pr ? pr.name : "?")}</span> ${roleSel}`
+      : `<span class="tag no">ยังไม่สมัคร</span> ${roleSel}`;
     const act = x.claimed_by
       ? `<button class="btn xs danger" data-kick="${esc(x.email)}">เตะออก</button>`
       : `<button class="btn xs" data-del="${esc(x.email)}">ลบ</button>`;
