@@ -24,9 +24,23 @@ begin
     raise exception 'อีเมล % ถูกใช้สมัครไปแล้ว', em;
   end if;
   new.house_id := r.house_id;
-  if r.role = 'ta' then new.role := 'coach'; end if;
   if new.handle is null or length(trim(new.handle)) < 3 then
     new.handle := public.handle_from_email(em::text);
+  end if;
+  return new;
+end $fn$;
+
+-- หมายเหตุ: ห้ามตั้ง role=coach ใน BEFORE trigger — policy profiles_insert_own บังคับ role=student ตอน insert
+-- เลยไปเลื่อนขั้นใน AFTER trigger แทน (security definer ข้าม RLS ได้)
+create or replace function public.claim_roster_after()
+returns trigger language plpgsql security definer set search_path = public as $fn$
+declare em citext;
+begin
+  select u.email into em from auth.users u where u.id = new.id;
+  if em is not null then
+    update public.roster set claimed_by = new.id, claimed_at = now() where email = em and claimed_by is null;
+    update public.profiles p set role = 'coach'
+      from public.roster r where p.id = new.id and r.email = em and r.role = 'ta' and p.role = 'student';
   end if;
   return new;
 end $fn$;
