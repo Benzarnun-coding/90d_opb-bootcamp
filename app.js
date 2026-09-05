@@ -1015,7 +1015,7 @@ function renderFilters(){
       style="${cur===String(h.id)?`background:linear-gradient(180deg,${h.color},${shift(h.color,-90)});color:#0d0a22`:""}">
       ${h.id===champHouse()?"🏆 ":""}${h.emoji} ${h.name}</button>`))
     .concat(S.runners.some(r=>roleOf(r)!=="student") ? [`<button class="fBtn ${cur==="ta"?"on":""}" data-f="ta"
-      style="${cur==="ta"?"background:linear-gradient(180deg,#5ef08c,#1f8a4a);color:#0d0a22":"color:#5ef08c"}">🎓 TA ROOM</button>`] : []).join("");
+      style="${cur==="ta"?"background:linear-gradient(180deg,#5ef08c,#1f8a4a);color:#0d0a22":"color:#5ef08c"}">⚔️ TA WAR</button>`] : []).join("");
   const meBtn = S.spectator ? "" : `<button class="fBtn goMe" data-me="1">📍 ตัวฉัน</button>`;
   $("raceFilters").innerHTML=mk(S.raceFilter,"r")+meBtn;
   $("boardFilters").innerHTML=mk(S.boardFilter,"b");
@@ -1064,7 +1064,7 @@ function renderTaRoom(){
   $("taPanel").hidden = !list.length;
   if(!list.length) return;
   const total=list.reduce((n,r)=>n+stats(r).contents,0);
-  $("taSub").textContent=`${list.length} คน · เฉลี่ย ${(total/list.length).toFixed(1)} ชิ้น/คน · คลิกดูโปรไฟล์`;
+  $("taSub").textContent=`TA ${list.filter(r=>roleOf(r)==="ta").length} คน + หัวหน้าโค้ช · เฉลี่ย ${(total/list.length).toFixed(1)} ชิ้น/คน · คลิกดูโปรไฟล์`;
   $("taRoom").innerHTML=list.map((r,i)=>{
     const s=stats(r), h=houseOf(r.house), role=roleOf(r), p=Math.min(1,s.contents/FINISH);
     return `<div class="taRow ${r.name===S.me?"me":""} ${s.style}" data-n="${r.name}">

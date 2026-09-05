@@ -180,6 +180,22 @@
     </section>
 
     <section class="panel bevel">
+      <div class="titlebar"><h2>⚔️ TA WAR · ตั้ง TA</h2><span>TA = ชื่อสีเขียว วิ่งในบ้านตัวเอง + อยู่ในแถว TA WAR · ตั้งได้แม้ยังไม่สมัคร</span></div>
+      <div class="body">
+        <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+          <div style="flex:1 1 260px"><label>อีเมล</label><input id="taEmail" placeholder="somchai@gmail.com"></div>
+          <div style="flex:0 0 200px"><label>บ้าน</label><select id="taHouse"></select></div>
+          <div><button class="btn" id="taAdd">+ ตั้งเป็น TA</button></div>
+        </div>
+        <div class="scroll" style="margin-top:12px"><table>
+          <thead><tr><th>อีเมล</th><th>ชื่อบนสนาม</th><th>บ้าน</th><th></th></tr></thead>
+          <tbody id="taRows"><tr><td colspan="4" style="color:var(--dim);padding:16px">ยังไม่มี TA</td></tr></tbody>
+        </table></div>
+        <div class="hint">ย้ายบ้านที่ dropdown ได้เลย · "ถอด TA" = กลับเป็นนักเรียน · หัวหน้าโค้ชตั้งที่ตารางรายชื่อด้านล่าง</div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
       <div class="titlebar"><h2>เพิ่มคนเข้ารุ่น</h2><span>อีเมลที่อยู่ในนี้ถึงจะเข้าเกมได้</span></div>
       <div class="body">
         <div class="row">

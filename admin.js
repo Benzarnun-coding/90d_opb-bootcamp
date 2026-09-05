@@ -146,8 +146,57 @@ async function load(){
   render();
 }
 
+/* ---- TA WAR ---- */
+function renderTAs(){
+  $("taHouse").innerHTML = HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
+  const tas = roster.filter(x=>{ const pr = names[x.claimed_by]; return x.role==="ta" || (pr && pr.role==="coach" && pr.house_id); })
+    .sort((a,b)=>a.house_id-b.house_id || a.email.localeCompare(b.email));
+  $("taRows").innerHTML = tas.length ? tas.map(x=>{
+    const pr = names[x.claimed_by];
+    return `<tr>
+      <td>${esc(x.email)}</td>
+      <td>${pr ? `<span class="tag ok" style="color:#5ef08c">${esc(pr.name)}</span>` : '<span class="tag no">ยังไม่สมัคร</span>'}</td>
+      <td><select data-move="${esc(x.email)}">${HOUSES.map(h=>`<option value="${h.id}" ${h.id===x.house_id?"selected":""}>${h.emoji} ${h.name}</option>`).join("")}</select></td>
+      <td><button class="btn xs danger" data-unta="${esc(x.email)}">ถอด TA</button></td></tr>`; }).join("")
+    : '<tr><td colspan="4" style="color:var(--dim);padding:16px">ยังไม่มี TA</td></tr>';
+}
+$("taAdd").onclick = async ()=>{
+  const em = $("taEmail").value.trim().toLowerCase(), hid = +$("taHouse").value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return toast("อีเมลไม่ถูกต้อง");
+  $("taAdd").disabled = true;
+  try{
+    const cur = roster.find(x=>x.email.toLowerCase()===em);
+    if(!cur || !cur.claimed_by){
+      const {error} = await sb.from("roster").upsert({email:em, house_id:hid, role:"ta", full_name: cur ? cur.full_name : null}, {onConflict:"email"});
+      if(error) throw error;
+    }else{
+      if(cur.house_id!==hid){ const {error} = await sb.rpc("admin_set_house", {em, hid}); if(error) throw error; }
+      const {error} = await sb.rpc("admin_set_role", {em, new_role:"ta"}); if(error) throw error;
+    }
+    toast(`ตั้ง ${em}<br>เป็น TA บ้าน ${houseOf(hid).emoji} ${houseOf(hid).name} แล้ว`);
+    $("taEmail").value = ""; await load();
+  }catch(e){ toast(e.message); }
+  $("taAdd").disabled = false;
+};
+$("taRows").onclick = async e=>{
+  const b = e.target.closest("button[data-unta]"); if(!b) return;
+  const em = b.dataset.unta;
+  if(!confirm(`ถอด ${em} ออกจาก TA (กลับเป็นนักเรียน)?`)) return;
+  const {error} = await sb.rpc("admin_set_role", {em, new_role:"student"});
+  if(error) return toast(error.message);
+  toast(`${em} กลับเป็นนักเรียนแล้ว`); await load();
+};
+$("taRows").onchange = async e=>{
+  const s = e.target.closest("select[data-move]"); if(!s) return;
+  const em = s.dataset.move, hid = +s.value, cur = roster.find(x=>x.email===em);
+  const {error} = cur && cur.claimed_by ? await sb.rpc("admin_set_house", {em, hid}) : await sb.from("roster").update({house_id:hid}).eq("email", em);
+  if(error){ toast(error.message); await load(); return; }
+  toast(`ย้าย ${em}<br>ไป ${houseOf(hid).emoji} ${houseOf(hid).name} แล้ว`); await load();
+};
+
 /* ================= RENDER ================= */
 function render(){
+  renderTAs();
   /* การ์ดบ้าน */
   $("houses").innerHTML = HOUSES.map(h=>{
     const rows = roster.filter(x=>x.house_id===h.id);

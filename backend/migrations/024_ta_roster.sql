@@ -69,3 +69,9 @@ update public.roster set role = 'ta'
  where email in ('somdech.tbj@gmail.com','nutchanonkhongkeaw@gmail.com','nichkitti@gmail.com','kamonwan4612@gmail.com');
 update public.profiles p set role = 'coach'
   from public.roster r where r.claimed_by = p.id and r.role = 'ta' and p.role <> 'coach';
+
+-- เพิ่ม 2026-09-05: chonlaphon@gmail.com เป็น TA บ้าน WISDOM
+insert into public.roster (email, house_id, role) values ('chonlaphon@gmail.com', 1, 'ta')
+  on conflict (email) do update set role = 'ta', house_id = 1;
+update public.profiles p set role = 'coach', house_id = 1
+  from public.roster r where r.claimed_by = p.id and r.email = 'chonlaphon@gmail.com';
