@@ -135,6 +135,26 @@
     </section>
 
     <section class="panel bevel">
+      <div class="titlebar"><h2>บอสประจำสัปดาห์</h2><span>คุณเป็นคนตั้งบอสเอง · ทุกชิ้นที่นักเรียนส่ง = 1 ดาเมจ · HP หมด = บ้านนั้นได้ป้าย BOSS SLAYER</span></div>
+      <div class="body">
+        <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+          <div style="flex:0 0 90px"><label>สัปดาห์</label><input id="bsWeek" type="number" min="1" max="13" value="1"></div>
+          <div style="flex:0 0 170px"><label>บ้าน</label><select id="bsHouse"><option value="">🌏 ทั้งรุ่นช่วยกัน</option></select></div>
+          <div style="flex:0 0 70px"><label>อิโมจิ</label><input id="bsEmoji" value="👹" maxlength="4"></div>
+          <div style="flex:1 1 200px"><label>ชื่อบอส</label><input id="bsName" placeholder="เช่น มังกรผัดวันประกันพรุ่ง"></div>
+          <div style="flex:0 0 100px"><label>HP (ชิ้น)</label><input id="bsHp" type="number" min="1" value="100"></div>
+          <div style="flex:1 1 200px"><label>รางวัล (ข้อความ)</label><input id="bsReward" placeholder="เช่น บ้านที่ล้มได้ รับโบนัสคะแนน"></div>
+          <div><button class="btn" id="bsAdd">+ ปล่อยบอส</button></div>
+        </div>
+        <div class="hint">ตั้ง HP ให้พอดีกับจำนวนคนในบ้าน × 3–4 ชิ้นต่อสัปดาห์ จะได้ท้าทายแต่ล้มได้ · ตั้งบอสล่วงหน้าหลายสัปดาห์ได้ · แต่ละบ้านมีได้หลายตัวต่อสัปดาห์</div>
+        <div class="scroll" style="margin-top:12px"><table>
+          <thead><tr><th>สัปดาห์</th><th>บ้าน</th><th>บอส</th><th>HP</th><th>ความคืบหน้า</th><th></th></tr></thead>
+          <tbody id="bsList"><tr><td colspan="6" style="color:var(--dim);padding:16px">ยังไม่มีบอส</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
       <div class="titlebar"><h2>แจ้งเตือน Discord</h2><span>ทุกวัน 20:00 สรุปใครยังไม่ส่ง · ทุกต้นสัปดาห์เตือนเลือกเป้า</span></div>
       <div class="body">
         <label>Webhook URL ของช่อง Discord</label>

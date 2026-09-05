@@ -82,6 +82,8 @@ const avOf = r => {
   const av=Object.assign({}, DEF_AV), src=(r&&r.avatar)||{};
   AV_KEYS.forEach(k=>{ if(Number.isInteger(src[k])) av[k]=src[k]; });
   if(CROWN_HATS.has(av.hat)) av.hat=0;
+  const dh = (typeof duelHatOf==="function") ? duelHatOf(r) : null;   // แพ้ดวล → ใส่หมวกที่ผู้ชนะเลือก 7 วัน
+  if(dh!=null) av.hat=dh;
   if(isKingNow(r)) av.hat=KING_HAT;
   av.color=(r&&r.color)||COLORS[0];
   return av;
@@ -468,7 +470,15 @@ const DemoDB = (()=>{
           if(best) kings.push({week_no:w, house_id:hs.id, profile_id:best.r.id, name:best.r.name, done:best.done});
         });
       }
+      /* ดวลสด + บอสสาธิต */
+      const duels=(db.duels||[]).map(d=>{ const nm=id=>(db.runners.find(x=>x.id===id)||{}).name; const sc=id=>d.start_day?db.subs.filter(s=>s.who===nm(id)&&s.day>=d.start_day&&s.day<=d.end_day).length:0;
+        return Object.assign({}, d, {challenger_name:nm(d.challenger), opponent_name:nm(d.opponent), challenger_score:sc(d.challenger), opponent_score:sc(d.opponent), today:db.today}); });
+      const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).length;
+        return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","😈","🧟"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
+      const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.role==="student"&&r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
+      const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, cups, kings,
+              cheers:db.cheers||[], cheerWeeks, duels, bosses, bossKills,
               started:true, daysUntil:0, startDate:null};
     },
     async rosterList(){
@@ -485,8 +495,36 @@ const DemoDB = (()=>{
         return {week_no:wn, target:t, done, hit:done>=t, finished:wn<weekOf(db.today)};
       });
       return {byDay, weeks, early:my.some(s=>new Date(s.ts).getHours()<6),
-              recent:[...my].sort((a,b)=>b.ts-a.ts).slice(0,15)};
+              recent:[...my].sort((a,b)=>b.ts-a.ts)};
     },
+    /* ---- สังคม (จำลองในเครื่อง) ---- */
+    async cheer(toId, emoji){
+      db.cheers=db.cheers||[]; const me=db.runners.find(x=>x.name===db.me);
+      if(db.cheers.some(c=>c.from_id===me.id&&c.to_id===toId&&c.day_index===db.today)) throw new Error("วันนี้เชียร์คนนี้ไปแล้ว");
+      db.cheers.push({from_id:me.id, to_id:toId, emoji, day_index:db.today}); save(); onChange();
+    },
+    async duelCreate(opponent){
+      db.duels=db.duels||[]; const me=db.runners.find(x=>x.name===db.me);
+      if(db.duels.some(d=>["pending","active"].includes(d.status)&&(d.challenger===me.id||d.opponent===me.id||d.challenger===opponent||d.opponent===opponent))) throw new Error("มีดวลค้างอยู่แล้ว รอให้จบก่อน");
+      db.duels.push({id:Date.now(), challenger:me.id, opponent, status:"pending", start_day:null, end_day:null, winner:null, prize_hat:null}); save(); onChange();
+    },
+    async duelUpdate(id, patch){
+      const d=(db.duels||[]).find(x=>x.id===id); if(!d) throw new Error("ไม่พบดวล");
+      if(patch.status==="active"){ d.status="active"; d.start_day=db.today; d.end_day=db.today+6; }
+      else if(patch.status==="declined"){ d.status="declined"; }
+      else if(patch.status==="done"){
+        const sc=id2=>db.subs.filter(s=>{const r=db.runners.find(x=>x.id===id2); return r&&s.who===r.name&&s.day>=d.start_day&&s.day<=d.end_day;}).length;
+        const a=sc(d.challenger), b=sc(d.opponent); d.status="done"; d.winner=a>b?d.challenger:b>a?d.opponent:null;
+      }
+      else if(patch.prize_hat!=null){ d.prize_hat=patch.prize_hat; }
+      save(); onChange();
+    },
+    async deleteSub(id){
+      const i=db.subs.findIndex(s=>s.id===id&&s.who===db.me); if(i<0) throw new Error("ไม่พบงาน");
+      if(Date.now()-db.subs[i].ts>600e3) throw new Error("ลบได้เฉพาะภายใน 10 นาทีหลังส่ง");
+      db.subs.splice(i,1); save(); onChange();
+    },
+    async savePush(){}, async removePush(){},
     async submit({url, platform}){
       const r=db.runners.find(x=>x.name===db.me);
       if(db.subs.some(s=>s.url.toLowerCase()===url.toLowerCase())) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
@@ -607,7 +645,8 @@ const LiveDB = (()=>{
     },
     async fetchAll(){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
-      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows}]=await Promise.all([
+      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows},
+             {data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
@@ -615,7 +654,12 @@ const LiveDB = (()=>{
         sb.from("v_burnout").select("profile_id"),
         sb.from("v_house_cup").select("*"),
         sb.from("v_weak").select("profile_id"),
-        sb.from("v_week_kings").select("*")
+        sb.from("v_week_kings").select("*"),
+        sb.from("cheers").select("from_id,to_id,emoji,day_index"),
+        sb.from("v_cheers_week").select("*"),
+        sb.from("v_duels").select("*"),
+        sb.from("v_boss_progress").select("*"),
+        sb.from("v_boss_kills").select("boss_id,week_no,name,profile_id")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -679,6 +723,7 @@ const LiveDB = (()=>{
         started, daysUntil, startDate: co.start_date,
         cups: cups||[],
         kings: kingRows||[],
+        cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[], bosses: bossRows||[], bossKills: killRows||[],
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -710,7 +755,7 @@ const LiveDB = (()=>{
       (data||[]).forEach(s=>{ byDay[s.day_index]=(byDay[s.day_index]||0)+1; });
       /* ส่งก่อน 6 โมงเช้าเวลาไทย */
       const early=(data||[]).some(s=>((new Date(s.created_at).getUTCHours()+7)%24) < 6);
-      return {byDay, weeks:wk||[], early, recent:(data||[]).slice(0,15).map(s=>({
+      return {byDay, weeks:wk||[], early, recent:(data||[]).map(s=>({
         id:s.id, who:runner.name, day:s.day_index, sp:s.sprint_idx,
         plat:s.platform, url:s.url, ts:new Date(s.created_at).getTime()}))};
     },
@@ -736,6 +781,29 @@ const LiveDB = (()=>{
         throw new Error(error.message.replace(/^.*?:\s*/,""));
       }
     },
+    /* ---- สังคม: เชียร์ / ดวล / ลบงานล่าสุด / push ---- */
+    async cheer(toId, emoji){
+      const {error}=await sb.from("cheers").insert({from_id:session.user.id, to_id:toId, emoji, day_index:1});
+      if(error){ if(error.code==="23505") throw new Error("วันนี้เชียร์คนนี้ไปแล้ว"); throw new Error(error.message.replace(/^.*?:\s*/,"")); }
+    },
+    async duelCreate(opponent){
+      const {error}=await sb.from("duels").insert({challenger:session.user.id, opponent});
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
+    },
+    async duelUpdate(id, patch){
+      const {error}=await sb.from("duels").update(patch).eq("id",id);
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
+    },
+    async deleteSub(id){
+      const {error, count}=await sb.from("submissions").delete({count:"exact"}).eq("id",id).eq("profile_id",session.user.id);
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
+      if(!count) throw new Error("ลบไม่ได้ — ลบได้เฉพาะภายใน 10 นาทีหลังส่ง");
+    },
+    async savePush(sub){
+      const {error}=await sb.from("push_subs").upsert({profile_id:session.user.id, ...sub},{onConflict:"profile_id,endpoint"});
+      if(error) throw new Error(error.message);
+    },
+    async removePush(endpoint){ await sb.from("push_subs").delete().eq("profile_id",session.user.id).eq("endpoint",endpoint); },
     /* เปลี่ยนชื่อบนสนาม — ห้ามซ้ำทั้งรุ่น ยาวไม่เกิน 10 ตัว */
     async rename(name){
       const {error}=await sb.from("profiles").update({name}).eq("id",session.user.id);
@@ -834,7 +902,8 @@ function renderPledge(){
       + '<div class="pledgeTxt"><span class="big normal">โหมดคนดู</span><br>'
       + 'เห็นสนามแข่งและกระดานแบบเรียลไทม์ · กดที่เลนหรือแถวเพื่อดูโปรไฟล์<br>'
       + '<span style="color:var(--dim)">ส่งงานหรือรับเป้าต้องเป็นนักเรียนในรุ่นเท่านั้น</span></div>'
-      + '<button class="btn go" style="max-width:260px" onclick="leaveSpectator()">▶ เข้าสู่ระบบเพื่อลงแข่ง</button>';
+      + '<button class="btn go" style="max-width:260px" onclick="leaveSpectator()">▶ เข้าสู่ระบบเพื่อลงแข่ง</button>'
+      + bossHTML();
     return;
   }
   const r=meR(); if(!r) return;
@@ -923,7 +992,8 @@ function renderPledge(){
     </div>
     <div class="rival">${st.burnout
       ? `💀 สัปดาห์นี้เป็นร่างกระโหลก · ทำครบ ${st.weekTarget} ชิ้น = <b style="color:var(--gold)">ฟื้นคืนชีพ</b> ได้ป้าย REVIVED · `
-      : st.weak ? `😵 สัปดาห์นี้เป็นร่างหมดแรง (พลาดเป้าสัปดาห์ที่แล้ว) · ทำครบสัปดาห์นี้แล้วสัปดาห์หน้ากลับมาปกติ · ` : ""}${rivalHTML(r)}</div>` + nudge;
+      : st.weak ? `😵 สัปดาห์นี้เป็นร่างหมดแรง (พลาดเป้าสัปดาห์ที่แล้ว) · ทำครบสัปดาห์นี้แล้วสัปดาห์หน้ากลับมาปกติ · ` : ""}${rivalHTML(r)}</div>`
+    + myCheersHTML() + duelBannerHTML() + bossHTML() + nudge;
 }
 
 /* ================= TRACK ================= */
@@ -968,10 +1038,10 @@ function renderTrack(){
       <div class="runner ${r.name===S.me?"me":""} ${s.style} ${r.house===champHouse()&&roleOf(r)==="student"?"cup":""} ${s.contents>=FINISH?"champ":""}" style="--p:${p}">
         <div class="body">
           <div class="lbl ${side}" style="bottom:${(ROWS-top)*2}px">
-            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}</span>
+            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}${s.dayStreak>=2?` <em class="stk">🔥${s.dayStreak}</em>`:""}</span>
             <span class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</span>
           </div>
-          ${hasAura(s.style)?aura(s.style):""}${sprite(av,2,s.style)}
+          ${hasAura(s.style)?aura(s.style):""}${sprite(av,2,s.style)}${s.dayStreak>=7?`<span class="feetfire ${s.dayStreak>=14?"big":""}"></span>`:""}
           ${s.dayStreak?'<span class="dust"></span><span class="dust b"></span>':''}</div>
         <div class="shadow"></div>
       </div></div>`;
@@ -1131,6 +1201,7 @@ async function openProfile(name){
   try{ det=await DB.detail(r); }catch(e){ console.error(e); }
   $("pMap").innerHTML=mapHTML(r, det.byDay);
   $("mBadges").innerHTML=badgesHTML(earnedBadges(r,det), false);
+  $("mCheer").innerHTML=cheerHTML(r)+duelBtnHTML(r);
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
@@ -1864,7 +1935,12 @@ const BADGES=[
   {k:"c90",     e:"🏆", n:"FINISHER",     th:"ถึงเส้นชัย 90 ชิ้น",                  test:c=>c.st.contents>=FINISH},
   {k:"cup",     e:"🏆", n:"HOUSE CUP",    th:"บ้านของคุณชนะถ้วยรายสัปดาห์",         test:c=>c.cups>0},
   {k:"king",    e:"👑", n:"KING OF WEEK", th:"ที่ 1 ของบ้านในสัปดาห์ที่จบไป (ได้ใส่มงกุฎราชา)", test:c=>c.kingWeeks.length>0,
-                label:c=>c.kingWeeks.length>1?`KING ×${c.kingWeeks.length}`:"KING OF WEEK"}
+                label:c=>c.kingWeeks.length>1?`KING ×${c.kingWeeks.length}`:"KING OF WEEK"},
+  {k:"popular", e:"💖", n:"POPULAR",      th:"มีคนเชียร์ 10 ครั้งขึ้นไปในสัปดาห์เดียว",     test:c=>c.popular},
+  {k:"duelist", e:"⚔️", n:"DUELIST",      th:"ชนะดวล 7 วัน",                                test:c=>c.duelWins>0,
+                label:c=>c.duelWins>1?`DUELIST ×${c.duelWins}`:"DUELIST"},
+  {k:"slayer",  e:"🗡️", n:"BOSS SLAYER",  th:"ร่วมล้มบอสประจำสัปดาห์กับบ้าน",               test:c=>c.bossKills>0,
+                label:c=>c.bossKills>1?`SLAYER ×${c.bossKills}`:"BOSS SLAYER"}
 ];
 function badgeCtx(r, det){
   const st=stats(r), weeks=((det&&det.weeks)||[]).slice().sort((a,b)=>a.week_no-b.week_no);
@@ -1881,7 +1957,10 @@ function badgeCtx(r, det){
   });
   const cups=(S.cups||[]).filter(c=>c.house_id===r.house).length;
   const kingWeeks=(S.kings||[]).filter(k=>k.profile_id===r.id).map(k=>k.week_no).sort((a,b)=>a-b);
-  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks};
+  const popular=(S.cheerWeeks||[]).some(w=>w.profile_id===r.id && w.n>=10);
+  const duelWins=(S.duels||[]).filter(d=>d.status==="done" && d.winner===r.id).length;
+  const bossKills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelWins, bossKills};
 }
 const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)).map(b=>Object.assign({},b,{n:b.label?b.label(c):b.n})); };
 function badgesHTML(list, showAll){
@@ -1942,13 +2021,23 @@ function celebrate(kind){
 
 /* ================= งานของฉัน — แก้แพลตฟอร์มเองได้ ================= */
 function renderMyFeed(list){
+  $("myFeedCount").textContent = list.length ? `ทั้งหมด ${list.length} ชิ้น` : "";
   $("myFeed").innerHTML = list.length ? list.map(f=>`<li>
       <select class="platFix" data-fix="${f.id}">${PLATS.map(p=>`<option ${p===f.plat?"selected":""}>${p}</option>`).join("")}</select>
       <span class="sp">วันที่ ${f.day}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      <span class="when">${ago(f.ts)}</span></li>`).join("")
+      <span class="when">${ago(f.ts)}</span>
+      ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}</li>`).join("")
     : `<li style="color:var(--dim)">ยังไม่มีงานที่ส่ง</li>`;
 }
+$("myFeed").onclick=async e=>{
+  const b=e.target.closest("button[data-delsub]"); if(!b) return;
+  if(!confirm("ลบงานชิ้นนี้? (ส่งใหม่ได้ทีหลัง)")) return;
+  b.disabled=true;
+  const id = isNaN(+b.dataset.delsub) ? b.dataset.delsub : +b.dataset.delsub;
+  try{ await DB.deleteSub(id); toast("ลบแล้ว"); await refresh(); renderStatus(); }
+  catch(err){ toast(err.message); b.disabled=false; }
+};
 /* แก้ชื่อตัวเองจากหน้า MY STATUS */
 $("renameBtn").onclick=async()=>{
   const cur=meR(); if(!cur) return;
@@ -1969,6 +2058,212 @@ $("myFeed").onchange=async e=>{
   s.disabled=false;
 };
 
+/* ================= SOCIAL: เชียร์ · ดวล · บอส · สรุปสัปดาห์ · push ================= */
+const CHEER_EMOJI = ["👏","🔥","💪","❤️"];
+const meId = () => { const r=meR(); return r ? r.id : null; };
+
+/* ---- เชียร์ ---- */
+const cheersToday = id => (S.cheers||[]).filter(c=>c.to_id===id && c.day_index===S.today);
+const cheeredByMeToday = id => (S.cheers||[]).some(c=>c.to_id===id && c.from_id===meId() && c.day_index===S.today);
+function cheerHTML(r){
+  if(!r || S.spectator || !meR() || r.id===meId()) return "";
+  const got=cheersToday(r.id), done=cheeredByMeToday(r.id);
+  const counts={}; got.forEach(c=>counts[c.emoji]=(counts[c.emoji]||0)+1);
+  return `<div class="cheerBox">
+    <span class="cheerCount">${got.length ? `วันนี้มีคนเชียร์ ${got.length} คน · ${Object.entries(counts).map(([e,n])=>e+n).join(" ")}` : "ยังไม่มีใครเชียร์วันนี้ — เป็นคนแรก!"}</span>
+    <span class="cheerBtns">${CHEER_EMOJI.map(e=>`<button class="cheerBtn" data-cheer="${e}" data-to="${r.id}" ${done?"disabled":""}>${e}</button>`).join("")}</span>
+    ${done ? `<small>เชียร์ไปแล้ววันนี้</small>` : `<small>ส่งได้วันละครั้งต่อคน</small>`}
+  </div>`;
+}
+document.addEventListener("click", async e=>{
+  const b=e.target.closest(".cheerBtn"); if(!b || b.disabled) return;
+  b.disabled=true;
+  try{ await DB.cheer(b.dataset.to, b.dataset.cheer); SFX.coin(); toast(`ส่ง ${b.dataset.cheer} ให้แล้ว`); await refresh();
+    const r=S.runners.find(x=>x.id===b.dataset.to); if(r && $("modal").classList.contains("on")) $("mCheer").innerHTML=cheerHTML(r)+duelBtnHTML(r); }
+  catch(err){ toast(err.message); b.disabled=false; }
+});
+/* กำลังใจที่ฉันได้รับวันนี้ (โชว์ในการ์ดเป้า) */
+function myCheersHTML(){
+  const id=meId(); if(!id) return "";
+  const got=cheersToday(id); if(!got.length) return "";
+  const counts={}; got.forEach(c=>counts[c.emoji]=(counts[c.emoji]||0)+1);
+  const names=[...new Set(got.map(c=>(S.runners.find(r=>r.id===c.from_id)||{}).name).filter(Boolean))];
+  return `<div class="myCheer">🎉 วันนี้มีคนเชียร์คุณ <b>${got.length}</b> คน ${Object.entries(counts).map(([e,n])=>e+n).join(" ")}<br><span style="color:var(--dim)">${names.slice(0,8).join(", ")}${names.length>8?" …":""}</span></div>`;
+}
+
+/* ---- ดวล ---- */
+const myDuel = () => { const id=meId(); if(!id) return null;
+  return (S.duels||[]).find(d=>(d.challenger===id||d.opponent===id) && (d.status==="pending"||d.status==="active" || (d.status==="done" && d.winner===id && d.prize_hat==null))) || null; };
+const duelOf = id => (S.duels||[]).find(d=>(d.challenger===id||d.opponent===id) && (d.status==="pending"||d.status==="active")) || null;
+/* หมวกที่ผู้แพ้ต้องใส่ 7 วันหลังดวลจบ */
+function duelHatOf(r){
+  if(!r) return null;
+  const d=(S.duels||[]).find(d=>d.status==="done" && d.prize_hat!=null && d.winner && d.winner!==r.id && (d.challenger===r.id||d.opponent===r.id) && S.today>d.end_day && S.today<=d.end_day+7);
+  return d ? d.prize_hat : null;
+}
+function duelBtnHTML(r){
+  if(!r || S.spectator || !meR() || r.id===meId() || roleOf(r)!=="student" || roleOf(meR())!=="student") return "";
+  const d=duelOf(r.id), mine=myDuel();
+  if(d) return `<div class="duelBox"><b>⚔️ กำลังดวลอยู่</b> ${d.challenger_name} vs ${d.opponent_name} · ${d.status==="pending"?"รอรับคำท้า":`${d.challenger_score}-${d.opponent_score} · เหลือ ${Math.max(0,d.end_day-S.today+1)} วัน`}</div>`;
+  if(mine) return `<div class="duelBox" style="color:var(--dim)">⚔️ คุณมีดวลค้างอยู่ ต้องจบก่อนถึงท้าคนใหม่ได้</div>`;
+  return `<div class="duelBox"><button class="btn sm" data-duel="${r.id}">⚔️ ท้าดวล 7 วัน</button>
+    <small>ใครส่งมากกว่าใน 7 วันชนะ · ผู้แพ้ต้องใส่หมวกที่ผู้ชนะเลือกให้ 7 วัน</small></div>`;
+}
+document.addEventListener("click", async e=>{
+  const b=e.target.closest("button[data-duel]"); if(!b) return;
+  const r=S.runners.find(x=>x.id===b.dataset.duel); if(!r) return;
+  if(!confirm(`ท้าดวล ${r.name} 7 วัน?\nใครส่งมากกว่าชนะ ผู้แพ้ต้องใส่หมวกที่ผู้ชนะเลือกให้ 7 วัน`)) return;
+  b.disabled=true;
+  try{ await DB.duelCreate(r.id); SFX.fanfare(); toast(`ส่งคำท้าให้ ${r.name} แล้ว ⚔️<br>รอเขากดรับ`); await refresh(); $("modal").classList.remove("on"); }
+  catch(err){ toast(err.message); b.disabled=false; }
+});
+function duelBannerHTML(){
+  const d=myDuel(), id=meId(); if(!d) return "";
+  const meIsCh=d.challenger===id, other=meIsCh?d.opponent_name:d.challenger_name;
+  if(d.status==="pending"){
+    return meIsCh ? `<div class="duelBar">⚔️ รอ <b>${other}</b> รับคำท้า…</div>`
+      : `<div class="duelBar">⚔️ <b>${other}</b> ท้าดวลคุณ 7 วัน! ใครส่งมากกว่าชนะ ผู้แพ้ใส่หมวกที่ผู้ชนะเลือก
+         <button class="btn sm" data-duelact="active" data-id="${d.id}">รับคำท้า</button> <button class="btn sm" data-duelact="declined" data-id="${d.id}">ไม่เอา</button></div>`;
+  }
+  if(d.status==="active"){
+    const my=meIsCh?d.challenger_score:d.opponent_score, th=meIsCh?d.opponent_score:d.challenger_score;
+    const left=d.end_day-S.today+1;
+    if(left<=0) return `<div class="duelBar">⚔️ ดวลกับ <b>${other}</b> จบแล้ว ${my}-${th} <button class="btn sm" data-duelact="done" data-id="${d.id}">สรุปผล</button></div>`;
+    return `<div class="duelBar">⚔️ ดวลกับ <b>${other}</b> · คุณ <b style="color:${my>=th?"var(--green)":"var(--orange)"}">${my}</b> : ${th} · เหลือ ${left} วัน ${my>th?"— นำอยู่ 🔥":my<th?"— ตามอยู่ เร่งหน่อย!":"— เสมอ"}</div>`;
+  }
+  if(d.status==="done" && d.winner===id && d.prize_hat==null){
+    const hats=AV.hat.map((n,i)=>({n,i})).filter(x=>x.i>0 && !CROWN_HATS.has(x.i));
+    return `<div class="duelBar">🏆 คุณชนะดวลกับ <b>${other}</b>! เลือกหมวกให้เขาใส่ 7 วัน:
+      <select id="prizeHat">${hats.map(h=>`<option value="${h.i}">${h.n}</option>`).join("")}</select>
+      <button class="btn sm" data-duelact="prize" data-id="${d.id}">ยืนยัน</button></div>`;
+  }
+  return "";
+}
+document.addEventListener("click", async e=>{
+  const b=e.target.closest("button[data-duelact]"); if(!b) return;
+  b.disabled=true;
+  try{
+    const act=b.dataset.duelact, id=+b.dataset.id;
+    if(act==="prize") await DB.duelUpdate(id,{prize_hat:+$("prizeHat").value});
+    else await DB.duelUpdate(id,{status:act});
+    if(act==="active"){ SFX.fanfare(); toast("รับคำท้าแล้ว ⚔️ เริ่มนับตั้งแต่วันนี้ 7 วัน"); }
+    if(act==="done"){ SFX.fanfare(); }
+    await refresh();
+    if(act==="done"){ const d=(S.duels||[]).find(x=>x.id===id); if(d){ const me=meId(); toast(d.winner===me?"🏆 คุณชนะ! เลือกหมวกให้ผู้แพ้ได้เลย":d.winner?"แพ้แล้ว 😵 ต้องใส่หมวกที่เขาเลือก 7 วัน":"เสมอ ไม่มีใครต้องใส่หมวก"); } }
+    if(act==="prize"){ toast("ส่งหมวกให้ผู้แพ้แล้ว 😈"); }
+  }catch(err){ toast(err.message); b.disabled=false; }
+});
+
+/* ---- บอสประจำสัปดาห์ (หัวหน้าโค้ชตั้ง) ---- */
+function bossHTML(){
+  const me=meR(), cw=curWeek();
+  const list=(S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null || (me && b.house_id===me.house) || S.spectator));
+  if(!list.length) return "";
+  return list.map(b=>{
+    const pct=Math.min(100, b.damage/b.hp*100), dead=b.damage>=b.hp, h=b.house_id?houseOf(b.house_id):null;
+    return `<div class="bossBar ${dead?"dead":""}">
+      <div class="bossHead"><span class="bossName">${b.emoji} ${b.name}</span>
+        <span class="bossWho">${h?h.emoji+" "+h.name:"ทั้งรุ่นช่วยกัน"} · สัปดาห์ที่ ${b.week_no}</span></div>
+      <div class="bossHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${Math.max(0,b.hp-b.damage)} / ${b.hp}`}</span></div>
+      <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER${b.reward?" · "+b.reward:""}`
+        : `ทุกชิ้นที่ส่ง = 1 ดาเมจ · ตอนนี้ ${b.damage} ดาเมจ จาก ${b.fighters} คน${b.reward?" · รางวัล: "+b.reward:""}`}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ---- สรุปจบสัปดาห์ ---- */
+async function maybeShowRecap(){
+  const me=meR(); if(!me || S.spectator) return false;
+  const cw=curWeek(); if(cw<2) return false;
+  const key="recapSeen."+me.id; let seen=0; try{ seen=+localStorage.getItem(key)||0; }catch(e){}
+  if(seen>=cw) return false;
+  let det; try{ det=await DB.detail(me); }catch(e){ return false; }
+  const pw=cw-1, w=(det.weeks||[]).find(x=>x.week_no===pw);
+  const king=(S.kings||[]).find(k=>k.week_no===pw && k.house_id===me.house);
+  const kingMe=king && king.profile_id===me.id;
+  const badges=earnedBadges(me,det);
+  let prevKeys=[], firstTime=true; try{ const raw=localStorage.getItem("badges."+me.id); firstTime=raw==null; prevKeys=JSON.parse(raw||"[]"); }catch(e){}
+  const newBadges=badges.filter(b=>!prevKeys.includes(b.k));
+  try{ localStorage.setItem("badges."+me.id, JSON.stringify(badges.map(b=>b.k))); localStorage.setItem(key, String(cw)); }catch(e){}
+  const h=houseOf(me.house), st=stats(me);
+  const done=w?w.done:0, target=w?w.target:0, hit=w?w.hit:false;
+  $("recapBody").innerHTML=`
+    <div class="recapHero">${runnerBox(avOf(me),5,st.style)}</div>
+    <div class="recapGrid">
+      <div class="statBox"><b>${done}${target?"/"+target:""}</b><span>สัปดาห์ที่ ${pw}</span></div>
+      <div class="statBox"><b>${target ? (hit?"✅":"❌") : "—"}</b><span>${target ? (hit?"ครบเป้า":"ไม่ถึงเป้า") : "ไม่ได้รับเป้า"}</span></div>
+      <div class="statBox"><b>${st.contents}</b><span>รวมทั้งหมด</span></div>
+      <div class="statBox"><b>${rankOf(me.name)||"—"}</b><span>อันดับตอนนี้</span></div>
+    </div>
+    <div class="recapLine">${kingMe ? `👑 <b>คุณคือ King of the Week ของบ้าน ${h.name}!</b> มงกุฎราชาเป็นของคุณ`
+      : king ? `👑 King of the Week บ้าน ${h.name}: <b>${king.name}</b> (${king.done} ชิ้น)` : `สัปดาห์ที่แล้วยังไม่มี King ในบ้าน ${h.name}`}</div>
+    ${newBadges.length ? `<div class="recapLine">🏅 ${firstTime?"ป้ายที่มี":"ป้ายใหม่"}: ${newBadges.map(b=>b.e+" "+b.n).join(" · ")}</div>` : ""}
+    <div class="recapLine" style="color:var(--dim)">${st.burnout ? "💀 สัปดาห์นี้เป็นร่างกระโหลก — ทำครบสัปดาห์นี้แล้วฟื้น" : st.weak ? "😵 สัปดาห์นี้ร่างหมดแรง — ทำครบสัปดาห์นี้แล้วกลับมาปกติ" : hit ? "รักษาจังหวะนี้ไว้ 🔥" : "สัปดาห์ใหม่ เริ่มใหม่ได้เสมอ"}</div>`;
+  $("recapTitle").textContent=`สรุปสัปดาห์ที่ ${pw} · ${me.name}`;
+  $("recapModal").classList.add("on");
+  drawRecapCard(me, st, pw, done, target, hit, king, kingMe, newBadges);
+  return true;
+}
+function drawRecapCard(me, st, pw, done, target, hit, king, kingMe, newBadges){
+  const cv=$("recapCanvas"), ctx=cv.getContext("2d"), W=cv.width, H=cv.height, h=houseOf(me.house);
+  ctx.imageSmoothingEnabled=false;
+  const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,"#150f3a"); bg.addColorStop(.5,"#2d1f6b"); bg.addColorStop(1,"#0a0820");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  ctx.textAlign="center";
+  ctx.font="700 40px 'Pixelify Sans', monospace"; ctx.fillStyle="#cdc7ff"; ctx.fillText(C.TITLE, W/2, 90);
+  ctx.font="700 56px 'Pixelify Sans', monospace"; ctx.fillStyle="#ffcc4d"; ctx.fillText(`WEEK ${pw} RECAP`, W/2, 160);
+  drawSpriteCanvas(ctx, (W-16*18)/2, 200, 18, avOf(me), st.style);
+  ctx.font="700 80px 'Pixelify Sans', monospace"; ctx.fillStyle="#fff"; ctx.fillText(me.name, W/2, 760);
+  ctx.font="500 30px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle=h.color; ctx.fillText(`${h.emoji} ${h.name}`, W/2, 810);
+  ctx.font="700 150px 'Pixelify Sans', monospace"; ctx.fillStyle=hit?"#5ef08c":"#ffcc4d"; ctx.fillText(`${done}${target?"/"+target:""}`, W/2, 980);
+  ctx.font="500 32px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#e6e1ff";
+  ctx.fillText(target ? (hit?"ครบเป้าสัปดาห์นี้ ✅":"ยังไม่ถึงเป้า — สัปดาห์หน้าเอาใหม่") : "ปล่อยไป "+done+" ชิ้นในสัปดาห์นี้", W/2, 1040);
+  ctx.fillStyle="#cdc7ff"; ctx.font="500 28px 'IBM Plex Sans Thai', sans-serif";
+  ctx.fillText(`รวมทั้งหมด ${st.contents} ชิ้น · อันดับ ${rankOf(me.name)||"-"} ของรุ่น`, W/2, 1100);
+  if(kingMe){ ctx.fillStyle="#ffcc4d"; ctx.font="700 36px 'Pixelify Sans', monospace"; ctx.fillText("👑 KING OF THE WEEK · "+h.name, W/2, 1170); }
+  else if(king){ ctx.fillStyle="#a49ce0"; ctx.fillText(`👑 King ของบ้าน: ${king.name}`, W/2, 1170); }
+  if(newBadges.length){ ctx.font="40px sans-serif"; ctx.fillStyle="#fff"; ctx.fillText(newBadges.map(b=>b.e).join("  "), W/2, 1240); }
+  ctx.textAlign="left"; ctx.font="600 22px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#9a92d8"; ctx.fillText(TAG, 40, H-16);
+  drawCredit(ctx, W, H-16); ctx.textAlign="center";
+}
+$("recapSave").onclick=()=>{
+  $("recapCanvas").toBlob(b=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=`${meR().name}-week${curWeek()-1}.png`; document.body.appendChild(a); a.click(); a.remove(); toast("เซฟรูปแล้ว 💾"); },"image/png");
+};
+$("recapClose").onclick=()=>{ $("recapModal").classList.remove("on"); if(!(meR().pledges||{})[curWeek()]) setTimeout(openPledge,300); };
+
+/* ---- Web Push ---- */
+async function pushState(){
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)) return "unsupported";
+  if(Notification.permission==="denied") return "denied";
+  try{ const reg=await navigator.serviceWorker.getRegistration(); const sub=reg && await reg.pushManager.getSubscription(); return sub ? "on" : "off"; }catch(e){ return "off"; }
+}
+function b64ToU8(b64){ const s=(b64+"=".repeat((4-b64.length%4)%4)).replace(/-/g,"+").replace(/_/g,"/"); const raw=atob(s); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
+async function enablePush(){
+  if(!C.VAPID_PUBLIC) return toast("ยังไม่ได้ตั้งค่า push บนเซิร์ฟเวอร์");
+  try{
+    const reg=await navigator.serviceWorker.register("/sw.js");
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted") return toast("ไม่ได้อนุญาตการแจ้งเตือน");
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64ToU8(C.VAPID_PUBLIC)});
+    const j=sub.toJSON();
+    await DB.savePush({endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth});
+    toast("เปิดเตือนแล้ว 🔔<br>จะเตือนตอน 2 ทุ่มถ้ายังไม่ได้ส่งงาน");
+    renderPushBtn();
+  }catch(e){ toast("เปิดไม่สำเร็จ: "+e.message); }
+}
+async function disablePush(){
+  try{ const reg=await navigator.serviceWorker.getRegistration(); const sub=reg && await reg.pushManager.getSubscription();
+    if(sub){ await DB.removePush(sub.endpoint); await sub.unsubscribe(); } toast("ปิดเตือนแล้ว"); renderPushBtn(); }catch(e){ toast(e.message); }
+}
+async function renderPushBtn(){
+  const b=$("pushBtn2"); if(!b) return;
+  const st=await pushState();
+  b.style.display = (st==="unsupported" || S.spectator || DB.mode==="demo") ? "none" : "";
+  b.textContent = st==="on" ? "🔔 เตือนอยู่ (กดเพื่อปิด)" : st==="denied" ? "🔕 ถูกบล็อกในเบราว์เซอร์" : "🔔 เปิดเตือนก่อนปิดรอบ";
+  b.onclick = st==="on" ? disablePush : enablePush;
+}
+
+
 /* ================= BOOT ================= */
 async function refresh(){
   const d=await DB.fetchAll();
@@ -1976,6 +2271,7 @@ async function refresh(){
   S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
   S.cups = d.cups||[];
   S.kings = d.kings||[];                       // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
+  S.cheers=d.cheers||[]; S.cheerWeeks=d.cheerWeeks||[]; S.duels=d.duels||[]; S.bosses=d.bosses||[]; S.bossKills=d.bossKills||[];
   /* King ของสัปดาห์นี้ (สด): นักเรียนที่ทำชิ้นสัปดาห์นี้มากสุดของแต่ละบ้าน (ต้องรับเป้าไว้และมีอย่างน้อย 1 ชิ้น) */
   S.kingsNow = new Set();
   HOUSES.forEach(h=>{
@@ -2012,7 +2308,9 @@ async function boot(){
   await refresh();
   DB.subscribe(()=>refresh()); S._subbed=true;
   show("scArena");
-  if(!(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
+  renderPushBtn();
+  const recap = await maybeShowRecap();               // ขึ้นสัปดาห์ใหม่ → สรุปสัปดาห์ที่แล้วก่อน แล้วค่อยเลือกเป้า
+  if(!recap && !(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
 }
 
 /* ---- static bits ---- */

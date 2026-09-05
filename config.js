@@ -21,6 +21,7 @@ window.CFG = {
   /* แฮชแท็กท้ายข้อความแชร์ + บนการ์ด และเครดิตลายน้ำมุมจอ/มุมการ์ด */
   HASHTAG: "#90DayOnePersonBusinessBootcamp",
   CREDIT:  "By Benz Arnun",
+  VAPID_PUBLIC: "BOGYxcFIBTjbaF1rkgO02ZQsZ7XlRCtpE7q-gREPkDcVJso52wuyyGRwOrrtclvZvWS_nUQ6eSnqthoXJxrkapA",   // กุญแจสาธารณะสำหรับ Web Push (ว่าง = ซ่อนปุ่มเตือน)
 
   /* ---- 3. โครงสร้างรุ่น -------------------------------------
      ต้องตรงกับค่าในตาราง cohort ใน schema.sql

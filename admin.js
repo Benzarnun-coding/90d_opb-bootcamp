@@ -44,7 +44,51 @@ async function boot(){
   await load();
   const {data:co} = await sb.from("cohort").select("discord_webhook").eq("id",1).maybeSingle();
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
+  await loadBosses();
 }
+/* ---- บอสประจำสัปดาห์ ---- */
+let curWeekNo = 1;
+async function loadBosses(){
+  $("bsHouse").innerHTML = '<option value="">🌏 ทั้งรุ่นช่วยกัน</option>' + HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
+  try{ const {data:cs} = await sb.rpc("cohort_status"); const row = Array.isArray(cs) ? cs[0] : cs;
+    if(row && row.day_index){ curWeekNo = Math.max(1, Math.ceil(Number(row.day_index)/7)); if(!$("bsWeek").dataset.touched) $("bsWeek").value = curWeekNo; } }catch(e){}
+  const {data, error} = await sb.from("v_boss_progress").select("*").order("week_no").order("house_id");
+  if(error){ toast("อ่านบอสไม่ได้: "+error.message); return; }
+  const list = data || [];
+  $("bsList").innerHTML = list.length ? list.map(b=>{
+    const pct = Math.min(100, b.damage/b.hp*100), dead = b.damage >= b.hp, h = b.house_id ? houseOf(b.house_id) : null;
+    const state = b.week_no < curWeekNo ? (dead ? "ล้มแล้ว ✅" : "หมดเวลา ❌") : b.week_no > curWeekNo ? "รอสัปดาห์นั้น" : (dead ? "ล้มแล้ว 💥" : "กำลังสู้");
+    return `<tr style="${b.week_no===curWeekNo?"":"opacity:.6"}">
+      <td>${b.week_no}${b.week_no===curWeekNo?" ◀":""}</td>
+      <td>${h ? h.emoji+" "+h.name : "🌏 ทั้งรุ่น"}</td>
+      <td>${esc(b.emoji)} <b>${esc(b.name)}</b>${b.reward?`<br><small style="color:var(--dim)">🎁 ${esc(b.reward)}</small>`:""}</td>
+      <td>${b.hp}</td>
+      <td style="min-width:180px"><div style="height:14px;background:#0b0316;border:2px solid #5b1a8a;position:relative"><i style="position:absolute;inset:0;width:${pct}%;background:${dead?"#20c060":"linear-gradient(90deg,#ff2d55,#ff8a00)"}"></i></div>
+        <small>${b.damage}/${b.hp} ดาเมจ · ${b.fighters} คน · ${state}</small></td>
+      <td><button class="btn sm danger" data-bsdel="${b.id}" data-nm="${esc(b.name)}">ลบ</button></td></tr>`; }).join("")
+    : '<tr><td colspan="6" style="color:var(--dim);padding:16px">ยังไม่มีบอส — ตั้งตัวแรกได้เลย</td></tr>';
+}
+$("bsWeek").oninput = ()=>{ $("bsWeek").dataset.touched = "1"; };
+$("bsAdd").onclick = async ()=>{
+  const week_no = +$("bsWeek").value, name = $("bsName").value.trim(), hp = +$("bsHp").value, emoji = $("bsEmoji").value.trim() || "👹";
+  const house_id = $("bsHouse").value ? +$("bsHouse").value : null, reward = $("bsReward").value.trim() || null;
+  if(!name) return toast("ใส่ชื่อบอสก่อน");
+  if(!(week_no>=1) || !(hp>=1)) return toast("สัปดาห์/HP ไม่ถูกต้อง");
+  $("bsAdd").disabled = true;
+  const {error} = await sb.from("bosses").insert({week_no, house_id, name, emoji, hp, reward});
+  $("bsAdd").disabled = false;
+  if(error) return toast(error.message);
+  toast(`ปล่อย ${emoji} ${name} แล้ว (สัปดาห์ ${week_no})`);
+  $("bsName").value = ""; $("bsReward").value = "";
+  await loadBosses();
+};
+$("bsList").onclick = async e=>{
+  const b = e.target.closest("button[data-bsdel]"); if(!b) return;
+  if(!confirm(`ลบบอส "${b.dataset.nm}"?`)) return;
+  const {error} = await sb.from("bosses").delete().eq("id", +b.dataset.bsdel);
+  if(error) return toast(error.message);
+  toast("ลบบอสแล้ว"); await loadBosses();
+};
 /* ---- Discord ---- */
 $("dcSave").onclick = async ()=>{
   const url = $("dcHook").value.trim();
