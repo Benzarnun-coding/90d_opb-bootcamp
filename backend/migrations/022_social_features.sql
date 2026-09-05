@@ -193,3 +193,9 @@ create policy push_own on public.push_subs for all to authenticated
 grant select, insert, update, delete on public.push_subs to authenticated;
 
 select 'ok' as status;
+
+-- ------------------------------------------------------------
+-- 6. (เพิ่ม 2026-09-05) สกินบอส — พิกเซลอาร์ตใน boss.js: dragon | ogre | ghost | slime | robot | skull
+-- ------------------------------------------------------------
+alter table public.bosses add column if not exists skin text not null default 'ogre';
+-- แล้วสร้าง v_boss_progress / v_boss_kills ใหม่ (b.* จะได้รวม skin) — คำสั่งเดิมด้านบน

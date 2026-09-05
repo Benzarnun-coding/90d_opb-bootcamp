@@ -47,7 +47,16 @@ async function boot(){
   await loadBosses();
 }
 /* ---- บอสประจำสัปดาห์ ---- */
-let curWeekNo = 1;
+let curWeekNo = 1, curSkin = "ogre";
+function renderSkins(){
+  $("bsSkins").innerHTML = BOSS_SKINS.map(s=>`<div class="skinOpt ${s.k===curSkin?"on":""}" data-skin="${s.k}">${bossSprite(s.k,3)}<small>${s.e} ${s.n}</small></div>`).join("");
+}
+$("bsSkins").onclick = e=>{
+  const o = e.target.closest("[data-skin]"); if(!o) return;
+  curSkin = o.dataset.skin; renderSkins();
+  if(!$("bsName").value.trim()) $("bsName").placeholder = bossSkin(curSkin).n;
+};
+renderSkins();
 async function loadBosses(){
   $("bsHouse").innerHTML = '<option value="">🌏 ทั้งรุ่นช่วยกัน</option>' + HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
   try{ const {data:cs} = await sb.rpc("cohort_status"); const row = Array.isArray(cs) ? cs[0] : cs;
@@ -61,7 +70,7 @@ async function loadBosses(){
     return `<tr style="${b.week_no===curWeekNo?"":"opacity:.6"}">
       <td>${b.week_no}${b.week_no===curWeekNo?" ◀":""}</td>
       <td>${h ? h.emoji+" "+h.name : "🌏 ทั้งรุ่น"}</td>
-      <td>${esc(b.emoji)} <b>${esc(b.name)}</b>${b.reward?`<br><small style="color:var(--dim)">🎁 ${esc(b.reward)}</small>`:""}</td>
+      <td><span style="display:inline-block;vertical-align:middle;margin-right:6px">${bossSprite(b.skin||"ogre",2)}</span><b>${esc(b.name)}</b>${b.reward?`<br><small style="color:var(--dim)">🎁 ${esc(b.reward)}</small>`:""}</td>
       <td>${b.hp}</td>
       <td style="min-width:180px"><div style="height:14px;background:#0b0316;border:2px solid #5b1a8a;position:relative"><i style="position:absolute;inset:0;width:${pct}%;background:${dead?"#20c060":"linear-gradient(90deg,#ff2d55,#ff8a00)"}"></i></div>
         <small>${b.damage}/${b.hp} ดาเมจ · ${b.fighters} คน · ${state}</small></td>
@@ -70,12 +79,11 @@ async function loadBosses(){
 }
 $("bsWeek").oninput = ()=>{ $("bsWeek").dataset.touched = "1"; };
 $("bsAdd").onclick = async ()=>{
-  const week_no = +$("bsWeek").value, name = $("bsName").value.trim(), hp = +$("bsHp").value, emoji = $("bsEmoji").value.trim() || "👹";
+  const week_no = +$("bsWeek").value, name = $("bsName").value.trim() || bossSkin(curSkin).n, hp = +$("bsHp").value, skin = curSkin, emoji = bossSkin(skin).e;
   const house_id = $("bsHouse").value ? +$("bsHouse").value : null, reward = $("bsReward").value.trim() || null;
-  if(!name) return toast("ใส่ชื่อบอสก่อน");
-  if(!(week_no>=1) || !(hp>=1)) return toast("สัปดาห์/HP ไม่ถูกต้อง");
+    if(!(week_no>=1) || !(hp>=1)) return toast("สัปดาห์/HP ไม่ถูกต้อง");
   $("bsAdd").disabled = true;
-  const {error} = await sb.from("bosses").insert({week_no, house_id, name, emoji, hp, reward});
+  const {error} = await sb.from("bosses").insert({week_no, house_id, name, emoji, skin, hp, reward});
   $("bsAdd").disabled = false;
   if(error) return toast(error.message);
   toast(`ปล่อย ${emoji} ${name} แล้ว (สัปดาห์ ${week_no})`);

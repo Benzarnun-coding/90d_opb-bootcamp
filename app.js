@@ -474,7 +474,7 @@ const DemoDB = (()=>{
       const duels=(db.duels||[]).map(d=>{ const nm=id=>(db.runners.find(x=>x.id===id)||{}).name; const sc=id=>d.start_day?db.subs.filter(s=>s.who===nm(id)&&s.day>=d.start_day&&s.day<=d.end_day).length:0;
         return Object.assign({}, d, {challenger_name:nm(d.challenger), opponent_name:nm(d.opponent), challenger_score:sc(d.challenger), opponent_score:sc(d.opponent), today:db.today}); });
       const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).length;
-        return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","😈","🧟"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
+        return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
       const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.role==="student"&&r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, cups, kings,
@@ -2160,13 +2160,22 @@ function bossHTML(){
   const list=(S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null || (me && b.house_id===me.house) || S.spectator));
   if(!list.length) return "";
   return list.map(b=>{
-    const pct=Math.min(100, b.damage/b.hp*100), dead=b.damage>=b.hp, h=b.house_id?houseOf(b.house_id):null;
-    return `<div class="bossBar ${dead?"dead":""}">
-      <div class="bossHead"><span class="bossName">${b.emoji} ${b.name}</span>
-        <span class="bossWho">${h?h.emoji+" "+h.name:"ทั้งรุ่นช่วยกัน"} · สัปดาห์ที่ ${b.week_no}</span></div>
-      <div class="bossHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${Math.max(0,b.hp-b.damage)} / ${b.hp}`}</span></div>
-      <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER${b.reward?" · "+b.reward:""}`
-        : `ทุกชิ้นที่ส่ง = 1 ดาเมจ · ตอนนี้ ${b.damage} ดาเมจ จาก ${b.fighters} คน${b.reward?" · รางวัล: "+b.reward:""}`}</div>
+    const left=Math.max(0,b.hp-b.damage), pct=Math.min(100, b.damage/b.hp*100), dead=b.damage>=b.hp, hurt=!dead && left<=b.hp*0.3;
+    const h=b.house_id?houseOf(b.house_id):null, state=dead?"dead":hurt?"hurt":"idle";
+    /* ดาเมจใหม่ตั้งแต่เปิดครั้งก่อน → ตัวเลขเด้ง + บอสสะเทือน */
+    const key="bossDmg."+b.id; let prev=null; try{ prev=localStorage.getItem(key); localStorage.setItem(key,String(b.damage)); }catch(e){}
+    const delta=prev==null?0:b.damage-(+prev);
+    return `<div class="bossBar ${state} ${delta>0?"hit":""}">
+      <div class="bossStage">
+        <div class="bossFig">${bossSprite(b.skin, 4, state)}<span class="bossShadow"></span>${delta>0?`<b class="dmgPop">-${delta}</b>`:""}</div>
+        <div class="bossInfo">
+          <div class="bossTag">${dead?"★ DEFEATED ★":hurt?"⚠ BOSS ใกล้ตาย!":"WEEKLY BOSS"} · WEEK ${b.week_no}</div>
+          <div class="bossName">${b.name}<span class="bossWho">${h?h.emoji+" "+h.name:"🌏 ทั้งรุ่นช่วยกัน"}</span></div>
+          <div class="bossHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${left} / ${b.hp}`}</span></div>
+          <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER${b.reward?" · 🎁 "+b.reward:""}`
+            : `ทุกชิ้นที่ส่ง = 1 ดาเมจ · โดนไปแล้ว <b>${b.damage}</b> จาก ${b.fighters} คน${hurt?" · อีก <b>"+left+"</b> ชิ้นล้ม!":""}${b.reward?" · 🎁 "+b.reward:""}`}</div>
+        </div>
+      </div>
     </div>`;
   }).join("");
 }
