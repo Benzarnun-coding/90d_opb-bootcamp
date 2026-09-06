@@ -2033,7 +2033,7 @@ $("nearMe").onclick=e=>{ const t=e.target.closest(".nr"); if(t) openProfile(t.da
 
 /* ---- ปุ่มย้อนกลับของมือถือ/เบราว์เซอร์: ปิดหน้าต่างที่เปิดอยู่ก่อน ไม่งั้นกลับสนามแข่ง ---- */
 new MutationObserver(ms=>{
-  ms.forEach(m=>{ const el=m.target; if(el.classList.contains("on") && !el._pushed){ el._pushed=true; history.pushState({modal:el.id, page:(history.state&&history.state.page)||"pgRace"}, ""); }
+  ms.forEach(m=>{ const el=m.target; if(!el.classList.contains("modal")) return; if(el.classList.contains("on") && !el._pushed){ el._pushed=true; history.pushState({modal:el.id, page:(history.state&&history.state.page)||"pgRace"}, ""); }
     if(!el.classList.contains("on")) el._pushed=false; });
 }).observe(document.body, {attributes:true, attributeFilter:["class"], subtree:true});
 window.addEventListener("popstate", e=>{
