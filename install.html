@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือติดตั้งแอป · 90 DAY ONE PERSON BUSINESS BOOTCAMP</title>
+<link rel="icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=Pixelify+Sans:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{--void:#0a0820; --panel:#2a2360; --mid:#221c50; --line:#4a41a0; --gold:#ffcc4d; --green:#5ef08c; --cyan:#4ee1ff; --red:#ff4d6d; --dim:#b3ace8;
+    --f-px:"Pixelify Sans","Trebuchet MS",monospace; --f-th:"IBM Plex Sans Thai",system-ui,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--void); color:#f2f0ff; font-family:var(--f-th); font-size:16px; line-height:1.8}
+  .wrap{max-width:760px; margin:0 auto; padding:24px 16px 80px}
+  header{text-align:center; padding:18px 0 8px}
+  header img{width:96px; height:96px; image-rendering:pixelated; border:4px solid var(--line); box-shadow:0 6px 0 rgba(0,0,0,.5)}
+  h1{font-family:var(--f-px); font-size:22px; color:#fff; margin:14px 0 4px; text-shadow:0 2px 0 #b0349a,0 4px 0 #6d1a62}
+  .lede{color:var(--dim); font-size:15px; margin:0}
+  .url{display:inline-block; margin:14px 0 0; padding:10px 18px; font-family:var(--f-px); font-size:18px; color:var(--void); background:var(--gold); text-decoration:none;
+    border:3px solid; border-color:#fff3b0 #8a5a08 #8a5a08 #fff3b0; box-shadow:0 5px 0 rgba(0,0,0,.5)}
+  .warn{margin:22px 0; padding:14px 16px; background:#3a2a05; border:3px solid var(--gold); color:#ffe9a8}
+  .warn b{color:#fff}
+  section{margin:26px 0; background:linear-gradient(180deg,var(--panel),var(--mid) 55%,#141033); border:3px solid; border-color:#7b74d6 #150f36 #150f36 #7b74d6; box-shadow:0 6px 0 rgba(0,0,0,.45)}
+  section h2{margin:0; padding:12px 16px; font-family:var(--f-px); font-size:17px; color:var(--gold); background:rgba(0,0,0,.25); border-bottom:3px solid #150f36; text-shadow:0 2px 0 #000}
+  section h2 small{display:block; font-family:var(--f-th); font-size:13px; color:var(--dim); font-weight:400; text-shadow:none; margin-top:2px}
+  .body{padding:8px 16px 14px}
+  ol{list-style:none; counter-reset:s; margin:0; padding:0}
+  ol li{counter-increment:s; position:relative; padding:10px 0 10px 54px; border-bottom:2px solid rgba(74,65,160,.5)}
+  ol li:last-child{border-bottom:0}
+  ol li::before{content:counter(s); position:absolute; left:0; top:10px; width:40px; height:40px; line-height:38px; text-align:center;
+    font-family:var(--f-px); font-size:20px; color:var(--void); background:var(--green); border:3px solid; border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4}
+  .k{display:inline-block; padding:1px 9px; margin:0 2px; background:#0e0a29; border:2px solid var(--line); border-radius:4px; font-size:14px; color:#fff; white-space:nowrap}
+  .ico{display:inline-block; width:26px; height:26px; line-height:22px; text-align:center; vertical-align:middle; background:#fff; color:#1a1a1a; border-radius:6px; font-size:16px; margin:0 2px}
+  .tip{margin:10px 0 0; padding:10px 12px; font-size:14px; color:var(--dim); background:rgba(0,0,0,.25); border-left:4px solid var(--cyan)}
+  .tip b{color:#fff}
+  .faq dt{font-weight:700; color:#fff; margin-top:12px}
+  .faq dd{margin:2px 0 0; color:#e6e1ff}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:8px}
+  .grid div{padding:10px 12px; background:rgba(0,0,0,.25); border:2px solid var(--line); font-size:14px}
+  .grid b{display:block; color:var(--gold); font-family:var(--f-px); font-size:14px; margin-bottom:4px}
+  footer{margin-top:30px; text-align:center; color:var(--dim); font-size:13px; font-family:var(--f-px)}
+  .printBtn{position:fixed; right:14px; bottom:14px; padding:10px 14px; font-family:var(--f-th); font-weight:700; color:#fff; background:#2e2678; border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6; cursor:pointer}
+  @media print{
+    body{background:#fff; color:#111} .wrap{padding:0} header img{box-shadow:none}
+    h1{color:#111; text-shadow:none} .url{box-shadow:none; color:#000; background:#ffe08a}
+    section{background:#fff; color:#111; border:2px solid #999; box-shadow:none; break-inside:avoid}
+    section h2{background:#f0eefc; color:#4a2a80; text-shadow:none} section h2 small{color:#555}
+    ol li{border-color:#ddd} ol li::before{background:#c9f7d9; color:#000; border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4}
+    .k{background:#f3f3f3; color:#000; border-color:#999} .tip{background:#f6f6ff; color:#333} .tip b{color:#000}
+    .warn{background:#fff7d6; color:#333} .warn b{color:#000} .grid div{background:#fafafa; color:#111} .grid b{color:#4a2a80}
+    .faq dt{color:#000} .faq dd{color:#333} footer{color:#555} .printBtn{display:none} .lede{color:#555}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/icon-192.png" alt="icon">
+    <h1>คู่มือติดตั้งแอปบนมือถือ</h1>
+    <p class="lede">90 DAY ONE PERSON BUSINESS BOOTCAMP · ติดตั้งแล้วเปิดจากไอคอนได้เหมือนแอป ไม่ต้องพิมพ์ลิงก์ทุกวัน และรับแจ้งเตือนก่อนปิดรอบได้</p>
+    <a class="url" href="https://opb-bootcamp.netlify.app">opb-bootcamp.netlify.app</a>
+  </header>
+
+  <div class="warn">
+    ⚠️ <b>ก่อนเริ่ม: ต้องเปิดลิงก์ใน "เบราว์เซอร์จริง" เท่านั้น</b><br>
+    ถ้ากดลิงก์จาก LINE / Facebook / Instagram / Discord มันจะเปิดในหน้าต่างเล็ก ๆ ของแอปนั้น ซึ่ง<b>ติดตั้งไม่ได้</b> ให้กดออกมาเปิดในเบราว์เซอร์ก่อน:
+    <div class="grid">
+      <div><b>LINE</b>กด <span class="k">⋯</span> หรือ <span class="k">⋮</span> มุมขวาบน → <b>เปิดด้วยเบราว์เซอร์</b></div>
+      <div><b>Facebook / Messenger</b>กด <span class="k">⋯</span> มุมขวาบน → <b>เปิดในเบราว์เซอร์</b></div>
+      <div><b>Instagram</b>กด <span class="k">⋯</span> มุมขวาบน → <b>Open in browser</b></div>
+      <div><b>Discord</b>กดลิงก์ค้าง → <b>คัดลอกลิงก์</b> → ไปวางใน Safari หรือ Chrome</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>🍎 iPhone / iPad<small>ต้องใช้ Safari เท่านั้น (Chrome บน iPhone ติดตั้งไม่ได้)</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิด <b>Safari</b> แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li>กดปุ่ม <b>แชร์</b> <span class="ico">⬆</span> (สี่เหลี่ยมมีลูกศรชี้ขึ้น อยู่แถบล่างตรงกลาง)</li>
+        <li>เลื่อนเมนูลงมา กด <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen) <span class="ico">➕</span></li>
+        <li>กด <b>"เพิ่ม"</b> มุมขวาบน → ไอคอน 🐉 จะไปอยู่บนหน้าจอโฮม</li>
+        <li>เปิดจากไอคอน → ใส่อีเมล + รหัสที่ทีมงานแจก → เข้าได้เลย</li>
+      </ol>
+      <div class="tip">🔔 <b>อยากได้แจ้งเตือนก่อนปิดรอบ:</b> ต้องเปิดแอปจาก<b>ไอคอนบนหน้าจอโฮม</b> (ไม่ใช่จาก Safari) แล้วไปที่ <b>MY STATUS → เปิดเตือนก่อนปิดรอบ</b> กด "อนุญาต" · ใช้ได้กับ iOS 16.4 ขึ้นไป</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>🤖 Android · Chrome<small>Samsung, Xiaomi, OPPO, vivo, realme, Pixel ที่มี Chrome</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิด <b>Chrome</b> แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li>กดปุ่ม <b>"📲 ติดตั้งแอป"</b> ที่มุมบนของเว็บ (ถ้าเห็น) → กด <b>ติดตั้ง</b> จบเลย</li>
+        <li>ถ้าไม่เห็นปุ่ม: กด <span class="k">⋮</span> มุมขวาบนของ Chrome → <b>"ติดตั้งแอป"</b> หรือ <b>"เพิ่มไปยังหน้าจอหลัก"</b> → <b>ติดตั้ง</b></li>
+        <li>ไอคอน 🐉 จะอยู่ในหน้าจอหลัก / ลิ้นชักแอป เปิดแล้วล็อกอินได้เลย</li>
+      </ol>
+      <div class="tip">🔔 เปิดแจ้งเตือนได้ที่ <b>MY STATUS → เปิดเตือนก่อนปิดรอบ</b> แล้วกด "อนุญาต"</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>📱 Samsung Internet<small>เบราว์เซอร์ที่ติดมากับมือถือ Samsung</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิด <b>Samsung Internet</b> แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li>กดไอคอน <span class="ico">⬇</span> ที่แถบที่อยู่ (ถ้ามี) → <b>ติดตั้ง</b></li>
+        <li>หรือกด <span class="k">≡</span> เมนูมุมขวาล่าง → <b>"เพิ่มหน้าไปยัง"</b> → <b>"หน้าจอหลัก"</b> → <b>เพิ่ม</b></li>
+      </ol>
+      <div class="tip">ถ้าติดตั้งไม่ได้ ใช้ <b>Chrome</b> แทนตามวิธีด้านบน ทุกเครื่อง Samsung มี Chrome อยู่แล้ว</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>📱 Huawei / Honor (ไม่มี Google)<small>ใช้ Huawei Browser หรือ Petal</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิด <b>Huawei Browser</b> แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li>กด <span class="k">⋮</span> หรือ <span class="k">≡</span> ด้านล่าง → <b>"เพิ่มไปยังหน้าจอหลัก"</b> (Add to home screen) → <b>เพิ่ม</b></li>
+      </ol>
+      <div class="tip">ถ้ามี Edge หรือ Chrome ติดตั้งอยู่ ใช้ตัวนั้นจะได้ปุ่ม "ติดตั้งแอป" และแจ้งเตือนครบกว่า</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>📱 Xiaomi (Mi Browser) · OPPO · vivo<small>ถ้าไม่อยากใช้ Chrome</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิดเบราว์เซอร์ของเครื่อง แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li>กด <span class="k">⋮</span> หรือ <span class="k">≡</span> → หาเมนู <b>"เพิ่มไปยังหน้าจอหลัก"</b> / <b>"Add to Home screen"</b> / <b>"ทางลัด"</b> → <b>เพิ่ม</b></li>
+      </ol>
+      <div class="tip">แนะนำให้ใช้ <b>Chrome</b> มากกว่า เพราะรองรับแจ้งเตือนและอัปเดตอัตโนมัติ</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>💻 คอมพิวเตอร์<small>Chrome / Edge / Brave บน Windows และ Mac</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิดเว็บ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li>กดปุ่ม <b>"📲 ติดตั้งแอป"</b> บนเว็บ หรือไอคอน <span class="ico">⊕</span> ทางขวาของแถบที่อยู่ → <b>ติดตั้ง</b></li>
+        <li>แอปจะเปิดเป็นหน้าต่างของตัวเอง และมีไอคอนใน Start / Dock</li>
+      </ol>
+      <div class="tip">Safari บน Mac: เมนู <b>ไฟล์ → เพิ่มไปยัง Dock</b> (macOS Sonoma ขึ้นไป) · Firefox ยังติดตั้งเป็นแอปไม่ได้ ใช้เว็บปกติ</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>✅ หลังติดตั้ง<small>ทำครั้งเดียว</small></h2>
+    <div class="body">
+      <ol>
+        <li>เปิดจากไอคอน 🐉 → ใส่ <b>อีเมลที่ลงทะเบียน</b> + <b>รหัสที่ทีมงานแจก</b> (กด 👁 เช็คตัวพิมพ์ใหญ่-เล็กก่อนกดเข้า)</li>
+        <li>เข้าครั้งแรกตั้งชื่อตัวละคร แต่งตัว แล้ว<b>เลือกเป้าสัปดาห์</b></li>
+        <li>ไปที่ <b>MY STATUS</b> → กด <b>🔔 เปิดเตือนก่อนปิดรอบ</b> → อนุญาต · ระบบจะเตือนตอน 2 ทุ่มถ้าวันนั้นยังไม่ส่งงาน</li>
+        <li>ส่งงานทุกวันด้วยปุ่ม <b>＋ ส่งงาน</b> ตรงกลางแถบล่าง วางลิงก์แล้วกด SUBMIT</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <h2>❓ ติดปัญหา<small>เช็คตามนี้ก่อนแจ้งทีมงาน</small></h2>
+    <div class="body faq">
+      <dl>
+        <dt>ไม่มีปุ่ม "ติดตั้งแอป" / ไม่มีเมนู "เพิ่มไปยังหน้าจอหลัก"</dt>
+        <dd>คุณกำลังเปิดอยู่ในหน้าต่างของ LINE/Facebook — ออกมาเปิดใน Safari (iPhone) หรือ Chrome (Android) ก่อน · ถ้าเป็น Chrome ให้อัปเดต Chrome เป็นเวอร์ชันล่าสุด</dd>
+        <dt>iPhone หาเมนู "เพิ่มไปยังหน้าจอโฮม" ไม่เจอ</dt>
+        <dd>ต้องเป็น <b>Safari</b> เท่านั้น และกดปุ่มแชร์ (สี่เหลี่ยมลูกศรขึ้น) แล้ว<b>เลื่อนเมนูลง</b>อีกนิด เมนูอยู่ค่อนข้างล่าง</dd>
+        <dt>ขึ้นว่า "รหัสไม่ถูกต้อง"</dt>
+        <dd>กด 👁 ดูว่าพิมพ์ตรงกับรหัสที่แจกไหม (ตัวพิมพ์ใหญ่-เล็กมีผล) · ถ้าเคยเข้าได้แล้วแต่เข้าเครื่องใหม่ไม่ได้ แจ้งทีมงานให้กด "รีเซ็ตรหัส" ให้</dd>
+        <dt>ไม่ได้รับแจ้งเตือน</dt>
+        <dd>iPhone ต้องเปิดจากไอคอนบนหน้าจอโฮม ไม่ใช่จาก Safari · เช็คว่าตั้งค่า → การแจ้งเตือน ของแอปนี้เปิดอยู่ · แจ้งเตือนส่งเฉพาะวันที่ยังไม่ส่งงาน ตอน 20:00</dd>
+        <dt>เปิดแอปแล้วเป็นหน้าเก่า ไม่อัปเดต</dt>
+        <dd>ปิดแอปให้สนิท (ปัดออกจากรายการแอปล่าสุด) แล้วเปิดใหม่ 1 ครั้ง</dd>
+      </dl>
+    </div>
+  </section>
+
+  <footer>90 DAY ONE PERSON BUSINESS BOOTCAMP · By Benz Arnun</footer>
+</div>
+<button class="printBtn" onclick="window.print()">🖨 พิมพ์ / เซฟเป็น PDF</button>
+</body>
+</html>
