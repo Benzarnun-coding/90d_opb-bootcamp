@@ -2680,7 +2680,6 @@ window.goHome=()=>{
   document.querySelectorAll(".modal.on").forEach(m=>m.classList.remove("on"));
   $("moreMenu").hidden=true; $("bellMenu").hidden=true;
   if(S.spectator){ S.spectator=false; history.replaceState(null,"",location.pathname+location.search); }
-  $("startBtn").textContent = (S.me && BOOTSTATE && !BOOTSTATE.needsProfile) ? `▶ เข้าสนามต่อ · ${S.me}` : "▶ PRESS START";
   show("scTitle"); window.scrollTo(0,0);
 };
 $("homeBtn").onclick=goHome; $("homeBtn2").onclick=goHome;
