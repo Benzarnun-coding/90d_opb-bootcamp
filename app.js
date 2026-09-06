@@ -448,6 +448,7 @@ const DemoDB = (()=>{
     async fetchAll(){
       if(!db) db=build({name:"YOU", color:COLORS[0], joined:ALL_SPRINTS, avatar:{}});   // โหมดคนดูใน DEMO ยังไม่ได้สร้างตัวละคร
       const postedToday = db.subs.some(s=>s.who===db.me && s.day===db.today);
+      const todaySubs = db.subs.filter(s=>s.who===db.me && s.day===db.today).map(s=>s.ts);
       /* ถ้วยบ้าน: บ้านที่เฉลี่ยต่อคนสูงสุดของแต่ละสัปดาห์ที่จบแล้ว */
       const cups=[], cw=weekOf(db.today);
       for(let w=1; w<cw; w++){
@@ -477,7 +478,7 @@ const DemoDB = (()=>{
         return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
       const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.role==="student"&&r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
-      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, cups, kings,
+      return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
               cheers:db.cheers||[], cheerWeeks, duels, bosses, bossKills,
               started:true, daysUntil:0, startDate:null};
     },
@@ -685,6 +686,7 @@ const LiveDB = (()=>{
           rate:       b.rate||0,
           weekStreak: b.week_streak||0,
           dayStreak:  b.day_streak||0,
+          freezeLeft: b.freeze_left==null ? null : b.freeze_left,
           weeksHit:   b.weeks_hit||0,
           byDay:      {},                      // โหลดเฉพาะตอนเปิดโปรไฟล์
           style:      b.pledge_style||"normal"
@@ -717,16 +719,18 @@ const LiveDB = (()=>{
         started  = new Date() >= new Date(co.start_date + "T00:00:00");
       }
       if(!todayIdx || !isFinite(todayIdx)) todayIdx=todayFrom(co.start_date);
-      let todayCount=0;
+      let todayCount=0, todaySubs=[];
       if(uidNow){
-        const q=await sb.from("submissions").select("id",{count:"exact",head:true})
+        const q=await sb.from("submissions").select("created_at")
           .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved");
-        todayCount=q.count||0;
+        todaySubs=(q.data||[]).map(s=>new Date(s.created_at).getTime());
+        todayCount=todaySubs.length;
       }
       return {
         today: todayIdx,
         me: me ? me.name : null,
         postedToday: (todayCount||0) > 0,
+        todayCount, todaySubs,
         started, daysUntil, startDate: co.start_date,
         cups: cups||[],
         kings: kingRows||[],
@@ -1143,7 +1147,7 @@ function renderBoard(){
     const pc = s.pace>0?"var(--green)":s.pace<0?"var(--orange)":"var(--cyan)";
     return `<tr class="${r.name===S.me?"me":""}" data-n="${r.name}" id="row-${r.name}">
       <td class="rk ${i<3?"top"+(i+1):""}">${medal}</td>
-      <td class="nm" style="color:${boardColor(r,s)}">${isKingNow(r)?"👑 ":""}${r.name}
+      <td class="nm" style="color:${boardColor(r,s)}">${isKingNow(r)?"👑 ":""}${r.name} <em class="lvMini">Lv${levelOf(xpOf(r))}</em>
         <span style="font-family:var(--f-th);font-size:11px;color:var(--dim)">${r.handle}</span></td>
       <td class="hideSm">${role==="head" ? '<span style="color:#ff4d6d;font-size:12px">🎓 หัวหน้าโค้ช</span>'
         : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>`}</td>
@@ -1252,6 +1256,7 @@ async function openProfile(name){
   try{ det=await DB.detail(r); }catch(e){ console.error(e); }
   $("pMap").innerHTML=mapHTML(r, det.byDay);
   $("mBadges").innerHTML=badgesHTML(earnedBadges(r,det), false);
+  $("mLevel").innerHTML=levelHTML(r);
   $("mCheer").innerHTML=cheerHTML(r)+duelBtnHTML(r);
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>
@@ -1640,7 +1645,7 @@ function renderHud(){
 function renderAll(){
   /* แถบเตือนโหมดทดลอง — กันคนเข้าใจผิดว่าส่งงานจริงแล้ว */
   $("demoBar").style.display = DB.mode==="demo" ? "" : "none";
-  renderFilters(); renderPledge(); renderTrack(); renderFeed(); renderHud();
+  renderFilters(); renderPledge(); renderTrack(); renderFeed(); renderHud(); renderQuests();
   if($("pgBoard").classList.contains("on")) renderBoard();
   if($("pgStatus").classList.contains("on")) renderStatus();
 }
@@ -1797,7 +1802,7 @@ $("pushBtn").onclick=async()=>{
     S.submitting=false;
     const after=stats(meR());
     sprintMe();
-    const todayN=(after.byDay||{})[S.today]||0;
+    const todayN=Math.max(S.todayCount||0, (after.byDay||{})[S.today]||0);
     if(todayN>=2) setTimeout(()=>comboPop(todayN), 350);
     const passed=(S.lastPass&&S.lastPass.iPassed)||[];
     if(passed.length) setTimeout(()=>{ bigPop(`แซง ${passed[0]}${passed.length>1?" +"+(passed.length-1):""} แล้ว!`, passed.length>1?`แซงไป ${passed.length} คนในชิ้นเดียว`:"", "pass"); SFX.unlock(); }, todayN>=2?1700:400);
@@ -1844,6 +1849,57 @@ $("simBtn").onclick=async()=>{
 };
 $("outBtn").onclick=async()=>{ await DB.signOut(); location.reload(); };
 $("outBtn2").onclick=()=>$("outBtn").click();
+/* ---- XP + เลเวล: แกนความก้าวหน้าที่สอง (คิดจากข้อมูลที่มีอยู่แล้ว) ---- */
+const LV_TITLES=[[1,"มือใหม่"],[3,"นักลอง"],[5,"นักปล่อย"],[7,"ครีเอเตอร์"],[9,"มือโปร"],[11,"ตำนาน"]];
+function xpOf(r){
+  if(!r) return 0;
+  const s=stats(r);
+  const cheersGiven=(S.cheers||[]).filter(c=>c.from_id===r.id).length;
+  const kills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
+  const wins=(S.duels||[]).filter(d=>d.status==="done"&&d.winner===r.id).length;
+  const kingW=(S.kings||[]).filter(k=>k.profile_id===r.id).length;
+  let questDays=0; if(r.name===S.me){ try{ questDays=+localStorage.getItem("questDays."+r.id)||0; }catch(e){} }
+  return s.contents*10 + cheersGiven*2 + s.weeksHit*30 + kills*50 + wins*40 + kingW*60 + questDays*30 + Math.min(s.dayStreak,30)*3;
+}
+const levelOf = xp => Math.floor(Math.sqrt(xp/40))+1;
+const xpForLevel = lv => (lv-1)*(lv-1)*40;
+const titleOf = lv => { let t=LV_TITLES[0][1]; LV_TITLES.forEach(([l,n])=>{ if(lv>=l) t=n; }); return t; };
+function levelHTML(r){
+  const xp=xpOf(r), lv=levelOf(xp), lo=xpForLevel(lv), hi=xpForLevel(lv+1), pct=Math.round((xp-lo)/(hi-lo)*100);
+  return `<div class="lvBox"><span class="lvTag">LV ${lv}</span><span class="lvTitle">${titleOf(lv)}</span>
+    <span class="lvBar"><i style="width:${pct}%"></i></span><span class="lvXp">${xp} / ${hi} XP</span></div>`;
+}
+/* ---- ภารกิจวันนี้ 3 ข้อ ---- */
+function questsOf(){
+  const me=meR(); if(!me) return [];
+  const n=Math.max(S.todayCount||0,(stats(me).byDay||{})[S.today]||0);
+  const cheered=(S.cheers||[]).filter(c=>c.from_id===me.id && c.day_index===S.today).length;
+  const early=(S.todaySubs||[]).some(ts=>{ const hh=new Date(ts).getHours(); return hh>=C.CUTOFF_HOUR && hh<20; });
+  return [
+    {k:"post",  i:"🔗", t:"ส่งงาน 1 ชิ้น", done:n>=1, sub:n>=1?`ส่งแล้ว ${n} ชิ้น`:"วางลิงก์ด้านบน", go:goSubmit},
+    {k:"cheer", i:"👏", t:"เชียร์เพื่อน 3 คน", done:cheered>=3, sub:`${Math.min(cheered,3)}/3 · คลิกตัวละครเพื่อนแล้วกดอิโมจิ`, go:()=>{ showPage("pgBoard"); }},
+    {k:"early", i:"🌤", t:"ส่งก่อน 2 ทุ่ม", done:early, sub:early?"ทันเวลา!":(n>=1?"วันนี้ส่งหลัง 2 ทุ่ม พรุ่งนี้ลองใหม่":"ส่งก่อน 20:00 จะได้ข้อนี้"), go:goSubmit}
+  ];
+}
+function renderQuests(){
+  const box=$("questPanel"); if(!box) return;
+  const me=meR();
+  if(!me || S.spectator){ box.hidden=true; return; }
+  box.hidden=false;
+  const q=questsOf(), done=q.filter(x=>x.done).length, s=stats(me);
+  /* ครบ 3 ข้อ = นับเป็นวันภารกิจ (เก็บในเครื่อง) */
+  try{ const k="questDone."+me.id, kd="questDays."+me.id; const last=localStorage.getItem(k);
+    if(done===3 && last!==String(S.today)){ localStorage.setItem(k,String(S.today)); localStorage.setItem(kd, String((+localStorage.getItem(kd)||0)+1)); bigPop("ภารกิจครบ 3 ข้อ!","+30 XP · เก่งมาก","pass"); SFX.unlock(); } }catch(e){}
+  const shield = s.freezeLeft==null ? "" : `<span class="shield" title="พลาดวันได้โดย streak ไม่ขาด สปรินต์ละ 2 วัน">🛡 วันลา streak ${s.freezeLeft}/2</span>`;
+  box.innerHTML=`<div class="titlebar"><h2>ภารกิจวันนี้ · ${done}/3</h2><span>${done===3?"ครบแล้ว! +30 XP":"ครบ 3 ข้อได้ +30 XP"}</span></div>
+    <div class="body qBody">
+      ${levelHTML(me)}
+      <div class="qList">${q.map(x=>`<button class="q ${x.done?"done":""}" data-q="${x.k}"><i>${x.done?"✅":x.i}</i><b>${x.t}</b><small>${x.sub}</small></button>`).join("")}</div>
+      <div class="qFoot">${shield}<span>🔥 streak ${s.dayStreak} วัน</span></div>
+    </div>`;
+}
+$("questPanel").onclick=e=>{ const b=e.target.closest("button[data-q]"); if(!b) return; const q=questsOf().find(x=>x.k===b.dataset.q); if(q&&!q.done&&q.go) q.go(); };
+
 /* ---- ท้องฟ้าเปลี่ยนตามเวลาที่เหลือก่อนปิดรอบ (ส่งแล้วฟ้าสงบ) ---- */
 function updateSky(){
   const sky=$("sky"); if(!sky) return;
@@ -1989,7 +2045,7 @@ function renderTodayBar(){
   const me=meR();
   if(S.spectator || !me || !$("scArena").classList.contains("on")){ bar.hidden=true; return; }
   bar.hidden=false;
-  const s=stats(me), n=(s.byDay||{})[S.today]||0;
+  const s=stats(me), n=Math.max(S.todayCount||0, (s.byDay||{})[S.today]||0);
   const left=cutoffLeft(); const hrs=parseInt(left,10);
   bar.className="todayBar "+(n?"ok":(isFinite(hrs)&&hrs<3?"late":"wait"));
   $("tbState").textContent = n ? `✅ วันนี้ส่งแล้ว ${n} ชิ้น` : `⏳ วันนี้ยังไม่ส่ง`;
@@ -2515,6 +2571,7 @@ async function renderPushBtn(){
 async function refresh(){
   const d=await DB.fetchAll();
   S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
+  S.todayCount=d.todayCount||0; S.todaySubs=d.todaySubs||[];
   S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
   S.cups = d.cups||[];
   S.kings = d.kings||[];                       // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์

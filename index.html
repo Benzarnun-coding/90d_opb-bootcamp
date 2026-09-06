@@ -581,6 +581,25 @@
     .todayBar{font-size:12px; gap:6px 12px; padding:8px 10px}
     .todayBar #tbGo{margin-left:auto}
   }
+  /* ---- XP / ภารกิจ ---- */
+  .qBody{padding:12px 16px 14px}
+  .lvBox{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px}
+  .lvTag{font-family:var(--f-px); font-weight:700; font-size:14px; color:#0d0a22; background:var(--gold); padding:3px 9px; border:2px solid; border-color:#fff3b0 #8a5a08 #8a5a08 #fff3b0}
+  .lvTitle{font-family:var(--f-px); font-size:13px; color:#fff; text-shadow:0 2px 0 #000}
+  .lvBar{flex:1 1 120px; height:12px; background:#0b0316; border:2px solid var(--line); position:relative; overflow:hidden}
+  .lvBar i{position:absolute; inset:0; width:0; background:linear-gradient(90deg,#b06bff,#ffcc4d); transition:width .8s ease}
+  .lvXp{font-family:var(--f-px); font-size:11px; color:var(--dim)}
+  .lvMini{font-style:normal; font-family:var(--f-px); font-size:10px; color:var(--dim); margin-left:4px; font-weight:400}
+  .qList{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+  .q{text-align:left; padding:10px 10px; cursor:pointer; color:#fff; background:#120d30; border:3px solid; border-color:var(--bevelHi) var(--bevelLo) var(--bevelLo) var(--bevelHi); font-family:var(--f-th)}
+  .q i{font-style:normal; font-size:20px; display:block; line-height:1; margin-bottom:6px}
+  .q b{display:block; font-size:13.5px}
+  .q small{display:block; font-size:11.5px; color:var(--dim); line-height:1.4; margin-top:3px}
+  .q.done{background:linear-gradient(180deg,#1e5a34,#0d3a20); border-color:#5ef08c #0d5c2c #0d5c2c #5ef08c; cursor:default}
+  .q.done small{color:#bdf5cf}
+  .qFoot{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:12.5px; color:#cdc7ff}
+  .shield{color:var(--cyan)}
+  @media(max-width:640px){ .qList{grid-template-columns:1fr 1fr 1fr; gap:6px} .q{padding:8px 6px} .q b{font-size:12px} .q small{display:none} .q i{font-size:18px; margin-bottom:4px} }
   /* ---- GAME FEEL: ท้องฟ้าตามเวลา / สปรินต์ / คอมโบ / จอสั่น ---- */
   .sky::after{content:""; position:absolute; inset:0; opacity:0; transition:opacity 2.5s ease; pointer-events:none}
   .sky.dusk::after{opacity:1; background:linear-gradient(180deg,rgba(60,20,90,.35) 0%,rgba(255,120,60,.25) 70%,rgba(255,170,80,.35) 100%)}
@@ -896,6 +915,8 @@
       </div>
     </section>
 
+    <section class="panel bevel" id="questPanel" hidden></section>
+
     <section class="pledgeCard bevel" id="pledgeCard"></section>
 
 
@@ -1088,6 +1109,7 @@
         <div class="px" style="font-size:24px;text-shadow:0 2px 0 #000" id="mName">—</div>
         <div style="color:#cdc7ff;font-size:12px;margin-top:5px" id="mRank">—</div>
         <div class="pForm" id="mForm"></div>
+        <div id="mLevel"></div>
         <div class="pWeek" id="mWeek"></div>
       </div>
     </div>
