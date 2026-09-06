@@ -82,3 +82,13 @@
   from = "/install"
   to   = "/install.html"
   status = 302
+
+[[redirects]]
+  from = "/ta"
+  to   = "/ta.html"
+  status = 302
+
+[[headers]]
+  for = "/ta.js"
+  [headers.values]
+    Cache-Control = "no-cache"

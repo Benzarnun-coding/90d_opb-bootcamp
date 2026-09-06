@@ -1640,6 +1640,7 @@ function renderHud(){
   $("submitPanel").style.display = S.spectator ? "none" : "";
   $("navSubmit").style.display = S.spectator ? "none" : "";
   $("pledgeBtn2").style.display = S.spectator ? "none" : "";
+  { const me0=meR(); $("taLink").hidden = !(me0 && !S.spectator && roleOf(me0)==="ta" && DB.mode==="live"); }
   $("statusNav").style.display   = S.spectator ? "none" : "";
   if(S.spectator){
     $("meLine").innerHTML=`👀 <span style="color:var(--cyan)">โหมดคนดู</span> · นักเรียน ${students().length} คน`;
@@ -1887,6 +1888,7 @@ $("outBtn").onclick=async()=>{ await DB.signOut(); location.reload(); };
 $("outBtn2").onclick=()=>{ $("moreMenu").hidden=true; $("outBtn").click(); };
 $("moreBtn").onclick=()=>{ const m=$("moreMenu"); m.hidden=!m.hidden; $("bellMenu").hidden=true; };
 $("pledgeBtn2").onclick=()=>{ $("moreMenu").hidden=true; openPledge(); };
+$("taLink").onclick=()=>{ location.href="/ta.html"; };
 /* ---- XP + เลเวล: แกนความก้าวหน้าที่สอง (คิดจากข้อมูลที่มีอยู่แล้ว) ---- */
 const LV_TITLES=[[1,"มือใหม่"],[3,"นักลอง"],[5,"นักปล่อย"],[7,"ครีเอเตอร์"],[9,"มือโปร"],[11,"ตำนาน"]];
 function xpOf(r){
