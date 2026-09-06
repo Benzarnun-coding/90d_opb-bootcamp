@@ -1639,6 +1639,7 @@ function renderHud(){
   renderTodayBar(); renderBell(); updateSky();
   $("submitPanel").style.display = S.spectator ? "none" : "";
   $("navSubmit").style.display = S.spectator ? "none" : "";
+  $("pledgeBtn2").style.display = S.spectator ? "none" : "";
   $("statusNav").style.display   = S.spectator ? "none" : "";
   if(S.spectator){
     $("meLine").innerHTML=`👀 <span style="color:var(--cyan)">โหมดคนดู</span> · นักเรียน ${students().length} คน`;
@@ -2665,6 +2666,15 @@ async function enterSpectator(){
   if(!S._subbed){ DB.subscribe(()=>refresh()); S._subbed=true; }
   show("scArena"); showPage("pgRace");
 }
+/* กลับหน้าแรก (PRESS START) — ใช้ได้ทั้งคนดูและคนที่ล็อกอิน */
+window.goHome=()=>{
+  document.querySelectorAll(".modal.on").forEach(m=>m.classList.remove("on"));
+  $("moreMenu").hidden=true; $("bellMenu").hidden=true;
+  if(S.spectator){ S.spectator=false; history.replaceState(null,"",location.pathname+location.search); }
+  show("scTitle"); window.scrollTo(0,0);
+};
+$("homeBtn").onclick=goHome; $("homeBtn2").onclick=goHome;
+document.querySelector(".brand").onclick=goHome;
 window.leaveSpectator=()=>{
   /* ถอด #watch แล้วโหลดใหม่ — ถ้าล็อกอินอยู่จะเข้าสนามปกติ ถ้ายังไม่ล็อกอินจะเจอหน้าแรก */
   history.replaceState(null,"",location.pathname+location.search);

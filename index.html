@@ -586,7 +586,8 @@
   .closeX{font-size:14px; padding:4px 10px; border:2px solid rgba(255,184,196,.5)}
   /* ---- INTERFACE PASS: หัวย่อ / การ์ดวันนี้ / เป้ายุบ / แท็บ / ปุ่ม / bottom sheet ---- */
   header.hudbar.compact{padding:10px 14px; margin-bottom:12px; gap:10px}
-  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand{display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer}
+  @media(max-width:700px){ #homeBtn{padding:6px 7px} }
   .brandIco{width:40px; height:40px; image-rendering:pixelated; border:2px solid var(--line); flex:0 0 40px}
   header.compact h1.game{font-size:15px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw}
   header.compact .sub{margin-top:3px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw}
@@ -942,12 +943,14 @@
       <div class="chip">WEEK <b id="hudWeek">--</b><span class="hideSm">/<span id="hudWeeks">12</span></span></div>
       <div class="chip">DAY <b id="hudDay">--</b><span class="hideSm">/<span id="hudTotal">84</span></span></div>
       <div class="chip live" id="modeTag">DEMO</div>
+      <button class="chip btnChip" id="homeBtn" title="กลับหน้าแรก">← หน้าแรก</button>
       <button class="chip btnChip bell" id="bellBtn" hidden>🔔<b class="bellN" id="bellN" hidden>0</b></button>
       <button class="chip btnChip" id="moreBtn" title="เมนู">⋯</button>
       <span hidden><b id="hudSprint"></b><span id="hudSprints"></span><b id="hudClock"></b></span>
     </div>
   </header>
   <div class="bellMenu bevel" id="moreMenu" hidden>
+    <div class="it" id="homeBtn2"><i>🏠</i><div>หน้าแรก<small>กลับไปหน้า PRESS START</small></div></div>
     <div class="it" id="helpBtn"><i>❓</i><div>วิธีเล่น<small>กติกา ร่าง บ้าน บอส ดวล</small></div></div>
     <div class="it" id="installBtn" hidden><i>📲</i><div>ติดตั้งเป็นแอป<small>เปิดจากหน้าจอโฮม รับแจ้งเตือนได้</small></div></div>
     <div class="it" id="pledgeBtn2"><i>🎯</i><div>เปลี่ยนเป้าสัปดาห์นี้</div></div>
