@@ -581,6 +581,9 @@
     .todayBar{font-size:12px; gap:6px 12px; padding:8px 10px}
     .todayBar #tbGo{margin-left:auto}
   }
+  .backLink{display:inline-block; margin:0 0 10px; font-family:var(--f-px); font-weight:700; font-size:13px; color:var(--dim); text-decoration:none; padding:6px 10px; border:2px solid var(--line); background:#120d30}
+  .backLink:hover{color:#fff}
+  .closeX{font-size:14px; padding:4px 10px; border:2px solid rgba(255,184,196,.5)}
   /* ---- INTERFACE PASS: หัวย่อ / การ์ดวันนี้ / เป้ายุบ / แท็บ / ปุ่ม / bottom sheet ---- */
   header.hudbar.compact{padding:10px 14px; margin-bottom:12px; gap:10px}
   .brand{display:flex; align-items:center; gap:10px; min-width:0}
@@ -1017,6 +1020,7 @@
 
   <!-- ===== SCOREBOARD ===== -->
   <div class="page" id="pgBoard">
+    <a class="backLink" href="#" data-back>← กลับสนามแข่ง</a>
     <section class="panel bevel">
       <div class="titlebar"><h2>HOUSE STANDINGS</h2><span>เฉลี่ยต่อคน ไม่ใช่ผลรวม ห้องคนน้อยไม่เสียเปรียบ</span></div>
       <div class="houseGrid" id="houseGrid"></div>
@@ -1053,6 +1057,7 @@
 
   <!-- ===== STATUS ===== -->
   <div class="page" id="pgStatus">
+    <a class="backLink" href="#" data-back>← กลับสนามแข่ง</a>
     <section class="panel bevel">
       <div class="titlebar"><h2>MY STATUS CARD</h2><span>กดแชร์ลงโซเชียลได้เลย</span></div>
       <div class="shareWrap">
@@ -1100,6 +1105,7 @@
 
   <!-- ===== ADMIN (หัวหน้าโค้ชเท่านั้น) ===== -->
   <div class="page" id="pgAdmin">
+    <a class="backLink" href="#" data-back>← กลับสนามแข่ง</a>
     <section class="panel bevel">
       <div class="titlebar"><h2>รายชื่อนักเรียน</h2><span>ใครมีชื่อในนี้ถึงจะสมัครเข้าระบบได้</span></div>
       <div class="body">
@@ -1146,7 +1152,7 @@
 
 <!-- ============ PLEDGE MODAL ============ -->
 <div class="modal" id="pledgeModal"><div class="sheet bevel">
-  <div class="titlebar"><h2 id="plTitle">เป้าของสัปดาห์นี้</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="titlebar"><h2 id="plTitle">เป้าของสัปดาห์นี้</h2><div class="closeX" data-close>✕ ปิด</div></div>
   <div class="body">
     <p class="lede" id="plLede"></p>
     <div class="optGrid" id="plPick"></div>
@@ -1157,7 +1163,7 @@
 
 <!-- ============ DRESSING ROOM ============ -->
 <div class="modal" id="dressModal"><div class="sheet bevel" style="max-width:860px">
-  <div class="titlebar"><h2>DRESSING ROOM</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="titlebar"><h2>DRESSING ROOM</h2><div class="closeX" data-close>✕ ปิด</div></div>
   <div class="body dress">
     <div class="drStage">
       <div id="drPreview"></div>
@@ -1175,7 +1181,7 @@
 
 <!-- ============ PROFILE ============ -->
 <div class="modal" id="modal"><div class="sheet bevel">
-  <div class="titlebar"><h2>RUNNER PROFILE</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="titlebar"><h2>RUNNER PROFILE</h2><div class="closeX" data-close>✕ ปิด</div></div>
   <div class="body">
     <div class="pHero">
       <div class="pStage" id="mSprite"></div>
@@ -1246,7 +1252,7 @@
 
 <!-- ============ HOW TO PLAY ============ -->
 <div class="modal" id="helpModal"><div class="sheet bevel" style="max-width:640px">
-  <div class="titlebar"><h2>❓ วิธีเล่น</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="titlebar"><h2>❓ วิธีเล่น</h2><div class="closeX" data-close>✕ ปิด</div></div>
   <div class="body help">
     <h3>🏁 กติกาหลัก</h3>
     <ul>

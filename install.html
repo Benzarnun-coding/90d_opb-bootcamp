@@ -44,6 +44,7 @@
   .shots figcaption{font-size:13px; color:var(--dim); margin-top:8px; line-height:1.5}
   .shots figcaption b{color:#fff}
   footer{margin-top:30px; text-align:center; color:var(--dim); font-size:13px; font-family:var(--f-px)}
+  .back{position:fixed; left:14px; top:14px; z-index:5; padding:8px 12px; font-family:var(--f-th); font-weight:700; font-size:14px; color:#fff; text-decoration:none; background:#2e2678; border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6}
   .printBtn{position:fixed; right:14px; bottom:14px; padding:10px 14px; font-family:var(--f-th); font-weight:700; color:#fff; background:#2e2678; border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6; cursor:pointer}
   @media print{
     body{background:#fff; color:#111} .wrap{padding:0} header img{box-shadow:none}
@@ -53,11 +54,12 @@
     ol li{border-color:#ddd} ol li::before{background:#c9f7d9; color:#000; border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4}
     .k{background:#f3f3f3; color:#000; border-color:#999} .tip{background:#f6f6ff; color:#333} .tip b{color:#000}
     .warn{background:#fff7d6; color:#333} .warn b{color:#000} .grid div{background:#fafafa; color:#111} .grid b{color:#4a2a80}
-    .faq dt{color:#000} .faq dd{color:#333} footer{color:#555} .printBtn{display:none} .lede{color:#555} .shots img{box-shadow:none; border-color:#999} .shots figcaption{color:#555} .shots figcaption b{color:#000}
+    .faq dt{color:#000} .faq dd{color:#333} footer{color:#555} .printBtn{display:none} .back{display:none} .lede{color:#555} .shots img{box-shadow:none; border-color:#999} .shots figcaption{color:#555} .shots figcaption b{color:#000}
   }
 </style>
 </head>
 <body>
+<a class="back" href="https://opb-bootcamp.netlify.app/">← กลับเข้าแอป</a>
 <div class="wrap">
   <header>
     <img src="/icon-192.png" alt="icon">

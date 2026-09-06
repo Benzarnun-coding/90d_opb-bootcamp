@@ -876,7 +876,11 @@ function show(id){
   window.scrollTo(0,0);
 }
 window.showPage=showPage;
-function showPage(id){
+function showPage(id, fromPop){
+  if(!fromPop && $("scArena").classList.contains("on")){
+    const cur=(history.state&&history.state.page)||"pgRace";
+    if(cur!==id) history.pushState({page:id}, "");
+  }
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("on", p.id===id));
   document.querySelectorAll(".navBtn").forEach(b=>b.classList.toggle("on", b.dataset.page===id));
   if(id==="pgStatus") renderStatus();
@@ -2026,6 +2030,19 @@ function renderNearMe(){
   box.innerHTML=`<div class="head">รอบตัวคุณ · อันดับ ${i+1} จาก ${list.length}</div>`+rows;
 }
 $("nearMe").onclick=e=>{ const t=e.target.closest(".nr"); if(t) openProfile(t.dataset.n); };
+
+/* ---- ปุ่มย้อนกลับของมือถือ/เบราว์เซอร์: ปิดหน้าต่างที่เปิดอยู่ก่อน ไม่งั้นกลับสนามแข่ง ---- */
+new MutationObserver(ms=>{
+  ms.forEach(m=>{ const el=m.target; if(el.classList.contains("on") && !el._pushed){ el._pushed=true; history.pushState({modal:el.id, page:(history.state&&history.state.page)||"pgRace"}, ""); }
+    if(!el.classList.contains("on")) el._pushed=false; });
+}).observe(document.body, {attributes:true, attributeFilter:["class"], subtree:true});
+window.addEventListener("popstate", e=>{
+  const open=[...document.querySelectorAll(".modal.on")];
+  if(open.length){ open[open.length-1].classList.remove("on"); return; }
+  const m=$("moreMenu"), b=$("bellMenu"); if(m) m.hidden=true; if(b) b.hidden=true;
+  if($("scArena").classList.contains("on")) showPage((e.state&&e.state.page)||"pgRace", true);
+});
+document.querySelectorAll("[data-back]").forEach(el=>el.onclick=ev=>{ ev.preventDefault(); showPage("pgRace"); });
 
 /* ---- แท็บในหน้า RACE: สนาม | TA WAR | ฟีด ---- */
 function setSubTab(k){
