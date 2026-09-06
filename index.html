@@ -2,7 +2,15 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#221c50">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OPB Bootcamp">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Creator Bootcamp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +23,7 @@
   :root{
     --void:#0a0820; --deep:#141033; --mid:#221c50; --panel:#2a2360;
     --bevelHi:#7b74d6; --bevelLo:#150f36; --line:#4a41a0;
-    --ink:#f2f0ff; --dim:#a49ce0;
+    --ink:#f2f0ff; --dim:#b3ace8;
     --gold:#ffcc4d; --goldLo:#c98a12;
     --cyan:#4ee1ff; --green:#5ef08c; --red:#ff4d6d;
     --purple:#b06bff; --orange:#ff9f43; --pink:#ff7bc6;
@@ -467,7 +475,7 @@
     background:linear-gradient(180deg,#ffd96b,#e0a018); border:3px solid; border-color:#fff3b0 #8a5a08 #8a5a08 #fff3b0}
   .demoBar a{color:#1a1200; font-weight:700}
   /* ---------- ลายน้ำเครดิต มุมขวาล่างทุกหน้า ---------- */
-  .wm{position:fixed; left:10px; bottom:8px; z-index:38; pointer-events:none; font-family:var(--f-px); font-weight:700;
+  .wm{position:fixed; left:10px; bottom:8px; z-index:34; pointer-events:none; font-family:var(--f-px); font-weight:700;
     font-size:11px; letter-spacing:.5px; color:rgba(255,204,77,.85); text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.8);
     background:rgba(10,8,32,.55); padding:4px 9px; border:2px solid rgba(255,204,77,.35)}
   /* ---------- TOAST ---------- */
@@ -560,7 +568,78 @@
     h1.game{font-size:18px}
     .navBtn{font-size:14px; padding:11px 8px; min-width:0}
     .ring{width:86px;height:86px}
+    /* แถบเมนูติดขอบล่างแบบแอป */
+    .nav{position:fixed; left:0; right:0; bottom:0; z-index:45; margin:0; gap:0; flex-wrap:nowrap;
+      background:#0e0a29; border-top:3px solid var(--line); box-shadow:0 -4px 0 rgba(0,0,0,.45); padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+    .navBtn{font-size:11px; padding:8px 2px; box-shadow:none; border-width:2px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .navBtn small{font-size:9px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .navBtn.go{font-size:15px}
+    @media(max-width:430px){ .navBtn small{display:none} .navBtn{padding:11px 2px} }
+    .wrap{padding-bottom:110px}
+    .wm{bottom:78px; font-size:8px}
+    .toTop{bottom:96px}
+    .todayBar{font-size:12px; gap:6px 12px; padding:8px 10px}
+    .todayBar #tbGo{margin-left:auto}
   }
+  /* ---- กระดิ่ง / ติดตั้ง / ใกล้ฉัน ---- */
+  .chip.bell{position:relative; padding:8px 11px}
+  .bellN{position:absolute; top:-7px; right:-7px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:var(--red); color:#fff;
+    font-size:11px; line-height:20px; text-align:center; border:2px solid var(--void); text-shadow:none}
+  .bellN[hidden]{display:none}
+  .bellMenu{position:absolute; right:16px; z-index:46; width:min(360px, calc(100vw - 32px)); margin-top:-8px; padding:6px 0}
+  .bellMenu[hidden]{display:none}
+  .bellMenu .it{display:flex; gap:10px; align-items:flex-start; padding:10px 14px; font-size:13px; line-height:1.55; color:#e6e1ff; border-bottom:2px solid var(--line); cursor:pointer}
+  .bellMenu .it:last-child{border-bottom:0}
+  .bellMenu .it:hover{background:rgba(255,255,255,.05)}
+  .bellMenu .it i{font-style:normal; font-size:18px; line-height:1.2}
+  .bellMenu .it small{display:block; color:var(--dim); font-size:11.5px}
+  .bellMenu .none{padding:14px; color:var(--dim); font-size:13px; text-align:center}
+  .nearMe{margin:0 16px 12px; border:2px solid var(--line); background:#120d30}
+  .nearMe[hidden]{display:none}
+  .nearMe .nr{display:grid; grid-template-columns:44px 1fr auto auto; gap:10px; align-items:center; padding:8px 12px; border-bottom:2px solid var(--line); cursor:pointer; font-size:13px}
+  .nearMe .nr:last-child{border-bottom:0}
+  .nearMe .nr.me{background:rgba(255,204,77,.1); box-shadow:inset 3px 0 0 var(--gold)}
+  .nearMe .nr .rk{width:auto; font-size:14px}
+  .nearMe .nr .nm{font-size:14px}
+  .nearMe .nr .gap{font-family:var(--f-px); font-size:12px; color:var(--dim); white-space:nowrap}
+  .nearMe .nr .ct{font-family:var(--f-px); font-weight:700; font-size:16px; color:#fff; text-shadow:0 2px 0 #000}
+  .nearMe .head{padding:8px 12px 6px; font-family:var(--f-px); font-size:11px; letter-spacing:1px; color:var(--gold)}
+  /* ---- UX pass: nav ส่งงาน / แถบวันนี้ / loader / onboarding / +1 ---- */
+  .navBtn.go{color:#0d2a14; background:linear-gradient(180deg,#4fd67e,#22a054 60%,#137a3c); border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4; text-shadow:none}
+  .navBtn.go small{color:#0d2a14; opacity:.8}
+  .navBtn.go:hover{color:#fff}
+  .todayBar{position:sticky; top:0; z-index:36; display:flex; align-items:center; gap:10px 16px; flex-wrap:wrap; margin:-6px 0 16px;
+    padding:9px 14px; font-size:13px; background:#0e0a29; border:2px solid var(--line); box-shadow:0 4px 0 rgba(0,0,0,.45)}
+  .todayBar[hidden]{display:none}
+  .todayBar .tbState{font-family:var(--f-px); font-weight:700; font-size:13px}
+  .todayBar.ok .tbState{color:var(--green)} .todayBar.wait .tbState{color:var(--orange)} .todayBar.late .tbState{color:var(--red); animation:bossAlert .8s steps(2) infinite}
+  .todayBar .tbClock{color:#cdc7ff} .todayBar .tbClock b{font-family:var(--f-px); color:var(--cyan)}
+  .todayBar .tbWeek{color:#cdc7ff}
+  .todayBar #tbGo{margin-left:auto}
+  .todayBar.ok #tbGo{display:none}
+  .btn.xs.gold{margin-left:0}
+  .platHint{font-family:var(--f-th); font-weight:400; font-size:11.5px; color:var(--green); margin-left:8px; text-transform:none; letter-spacing:0}
+  .loader{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; background:var(--void)}
+  .loader[hidden]{display:none}
+  .ldBox{padding:18px 26px; font-family:var(--f-px); font-weight:700; font-size:14px; color:#dcd6ff; text-align:center}
+  .ldDots{display:flex; gap:8px; justify-content:center; margin-bottom:12px}
+  .ldDots i{width:12px; height:12px; background:var(--gold); animation:ldBounce .9s steps(3) infinite}
+  .ldDots i:nth-child(2){animation-delay:.15s} .ldDots i:nth-child(3){animation-delay:.3s}
+  @keyframes ldBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  .obSlide{text-align:center; padding:8px 4px}
+  .obIcon{font-size:56px; line-height:1; margin-bottom:12px}
+  .obSlide h3{font-family:var(--f-px); font-size:18px; color:var(--gold); margin:0 0 10px; text-shadow:0 2px 0 #000}
+  .obSlide p{font-size:14px; line-height:1.85; color:#e6e1ff; margin:0}
+  .plus1{position:absolute; left:50%; top:-10px; transform:translateX(-50%); font-family:var(--f-px); font-weight:700; font-size:18px; color:var(--green);
+    text-shadow:0 2px 0 #000, 0 0 8px rgba(94,240,140,.8); pointer-events:none; animation:dmgPop 1.6s ease-out forwards; z-index:5}
+  /* อ่านง่ายขึ้น: ขั้นต่ำ ~12px และสีเทาสว่างขึ้น */
+  .hint{font-size:13px} .sub{font-size:13px} .lede{font-size:14px}
+  .navBtn small{font-size:12px}
+  .feed .plat,.feed .sp,.feed .when{font-size:12px}
+  .statBox span{font-size:12px}
+  .badge small{font-size:10.5px}
+  .houseCard .hl{font-size:12px}
+  .runner .tag{font-size:13px}
   /* ---- ปุ่มพื้นฐาน: ตา / วิธีเล่น / กลับขึ้นบน ---- */
   .pwWrap{position:relative}
   .pwWrap input{padding-right:46px}
@@ -748,31 +827,39 @@
       <div class="chip">DAY <b id="hudDay">--</b>/<span id="hudTotal">84</span></div>
       <div class="chip clock">ปิดรอบใน <b id="hudClock">--:--:--</b></div>
       <div class="chip live" id="modeTag">DEMO</div>
+      <button class="chip btnChip bell" id="bellBtn" hidden>🔔<b class="bellN" id="bellN" hidden>0</b></button>
+      <button class="chip btnChip" id="installBtn" hidden>📲 ติดตั้งแอป</button>
       <button class="chip btnChip" id="helpBtn">❓ วิธีเล่น</button>
       <button class="chip btnChip" id="outBtn2">⏏ SIGN OUT</button>
     </div>
   </header>
+  <div class="bellMenu bevel" id="bellMenu" hidden></div>
+  <div class="todayBar" id="todayBar" hidden>
+    <span class="tbState" id="tbState">—</span>
+    <span class="tbClock">ปิดรอบใน <b id="tbClock">--:--:--</b></span>
+    <span class="tbWeek" id="tbWeek"></span>
+    <button class="btn xs gold" id="tbGo">ส่งงาน ▶</button>
+  </div>
 
   <nav class="nav">
     <button class="navBtn on" data-page="pgRace">🏁 RACE<small>สนามแข่ง</small></button>
     <button class="navBtn" data-page="pgBoard">🏆 SCOREBOARD<small>อันดับทั้งรุ่น</small></button>
+    <button class="navBtn go" id="navSubmit">＋ ส่งงาน<small>วางลิงก์ 1 ชิ้น</small></button>
     <button class="navBtn" data-page="pgStatus" id="statusNav">📣 MY STATUS<small>การ์ดไว้แชร์</small></button>
     <button class="navBtn" data-page="pgAdmin" id="adminNav" style="display:none">⚙️ ADMIN<small>สำหรับหัวหน้าโค้ช</small></button>
   </nav>
 
   <!-- ===== RACE ===== -->
   <div class="page on" id="pgRace">
-    <section class="pledgeCard bevel" id="pledgeCard"></section>
-
     <section class="panel bevel" id="submitPanel">
-      <div class="titlebar"><h2>SUBMIT CONTENT</h2><span>วางลิงก์งานที่เพิ่งปล่อย — นับทันที</span></div>
+      <div class="titlebar"><h2>SUBMIT CONTENT</h2><span>วางลิงก์แล้วกดส่ง — ระบบเลือกแพลตฟอร์มให้เอง</span></div>
       <div class="body">
         <div class="row">
           <div><label>RUNNER</label><div class="meBox" id="who">—</div></div>
           <div><label>PLATFORM</label><select id="plat"></select></div>
         </div>
-        <label>CONTENT URL</label>
-        <input id="url" placeholder="https://www.tiktok.com/@yourname/video/1234567890">
+        <label>CONTENT URL <span id="platHint" class="platHint"></span></label>
+        <input id="url" placeholder="วางลิงก์โพสต์ที่เพิ่งปล่อย" inputmode="url" autocomplete="off">
         <button class="btn go" id="pushBtn">▶ SUBMIT</button>
         <div class="hint">
           วันหนึ่งส่งกี่ชิ้นก็ได้ ส่งเกินเป้าก็ได้ · ลิงก์ซ้ำส่งไม่ได้<br>
@@ -785,6 +872,9 @@
         </div>
       </div>
     </section>
+
+    <section class="pledgeCard bevel" id="pledgeCard"></section>
+
 
     <section class="panel bevel">
       <div class="titlebar"><h2 id="trackTitle">RACE TRACK</h2><span id="trackSub"></span></div>
@@ -818,6 +908,7 @@
         <h2>SCOREBOARD</h2>
         <span><button class="btn sm" id="jumpMe">ไปที่อันดับฉัน</button></span>
       </div>
+      <div class="nearMe" id="nearMe" hidden></div>
       <div class="filters" id="boardFilters"></div>
       <div class="legend" id="boardLegend" style="padding:0 16px 10px;margin-top:0">
         <span><i style="background:#fff"></i>นักเรียน</span>
@@ -1005,6 +1096,35 @@
   </div>
 </div></div>
 
+<!-- ============ LOADER ============ -->
+<div id="loader" class="loader"><div class="ldBox bevel"><div class="ldDots"><i></i><i></i><i></i></div>กำลังโหลดสนาม…</div></div>
+
+<!-- ============ ONBOARDING ============ -->
+<div class="modal" id="obModal"><div class="sheet bevel" style="max-width:520px">
+  <div class="titlebar"><h2>ยินดีต้อนรับสู่สนาม</h2><span id="obStep">1 / 3</span></div>
+  <div class="body">
+    <div class="obSlide" data-ob="0">
+      <div class="obIcon">🔗</div>
+      <h3>วางลิงก์ = วิ่ง 1 ก้าว</h3>
+      <p>โพสต์คอนเทนต์ที่ไหนก็ได้ (TikTok, IG, YouTube, Facebook, X, Blog) แล้วเอาลิงก์มาวางในช่อง <b>ส่งงาน</b> 1 ลิงก์ = 1 ชิ้น ตัวละครของคุณจะวิ่งไปข้างหน้าทันที เส้นชัยอยู่ที่ 90 ชิ้น</p>
+    </div>
+    <div class="obSlide" data-ob="1" hidden>
+      <div class="obIcon">🎯</div>
+      <h3>เลือกเป้าทุกต้นสัปดาห์</h3>
+      <p>4 / 7 / 10 / 14 ชิ้นต่อสัปดาห์ เลือกตามที่ไหวจริง ทำครบได้ร่างพิเศษ (ไฟแดง / ไฟทอง) พลาดเป้าจะกลายเป็นร่างหมดแรง ไม่ส่งเลยทั้งสัปดาห์เป็นร่างกระโหลก แต่ฟื้นได้เสมอเมื่อกลับมาทำครบ</p>
+    </div>
+    <div class="obSlide" data-ob="2" hidden>
+      <div class="obIcon">⏰</div>
+      <h3>ปิดรอบตี 4 ทุกวัน</h3>
+      <p>งานที่ส่งก่อนตี 4 นับเป็นของวันนี้ ส่งหลังตี 4 นับเป็นวันถัดไป ส่งติดกันทุกวันจะมีไฟที่เท้า 🔥 เปิดเตือนก่อนปิดรอบได้ที่หน้า MY STATUS<br><br>กด ❓ วิธีเล่น มุมบนได้ทุกเมื่อ</p>
+    </div>
+    <div class="shareBtns" style="margin-top:16px;justify-content:space-between">
+      <button class="btn sm" id="obSkip">ข้าม</button>
+      <button class="btn go" id="obNext" style="max-width:220px;margin:0">ต่อไป ▶</button>
+    </div>
+  </div>
+</div></div>
+
 <!-- ============ HOW TO PLAY ============ -->
 <div class="modal" id="helpModal"><div class="sheet bevel" style="max-width:640px">
   <div class="titlebar"><h2>❓ วิธีเล่น</h2><div class="closeX" data-close>[ X ]</div></div>
@@ -1038,6 +1158,7 @@
     <h3>🔔 ไม่พลาดรอบ</h3>
     <ul>
       <li>กด "เปิดเตือนก่อนปิดรอบ" ที่ MY STATUS จะมีแจ้งเตือนตอน 2 ทุ่มถ้าวันนั้นยังไม่ส่ง</li>
+      <li><b>ติดตั้งเป็นแอป</b> Android/คอม: กดปุ่ม "📲 ติดตั้งแอป" มุมบน · iPhone: กดปุ่มแชร์ใน Safari แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"</li>
       <li>เข้าไม่ได้ / รหัสไม่ผ่าน / ส่งผิด ติดต่อทีมงานใน Discord ได้เลย</li>
     </ul>
   </div>

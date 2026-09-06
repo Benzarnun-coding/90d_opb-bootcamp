@@ -865,6 +865,8 @@ function toast(msg){
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),3200);
 }
 function show(id){
+  const ld=$("loader"); if(ld) ld.hidden=true;
+  if(id==="scArena") setTimeout(renderTodayBar, 0);
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id));
   $("sky").style.opacity = id==="scArena" ? ".28" : "1";
   window.scrollTo(0,0);
@@ -1127,7 +1129,7 @@ function boardList(){
   return S.boardFilter==="all"||S.boardFilter==="near" ? all : all.filter(r=>r.house===+S.boardFilter || roleOf(r)==="head");
 }
 function renderBoard(){
-  renderHouses();
+  renderHouses(); renderNearMe();
   const full=ranked();
   const list=boardList();
   $("board").innerHTML=list.map(r=>{
@@ -1180,7 +1182,7 @@ function renderFeed(){
       <span class="sp">S${f.sp+1}</span><span class="plat">${f.plat}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
       <span class="when">${ago(f.ts)}</span></li>`;
-  }).join("") : `<li style="color:var(--dim)">ยังไม่มีงานที่ส่ง</li>`;
+  }).join("") : `<li style="color:var(--dim)">ยังไม่มีใครส่งงานเลย — วางลิงก์ชิ้นแรกแล้วชื่อคุณจะขึ้นตรงนี้เป็นคนแรกของรุ่น</li>`;
 }
 
 /* ================= SPRINT MAP ================= */
@@ -1601,7 +1603,9 @@ function renderHud(){
   $("hudDay").textContent=S.today;
   $("hudTotal").textContent=TOTAL;
   $("hudClock").textContent=cutoffLeft();
+  renderTodayBar(); renderBell();
   $("submitPanel").style.display = S.spectator ? "none" : "";
+  $("navSubmit").style.display = S.spectator ? "none" : "";
   $("statusNav").style.display   = S.spectator ? "none" : "";
   if(S.spectator){
     $("meLine").innerHTML=`👀 <span style="color:var(--cyan)">โหมดคนดู</span> · นักเรียน ${students().length} คน · คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
@@ -1728,7 +1732,7 @@ $("joinBtn").onclick=async()=>{
   }catch(err){ toast(err.message); $("joinBtn").disabled=false; }
 };
 document.querySelector(".nav").onclick=e=>{
-  const b=e.target.closest(".navBtn"); if(b) showPage(b.dataset.page);
+  const b=e.target.closest(".navBtn"); if(b && b.dataset.page) showPage(b.dataset.page);
 };
 function scrollToMe(){
   const el=document.querySelector(".lane.meLane");
@@ -1833,6 +1837,122 @@ $("simBtn").onclick=async()=>{
 };
 $("outBtn").onclick=async()=>{ await DB.signOut(); location.reload(); };
 $("outBtn2").onclick=()=>$("outBtn").click();
+/* ---- PWA: ลงทะเบียน service worker + ปุ่มติดตั้ง ---- */
+if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
+let deferredInstall=null;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredInstall=e; $("installBtn").hidden=false; });
+window.addEventListener("appinstalled", ()=>{ $("installBtn").hidden=true; toast("ติดตั้งแอปแล้ว 📲 เปิดจากหน้าจอโฮมได้เลย"); });
+$("installBtn").onclick=async()=>{ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $("installBtn").hidden=true; };
+
+/* ---- กระดิ่ง: เหตุการณ์ที่เกี่ยวกับฉัน ---- */
+function myEvents(){
+  const me=meR(); if(!me || S.spectator) return [];
+  const ev=[], id=me.id, cw=curWeek();
+  const ch=(S.cheers||[]).filter(c=>c.to_id===id && c.day_index===S.today);
+  if(ch.length){ const names=[...new Set(ch.map(c=>(S.runners.find(r=>r.id===c.from_id)||{}).name).filter(Boolean))];
+    ev.push({k:"cheer"+ch.length, i:"👏", t:`วันนี้มีคนเชียร์คุณ ${ch.length} คน`, s:names.slice(0,5).join(", "), go:()=>showPage("pgRace")}); }
+  (S.duels||[]).forEach(d=>{
+    const mine=d.challenger===id||d.opponent===id; if(!mine) return;
+    const other=d.challenger===id?d.opponent_name:d.challenger_name;
+    if(d.status==="pending" && d.opponent===id) ev.push({k:"dp"+d.id, i:"⚔️", t:`${other} ท้าดวลคุณ 7 วัน`, s:"กดรับหรือปฏิเสธที่การ์ดเป้า", go:()=>showPage("pgRace")});
+    if(d.status==="active"){ const my=d.challenger===id?d.challenger_score:d.opponent_score, th=d.challenger===id?d.opponent_score:d.challenger_score;
+      ev.push({k:"da"+d.id+my+th, i:"⚔️", t:`ดวลกับ ${other}: คุณ ${my} : ${th}`, s:`เหลือ ${Math.max(0,d.end_day-S.today+1)} วัน`, go:()=>showPage("pgRace")}); }
+    if(d.status==="done" && d.winner===id && d.prize_hat==null) ev.push({k:"dw"+d.id, i:"🏆", t:`คุณชนะดวลกับ ${other}!`, s:"เลือกหมวกให้ผู้แพ้ที่การ์ดเป้า", go:()=>showPage("pgRace")});
+    if(d.status==="done" && d.winner && d.winner!==id && d.prize_hat!=null && S.today<=d.end_day+7) ev.push({k:"dl"+d.id, i:"😵", t:`แพ้ดวล ${other} — ใส่หมวกที่เขาเลือกอีก ${d.end_day+7-S.today+1} วัน`, s:"", go:()=>showPage("pgStatus")});
+  });
+  (S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null||b.house_id===me.house)).forEach(b=>{
+    if(b.damage>=b.hp) ev.push({k:"bk"+b.id, i:"💥", t:`ล้มบอส ${b.name} แล้ว!`, s:"ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER", go:()=>showPage("pgRace")});
+    else if(b.hp-b.damage<=Math.ceil(b.hp*0.2)) ev.push({k:"bh"+b.id+b.damage, i:"👹", t:`บอส ${b.name} เหลือ HP ${b.hp-b.damage}`, s:"อีกนิดเดียว ส่งงานช่วยบ้าน!", go:()=>showPage("pgRace")});
+  });
+  if(isKingNow(me)) ev.push({k:"king"+cw, i:"👑", t:"คุณคือที่ 1 ของบ้านสัปดาห์นี้", s:"รักษาไว้จนจบสัปดาห์จะได้ป้าย King of the Week", go:()=>showPage("pgBoard")});
+  const st=stats(me);
+  if(st.dayStreak>=7 && [7,14,21,30].includes(st.dayStreak)) ev.push({k:"stk"+st.dayStreak, i:"🔥", t:`streak ${st.dayStreak} วันติด!`, s:"", go:()=>showPage("pgStatus")});
+  return ev;
+}
+function renderBell(){
+  const me=meR(), btn=$("bellBtn"); if(!btn) return;
+  if(!me || S.spectator){ btn.hidden=true; $("bellMenu").hidden=true; return; }
+  btn.hidden=false;
+  const ev=myEvents(); const key="bellSeen."+me.id; let seen=""; try{ seen=localStorage.getItem(key)||""; }catch(e){}
+  const sig=ev.map(e=>e.k).join("|");
+  const n = sig && sig!==seen ? ev.length : 0;
+  $("bellN").hidden = !n; $("bellN").textContent=n;
+  $("bellMenu").innerHTML = ev.length ? ev.map((e,i)=>`<div class="it" data-ev="${i}"><i>${e.i}</i><div>${e.t}${e.s?`<small>${e.s}</small>`:""}</div></div>`).join("")
+    : '<div class="none">ยังไม่มีอะไรใหม่ — ส่งงานแล้วเดี๋ยวมีคนมาเชียร์</div>';
+  $("bellMenu")._ev=ev; $("bellMenu")._sig=sig;
+}
+$("bellBtn").onclick=()=>{ const m=$("bellMenu"); m.hidden=!m.hidden; if(!m.hidden){ try{ localStorage.setItem("bellSeen."+meR().id, m._sig||""); }catch(e){} $("bellN").hidden=true; } };
+$("bellMenu").onclick=e=>{ const it=e.target.closest(".it"); if(!it) return; const ev=($("bellMenu")._ev||[])[+it.dataset.ev]; $("bellMenu").hidden=true; if(ev&&ev.go) ev.go(); };
+document.addEventListener("click", e=>{ if(!e.target.closest("#bellMenu") && !e.target.closest("#bellBtn")) $("bellMenu").hidden=true; });
+
+/* ---- ใกล้ฉันในสกอร์บอร์ด: คนบน / ฉัน / คนล่าง ---- */
+function renderNearMe(){
+  const box=$("nearMe"); const me=meR();
+  if(!me || S.spectator){ box.hidden=true; return; }
+  const list=ranked(); const i=list.findIndex(r=>r.name===me.name); if(i<0){ box.hidden=true; return; }
+  const rows=[i-1,i,i+1].filter(j=>j>=0 && j<list.length).map(j=>{
+    const r=list[j], s=stats(r), my=stats(me).contents, d=s.contents-my;
+    const gap = j===i ? "คุณ" : d>0 ? `นำคุณ ${d} ชิ้น` : d<0 ? `ตามคุณ ${-d} ชิ้น` : "เท่ากัน";
+    return `<div class="nr ${j===i?"me":""}" data-n="${r.name}"><span class="rk">${j<3?["🥇","🥈","🥉"][j]:String(j+1).padStart(2,"0")}</span>
+      <span class="nm" style="color:${boardColor(r,s)}">${r.name}</span><span class="gap">${gap}</span><span class="ct">${s.contents}</span></div>`;
+  }).join("");
+  box.hidden=false;
+  box.innerHTML=`<div class="head">รอบตัวคุณ · อันดับ ${i+1} จาก ${list.length}</div>`+rows;
+}
+$("nearMe").onclick=e=>{ const t=e.target.closest(".nr"); if(t) openProfile(t.dataset.n); };
+
+/* ---- ปุ่มส่งงานในเมนู: ไปหน้า RACE เลื่อนถึงช่อง แล้ววางเคอร์เซอร์ให้ ---- */
+function goSubmit(){
+  if(S.spectator) return leaveSpectator();
+  showPage("pgRace");
+  setTimeout(()=>{ $("submitPanel").scrollIntoView({behavior:"smooth", block:"start"}); setTimeout(()=>$("url").focus({preventScroll:true}), 450); }, 30);
+}
+$("navSubmit").onclick=goSubmit;
+$("tbGo").onclick=goSubmit;
+/* ---- เดาแพลตฟอร์มจากลิงก์ ---- */
+function detectPlat(url){
+  const u=url.toLowerCase();
+  const map=[[/tiktok\.com|vt\.tiktok/,"TikTok"],[/youtube\.com|youtu\.be/,"YouTube"],[/instagram\.com|instagr\.am/,"Instagram"],
+             [/facebook\.com|fb\.watch|fb\.com|fb\.me/,"Facebook"],[/(^|\/\/)(www\.)?(x\.com|twitter\.com)|t\.co\//,"X"]];
+  const hit=map.find(([re])=>re.test(u)); return hit ? hit[1] : null;
+}
+$("url").addEventListener("input", ()=>{
+  const p=detectPlat($("url").value.trim());
+  if(p && PLATS.includes(p)){ $("plat").value=p; $("platHint").textContent=`✓ เลือก ${p} ให้แล้ว`; }
+  else $("platHint").textContent = $("url").value.trim() ? "เลือกแพลตฟอร์มด้านบนให้ตรง" : "";
+});
+/* ---- แถบวันนี้ (ติดขอบบน) ---- */
+function renderTodayBar(){
+  const bar=$("todayBar"); if(!bar) return;
+  const me=meR();
+  if(S.spectator || !me || !$("scArena").classList.contains("on")){ bar.hidden=true; return; }
+  bar.hidden=false;
+  const s=stats(me), n=(s.byDay||{})[S.today]||0;
+  const left=cutoffLeft(); const hrs=parseInt(left,10);
+  bar.className="todayBar "+(n?"ok":(isFinite(hrs)&&hrs<3?"late":"wait"));
+  $("tbState").textContent = n ? `✅ วันนี้ส่งแล้ว ${n} ชิ้น` : `⏳ วันนี้ยังไม่ส่ง`;
+  $("tbClock").textContent = left;
+  $("tbWeek").textContent = s.weekTarget ? `สัปดาห์นี้ ${s.weekDone}/${s.weekTarget}` : "ยังไม่เลือกเป้าสัปดาห์";
+}
+/* ---- +1 ลอยเหนือหัวตัวเอง ---- */
+function floatPlus(txt="+1"){
+  const el=document.querySelector(".runner.me .body"); if(!el) return;
+  const b=document.createElement("b"); b.className="plus1"; b.textContent=txt; el.appendChild(b); setTimeout(()=>b.remove(),1700);
+}
+/* ---- แนะนำครั้งแรก 3 หน้า ---- */
+let obIdx=0;
+function obShow(i){ obIdx=i; document.querySelectorAll(".obSlide").forEach(s=>s.hidden=+s.dataset.ob!==i); $("obStep").textContent=`${i+1} / 3`; $("obNext").textContent=i===2?"เริ่มเลย ▶":"ต่อไป ▶"; }
+function maybeOnboard(){
+  const me=meR(); if(!me || S.spectator) return Promise.resolve(false);
+  const key="onboarded."+me.id; let seen=false; try{ seen=!!localStorage.getItem(key); }catch(e){}
+  if(seen || stats(me).contents>0){ try{ localStorage.setItem(key,"1"); }catch(e){} return Promise.resolve(false); }
+  return new Promise(res=>{
+    obShow(0); $("obModal").classList.add("on");
+    const done=()=>{ $("obModal").classList.remove("on"); try{ localStorage.setItem(key,"1"); }catch(e){} res(true); };
+    $("obSkip").onclick=done;
+    $("obNext").onclick=()=>{ if(obIdx<2) obShow(obIdx+1); else done(); };
+  });
+}
 $("helpBtn").onclick=()=>$("helpModal").classList.add("on");
 $("eyeBtn").onclick=()=>{ const p=$("pass"); p.type = p.type==="password" ? "text" : "password"; $("eyeBtn").textContent = p.type==="password" ? "👁" : "🙈"; p.focus(); };
 window.addEventListener("scroll", ()=>{ $("toTop").hidden = window.scrollY < 600; }, {passive:true});
@@ -2069,8 +2189,8 @@ function jumpMe(){
   if(el){ el.classList.add("jump"); setTimeout(()=>el.classList.remove("jump"),700); }
 }
 function celebrate(kind){
-  if(kind==="submit"){ SFX.coin(); jumpMe(); }
-  if(kind==="target"){ SFX.fanfare(); jumpMe(); confetti(); }
+  if(kind==="submit"){ SFX.coin(); jumpMe(); floatPlus("+1"); }
+  if(kind==="target"){ SFX.fanfare(); jumpMe(); floatPlus("🎯 ครบเป้า!"); confetti(); }
   if(kind==="unlock"){ SFX.unlock(); confetti(30); }
   if(kind==="revive"){ SFX.revive(); jumpMe(); confetti(70); }
 }
@@ -2374,6 +2494,7 @@ async function boot(){
   DB.subscribe(()=>refresh()); S._subbed=true;
   show("scArena");
   renderPushBtn();
+  await maybeOnboard();                                  // เข้าครั้งแรก: 3 หน้าสั้น ๆ ก่อนเริ่ม
   const recap = await maybeShowRecap();               // ขึ้นสัปดาห์ใหม่ → สรุปสัปดาห์ที่แล้วก่อน แล้วค่อยเลือกเป้า
   if(!recap && !(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
 }
@@ -2400,7 +2521,7 @@ if(LIVE && C.GOOGLE_AUTH){
   $("googleBtn").style.display="";
   $("googleBtn").onclick=async()=>{ try{ await DB.signInGoogle(); }catch(e){ toast(e.message); } };
 }
-setInterval(()=>{ if($("scArena").classList.contains("on")) $("hudClock").textContent=cutoffLeft(); },1000);
+setInterval(()=>{ if($("scArena").classList.contains("on")){ $("hudClock").textContent=cutoffLeft(); const c=$("tbClock"); if(c) c.textContent=cutoffLeft(); } },1000);
 setInterval(()=>{ if($("pgRace").classList.contains("on")) renderFeed(); },60000);
 
 boot().catch(err=>{ console.error(err); show("scTitle"); toast("เชื่อมต่อไม่ได้<br>"+err.message); });

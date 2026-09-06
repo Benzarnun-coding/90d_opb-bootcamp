@@ -1,0 +1,17 @@
+{
+  "name": "90 Day One Person Business Bootcamp",
+  "short_name": "OPB Bootcamp",
+  "description": "สนามแข่งปล่อยคอนเทนต์ 90 วัน — ส่งงาน วิ่ง แข่งกับเพื่อน",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0820",
+  "theme_color": "#221c50",
+  "lang": "th",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
