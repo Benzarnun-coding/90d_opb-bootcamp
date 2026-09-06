@@ -1742,7 +1742,16 @@ $("plPick").onclick=e=>{
   const b=e.target.closest(".optCard"); if(!b||b.disabled) return;
   pickPledge=+b.dataset.t; drawPledgePick();
 };
-$("startBtn").onclick=()=>{ drawSelect(); show(BOOTSTATE&&BOOTSTATE.needsAuth?"scAuth":"scSelect"); };
+/* PRESS START: ถ้าล็อกอินและมีตัวละครแล้ว เข้าสนามเลย ไม่ต้องผ่านหน้าสร้างตัวละครอีก */
+$("startBtn").onclick=async()=>{
+  if(BOOTSTATE && !BOOTSTATE.needsAuth && !BOOTSTATE.needsProfile){
+    if(S.me && S.runners.length){ show("scArena"); showPage("pgRace"); return; }
+    $("startBtn").textContent="กำลังโหลดสนาม…";
+    try{ await boot(); } catch(e){ toast(e.message); } finally{ $("startBtn").textContent="▶ PRESS START"; }
+    return;
+  }
+  drawSelect(); show(BOOTSTATE&&BOOTSTATE.needsAuth?"scAuth":"scSelect");
+};
 $("authBtn").onclick=async()=>{
   const em=$("email").value.trim(), pw=$("pass").value;
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return toast("ใส่อีเมลให้ถูกก่อน");
@@ -2671,6 +2680,7 @@ window.goHome=()=>{
   document.querySelectorAll(".modal.on").forEach(m=>m.classList.remove("on"));
   $("moreMenu").hidden=true; $("bellMenu").hidden=true;
   if(S.spectator){ S.spectator=false; history.replaceState(null,"",location.pathname+location.search); }
+  $("startBtn").textContent = (S.me && BOOTSTATE && !BOOTSTATE.needsProfile) ? `▶ เข้าสนามต่อ · ${S.me}` : "▶ PRESS START";
   show("scTitle"); window.scrollTo(0,0);
 };
 $("homeBtn").onclick=goHome; $("homeBtn2").onclick=goHome;
