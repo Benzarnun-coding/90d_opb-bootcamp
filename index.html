@@ -581,6 +581,78 @@
     .todayBar{font-size:12px; gap:6px 12px; padding:8px 10px}
     .todayBar #tbGo{margin-left:auto}
   }
+  /* ---- INTERFACE PASS: หัวย่อ / การ์ดวันนี้ / เป้ายุบ / แท็บ / ปุ่ม / bottom sheet ---- */
+  header.hudbar.compact{padding:10px 14px; margin-bottom:12px; gap:10px}
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brandIco{width:40px; height:40px; image-rendering:pixelated; border:2px solid var(--line); flex:0 0 40px}
+  header.compact h1.game{font-size:15px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw}
+  header.compact .sub{margin-top:3px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw}
+  header.compact .chip{font-size:12px; padding:6px 9px}
+  #moreMenu{width:min(300px, calc(100vw - 32px))}
+  .panel{margin-bottom:16px} .pledgeCard{margin-bottom:16px}
+  .titlebar h2{font-size:15px}
+  .today .tdTop{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .today .tdMe{flex:0 0 44px; height:64px; display:flex; align-items:flex-end; justify-content:center}
+  .today .tdInfo{flex:1 1 200px; min-width:0}
+  .today .tdName{font-family:var(--f-px); font-weight:700; font-size:16px; color:#fff; text-shadow:0 2px 0 #000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .today .tdName small{font-family:var(--f-th); font-weight:400; font-size:12px; color:var(--dim); margin-left:6px}
+  .today .lvBox{margin-bottom:0; margin-top:6px}
+  .today .tdState{flex:0 0 auto; text-align:right; padding:8px 12px; border:2px solid var(--line); background:#0e0a29; min-width:150px}
+  .today .tdState b{display:block; font-family:var(--f-px); font-size:13px}
+  .today .tdState span{font-size:12px; color:#cdc7ff}
+  .today .tdState i{font-style:normal; font-family:var(--f-px); color:var(--cyan)}
+  .today .tdState.ok b{color:var(--green)} .today .tdState.wait b{color:var(--orange)} .today .tdState.late b{color:var(--red); animation:bossAlert .8s steps(2) infinite}
+  .today .qList{margin-top:12px}
+  .today .qFoot{align-items:center}
+  .today .qFoot .btn{margin-left:auto}
+  .plSum{flex-basis:100%; display:flex; align-items:center; gap:8px 14px; flex-wrap:wrap; cursor:pointer; font-size:13px; color:#e6e1ff; user-select:none}
+  .plSum b{font-family:var(--f-px); font-size:16px; color:#fff; text-shadow:0 2px 0 #000}
+  .plSum .pchip{font-size:12px; padding:2px 8px; border:2px solid var(--line); background:#120d30; color:#cdc7ff}
+  .plSum .pchip.hot{border-color:var(--orange); color:#ffd9a8}
+  .plSum em{font-style:normal; margin-left:auto; font-size:12px; color:var(--dim)}
+  .pledgeCard.collapsed > *:not(.plSum){display:none}
+  .pledgeCard.collapsed{padding:12px 16px}
+  .subTabs{display:flex; gap:6px; margin:0 0 10px}
+  .subTabs button{flex:1; font-family:var(--f-px); font-weight:700; font-size:13px; padding:9px 6px; cursor:pointer; color:#9a92d8; background:#161139; border:3px solid; border-color:#3a3280 #0a0722 #0a0722 #3a3280}
+  .subTabs button.on{color:var(--gold); background:linear-gradient(180deg,#5b51c4,#332a80); border-color:#a79dff #1a1245 #1a1245 #a79dff}
+  .subTabs button[hidden]{display:none}
+  .btn.link{background:none; border:0; box-shadow:none; color:var(--dim); text-decoration:underline; padding:6px 8px; font-size:12px; font-family:var(--f-th); text-shadow:none; letter-spacing:0}
+  .btn.link:hover{color:#fff} .btn.link:active{transform:none}
+  .btn.sm{background:linear-gradient(180deg,#2a2468,#1a1444 60%,#130f33); border-color:#5a51b8 #0a0722 #0a0722 #5a51b8; color:#dcd6ff}
+  .infoD{margin-top:10px}
+  .infoD summary{cursor:pointer; font-size:12px; color:var(--dim); list-style:none; display:inline-block; padding:2px 0}
+  .infoD summary::-webkit-details-marker{display:none}
+  .infoD summary:hover{color:#fff}
+  .infoD .hint{margin-top:6px}
+  .zone .zt{display:inline}
+  @media(max-width:700px){
+    .modal{align-content:end; justify-content:center; padding:0}
+    .modal .sheet{max-height:92vh; overflow:auto; animation:sheetUp .28s ease-out; margin:0; border-bottom:0; width:100%}
+    .modal .sheet .titlebar{position:sticky; top:0; z-index:3}
+    .modal .sheet .titlebar::before{content:""; position:absolute; left:50%; top:4px; width:44px; height:4px; margin-left:-22px; background:rgba(255,255,255,.35); border-radius:2px}
+    #modal .body{display:flex; flex-direction:column}
+    #modal #mCheer{order:-1; margin-bottom:12px}
+    .track{min-width:0; padding:22px 6px 8px}
+    .zones,.checkpoints{inset:22px 6px 8px}
+    .zone .zt{display:none}
+    .zone b{font-size:9px}
+    .lane{height:70px}
+    .runner{width:30px; transform:translateX(calc(var(--p) * (100cqw - 40px)))}
+    .runner .body{zoom:.62}
+    .runner .lbl .name{font-size:9px}
+    .today .tdState{flex:1 1 100%; text-align:left; display:flex; justify-content:space-between; align-items:center; min-width:0}
+    .today .tdState b{font-size:12px}
+    header.compact h1.game{font-size:13px; max-width:46vw}
+  }
+  @keyframes sheetUp{from{transform:translateY(40px); opacity:.5}to{transform:translateY(0); opacity:1}}
+  @media(max-width:700px){
+    header.compact .hud{flex-wrap:nowrap; overflow:hidden}
+    header.compact .chip{padding:6px 7px; font-size:11px; white-space:nowrap}
+    header.compact #modeTag{display:none}
+    .filters{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px}
+    .filters::-webkit-scrollbar{display:none}
+    .filters .fBtn{flex:0 0 auto; white-space:nowrap; font-size:12px; padding:7px 10px}
+  }
   /* ---- XP / ภารกิจ ---- */
   .qBody{padding:12px 16px 14px}
   .lvBox{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px}
@@ -858,30 +930,27 @@
     🧪 <b>โหมดทดลองเล่น</b> — ทุกอย่างในหน้านี้เป็นข้อมูลปลอมในเครื่องคุณ <b>คะแนนไม่นับจริง</b> ·
     ส่งงานจริงที่ <a href="/">opb-bootcamp.netlify.app</a> (ล็อกอินด้วยอีเมลที่ลงทะเบียน)
   </div>
-  <header class="hudbar bevel">
-    <div>
-      <h1 class="game" id="bcTitle2">CREATOR BOOTCAMP</h1>
-      <div class="sub" id="meLine">—</div>
+  <header class="hudbar bevel compact">
+    <div class="brand">
+      <img src="/icon-192.png" class="brandIco" alt="">
+      <div><h1 class="game" id="bcTitle2">CREATOR BOOTCAMP</h1><div class="sub" id="meLine">—</div></div>
     </div>
     <div class="hud">
-      <div class="chip">WEEK <b id="hudWeek">--</b>/<span id="hudWeeks">12</span></div>
-      <div class="chip now">SPRINT <b id="hudSprint">--</b>/<span id="hudSprints">6</span></div>
-      <div class="chip">DAY <b id="hudDay">--</b>/<span id="hudTotal">84</span></div>
-      <div class="chip clock">ปิดรอบใน <b id="hudClock">--:--:--</b></div>
+      <div class="chip">WEEK <b id="hudWeek">--</b><span class="hideSm">/<span id="hudWeeks">12</span></span></div>
+      <div class="chip">DAY <b id="hudDay">--</b><span class="hideSm">/<span id="hudTotal">84</span></span></div>
       <div class="chip live" id="modeTag">DEMO</div>
       <button class="chip btnChip bell" id="bellBtn" hidden>🔔<b class="bellN" id="bellN" hidden>0</b></button>
-      <button class="chip btnChip" id="installBtn" hidden>📲 ติดตั้งแอป</button>
-      <button class="chip btnChip" id="helpBtn">❓ วิธีเล่น</button>
-      <button class="chip btnChip" id="outBtn2">⏏ SIGN OUT</button>
+      <button class="chip btnChip" id="moreBtn" title="เมนู">⋯</button>
+      <span hidden><b id="hudSprint"></b><span id="hudSprints"></span><b id="hudClock"></b></span>
     </div>
   </header>
-  <div class="bellMenu bevel" id="bellMenu" hidden></div>
-  <div class="todayBar" id="todayBar" hidden>
-    <span class="tbState" id="tbState">—</span>
-    <span class="tbClock">ปิดรอบใน <b id="tbClock">--:--:--</b></span>
-    <span class="tbWeek" id="tbWeek"></span>
-    <button class="btn xs gold" id="tbGo">ส่งงาน ▶</button>
+  <div class="bellMenu bevel" id="moreMenu" hidden>
+    <div class="it" id="helpBtn"><i>❓</i><div>วิธีเล่น<small>กติกา ร่าง บ้าน บอส ดวล</small></div></div>
+    <div class="it" id="installBtn" hidden><i>📲</i><div>ติดตั้งเป็นแอป<small>เปิดจากหน้าจอโฮม รับแจ้งเตือนได้</small></div></div>
+    <div class="it" id="pledgeBtn2"><i>🎯</i><div>เปลี่ยนเป้าสัปดาห์นี้</div></div>
+    <div class="it" id="outBtn2"><i>⏏</i><div>SIGN OUT</div></div>
   </div>
+  <div class="bellMenu bevel" id="bellMenu" hidden></div>
 
   <nav class="nav">
     <button class="navBtn on" data-page="pgRace">🏁 RACE<small>สนามแข่ง</small></button>
@@ -893,6 +962,8 @@
 
   <!-- ===== RACE ===== -->
   <div class="page on" id="pgRace">
+    <section class="panel bevel today" id="todayCard" hidden></section>
+
     <section class="panel bevel" id="submitPanel">
       <div class="titlebar"><h2>SUBMIT CONTENT</h2><span>วางลิงก์แล้วกดส่ง — ระบบเลือกแพลตฟอร์มให้เอง</span></div>
       <div class="body">
@@ -908,19 +979,22 @@
           เป้าหลักคือ<b>วันละหนึ่งชิ้น</b> ที่เหลือคือของแถม
         </div>
         <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
-          <button class="btn sm" id="pledgeBtn">เปลี่ยนเป้าสัปดาห์นี้</button>
-          <button class="btn sm" id="simBtn">SIMULATE 1 DAY</button>
-          <button class="btn sm" id="outBtn">SIGN OUT</button>
+          <button class="btn link" id="pledgeBtn">🎯 เปลี่ยนเป้าสัปดาห์นี้</button>
+          <button class="btn link" id="simBtn">⏩ SIMULATE 1 DAY</button>
+          <button class="btn link" id="outBtn">SIGN OUT</button>
         </div>
       </div>
     </section>
 
-    <section class="panel bevel" id="questPanel" hidden></section>
-
     <section class="pledgeCard bevel" id="pledgeCard"></section>
 
 
-    <section class="panel bevel">
+    <div class="subTabs" id="subTabs">
+      <button class="on" data-st="track">🏁 สนามแข่ง</button>
+      <button data-st="ta" id="stTa">⚔️ TA WAR</button>
+      <button data-st="feed">📡 ฟีด</button>
+    </div>
+    <section class="panel bevel" id="trackPanel">
       <div class="titlebar"><h2 id="trackTitle">RACE TRACK</h2><span id="trackSub"></span></div>
       <div class="filters" id="raceFilters"></div>
       <div class="track-wrap"><div class="track">
@@ -935,7 +1009,7 @@
       <div class="body" id="taRoom"></div>
     </section>
 
-    <section class="panel bevel">
+    <section class="panel bevel" id="feedPanel" hidden>
       <div class="titlebar"><h2>LIVE FEED</h2><span>งานที่เพิ่งส่งเข้ามา</span></div>
       <ul class="feed" id="feed"></ul>
     </section>

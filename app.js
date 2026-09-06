@@ -966,7 +966,8 @@ function renderPledge(){
   const dayLeft = weekEnd(cw)-S.today+1;
   /* เตือนว่าวันนี้ยังไม่ได้ส่งงาน — ตัวเดียวที่ทำงานได้โดยไม่ต้องพึ่งบริการภายนอก */
   const left = cutoffLeft().split(":");
-  const nudge = S.postedToday ? "" :
+  const nudge = "";
+  const _unused = S.postedToday ? "" :
     '<div style="flex-basis:100%;margin-top:12px;padding:11px 13px;font-size:13px;line-height:1.7;'
     + 'background:linear-gradient(180deg,#5c3a10,#33200a);border:2px solid #ffb020 #8a5a08 #8a5a08 #ffb020">'
     + '<b style="font-family:var(--f-px);color:#ffd24d">วันนี้ยังไม่ได้ส่งงาน</b> · '
@@ -1007,6 +1008,25 @@ function renderPledge(){
       ? `💀 สัปดาห์นี้เป็นร่างกระโหลก · ทำครบ ${st.weekTarget} ชิ้น = <b style="color:var(--gold)">ฟื้นคืนชีพ</b> ได้ป้าย REVIVED · `
       : st.weak ? `😵 สัปดาห์นี้เป็นร่างหมดแรง (พลาดเป้าสัปดาห์ที่แล้ว) · ทำครบสัปดาห์นี้แล้วสัปดาห์หน้ากลับมาปกติ · ` : ""}${rivalHTML(r)}</div>`
     + myCheersHTML() + duelBannerHTML() + bossHTML() + nudge;
+  /* ยุบเหลือบรรทัดเดียวเมื่อเลือกเป้าแล้ว — ขยายเองถ้ามีเรื่องต้องกด (ดวล/เชียร์ใหม่/บอสใกล้ตาย) */
+  const d=myDuel(); const needAct = d && ((d.status==="pending" && d.opponent===r.id) || (d.status==="done" && d.winner===r.id && d.prize_hat==null));
+  const key="pledgeOpen."+r.id; let open=false; try{ open=localStorage.getItem(key)==="1"; }catch(e){}
+  if(needAct) open=true;
+  const bossList=(S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null || b.house_id===r.house));
+  const chips = bossList.map(b=>`<span class="pchip ${b.hp-b.damage<=b.hp*.3&&b.damage<b.hp?"hot":""}">${b.damage>=b.hp?"💥 บอสล้มแล้ว":`👹 บอส HP ${Math.max(0,b.hp-b.damage)}/${b.hp}`}</span>`).join("")
+    + (d ? `<span class="pchip hot">⚔️ ${d.status==="pending"?"รอรับคำท้า":d.status==="active"?`ดวล ${d.challenger===r.id?d.challenger_score:d.opponent_score}:${d.challenger===r.id?d.opponent_score:d.challenger_score}`:"เลือกหมวกให้ผู้แพ้"}</span>` : "")
+    + (cheersToday(r.id).length ? `<span class="pchip">👏 ${cheersToday(r.id).length}</span>` : "");
+  $("pledgeCard").insertAdjacentHTML("afterbegin", `<div class="plSum" onclick="togglePledge()">
+      <span class="big ${o.style}" style="font-size:13px">${o.name}</span> <b>${st.weekDone}/${st.weekTarget}</b>
+      <span>เหลือ ${dayLeft} วัน${st.weekDone>=st.weekTarget?" · ครบเป้าแล้ว 🎉":" · ขาดอีก "+(st.weekTarget-st.weekDone)}</span>
+      ${chips}<em>${open?"▲ ย่อ":"▼ รายละเอียด · คู่แข่ง · เชียร์ · ดวล · บอส"}</em></div>`);
+  $("pledgeCard").classList.toggle("collapsed", !open);
+}
+function togglePledge(){
+  const r=meR(); if(!r) return;
+  const open=$("pledgeCard").classList.contains("collapsed");
+  try{ localStorage.setItem("pledgeOpen."+r.id, open?"1":"0"); }catch(e){}
+  renderPledge();
 }
 
 /* ================= TRACK ================= */
@@ -1035,7 +1055,7 @@ function renderFilters(){
 }
 function renderTrack(){
   const list=raceList();
-  $("zones").innerHTML=SPRINTS.map((sp,i)=>`<div class="zone"><b>S${i+1} ${sp.e} ${sp.n}</b></div>`).join("");
+  $("zones").innerHTML=SPRINTS.map((sp,i)=>`<div class="zone"><b>S${i+1}<span class="zt"> ${sp.e} ${sp.n}</span></b></div>`).join("");
   const st=stats(meR());
   $("cps").innerHTML =
     [Math.round(FINISH/3),Math.round(FINISH*2/3),FINISH].filter((v,i,a)=>a.indexOf(v)===i)
@@ -1075,7 +1095,8 @@ function renderTrack(){
 function renderTaRoom(){
   const list=ranked().filter(r=>roleOf(r)!=="student");
   $("taPanel").hidden = !list.length;
-  if(!list.length) return;
+  $("stTa").hidden = !list.length;
+  if(!list.length){ if(document.querySelector('#subTabs button.on')?.dataset.st==="ta") setSubTab("track"); return; }
   const total=list.reduce((n,r)=>n+stats(r).contents,0);
   $("taSub").textContent=`TA ${list.filter(r=>roleOf(r)==="ta").length} คน + หัวหน้าโค้ช · เฉลี่ย ${(total/list.length).toFixed(1)} ชิ้น/คน · คลิกดูโปรไฟล์`;
   $("taRoom").innerHTML=list.map((r,i)=>{
@@ -1613,7 +1634,7 @@ function renderHud(){
   $("navSubmit").style.display = S.spectator ? "none" : "";
   $("statusNav").style.display   = S.spectator ? "none" : "";
   if(S.spectator){
-    $("meLine").innerHTML=`👀 <span style="color:var(--cyan)">โหมดคนดู</span> · นักเรียน ${students().length} คน · คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
+    $("meLine").innerHTML=`👀 <span style="color:var(--cyan)">โหมดคนดู</span> · นักเรียน ${students().length} คน`;
     $("adminNav").style.display="none";
     $("modeTag").textContent = DB.mode==="live"?"LIVE · ดูอย่างเดียว":"DEMO · ดูอย่างเดียว";
     $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
@@ -1622,9 +1643,7 @@ function renderHud(){
   const r=meR(); if(!r) return;
   const h=houseOf(r.house), s=stats(r);
   const roleLbl = roleOf(r)==="head" ? '🎓 <span style="color:#ff4d6d">หัวหน้าโค้ช</span>' : `${h.emoji} <span style="color:${h.color}">${h.name}</span>${roleOf(r)==="ta"?' · <span style="color:#5ef08c">TA</span>':""}`;
-  $("meLine").innerHTML=`${roleLbl} ·
-    ${r.name} · ปล่อยแล้ว <b style="color:${r.color}">${s.contents}</b> คอนเทนต์ ·
-    คลิกที่เลนหรือแถวเพื่อดูโปรไฟล์`;
+  $("meLine").innerHTML=`${r.name} · ${roleLbl} · <b style="color:${r.color}">${s.contents}</b> ชิ้น`;
   $("who").textContent=r.name;
   /* ปิดปุ่มส่งงานเมื่อรุ่นยังไม่เปิด จบแล้ว หรือไม่ได้ลงสปรินต์ปัจจุบัน
      เซิร์ฟเวอร์กันอยู่แล้ว แต่บอกล่วงหน้าดีกว่าปล่อยให้กดแล้วเด้ง error */
@@ -1637,7 +1656,7 @@ function renderHud(){
   $("simBtn").style.display = DB.canSim?"":"none";
   $("adminNav").style.display = (DB.mode==="demo" || roleOf(r)==="head") ? "" : "none";
   $("outBtn").textContent = DB.mode==="live"?"SIGN OUT":"RESET DEMO";
-  $("outBtn2").textContent = DB.mode==="live"?"⏏ SIGN OUT":"↺ RESET DEMO";
+  $("outBtn2").innerHTML = DB.mode==="live"?"<i>⏏</i><div>SIGN OUT</div>":"<i>↺</i><div>RESET DEMO</div>";
   $("outBtn2").style.display = S.spectator ? "none" : "";
   $("modeTag").textContent = DB.mode==="live"?"LIVE":"DEMO MODE";
   $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
@@ -1848,7 +1867,9 @@ $("simBtn").onclick=async()=>{
   }catch(err){ toast(err.message); }
 };
 $("outBtn").onclick=async()=>{ await DB.signOut(); location.reload(); };
-$("outBtn2").onclick=()=>$("outBtn").click();
+$("outBtn2").onclick=()=>{ $("moreMenu").hidden=true; $("outBtn").click(); };
+$("moreBtn").onclick=()=>{ const m=$("moreMenu"); m.hidden=!m.hidden; $("bellMenu").hidden=true; };
+$("pledgeBtn2").onclick=()=>{ $("moreMenu").hidden=true; openPledge(); };
 /* ---- XP + เลเวล: แกนความก้าวหน้าที่สอง (คิดจากข้อมูลที่มีอยู่แล้ว) ---- */
 const LV_TITLES=[[1,"มือใหม่"],[3,"นักลอง"],[5,"นักปล่อย"],[7,"ครีเอเตอร์"],[9,"มือโปร"],[11,"ตำนาน"]];
 function xpOf(r){
@@ -1881,24 +1902,7 @@ function questsOf(){
     {k:"early", i:"🌤", t:"ส่งก่อน 2 ทุ่ม", done:early, sub:early?"ทันเวลา!":(n>=1?"วันนี้ส่งหลัง 2 ทุ่ม พรุ่งนี้ลองใหม่":"ส่งก่อน 20:00 จะได้ข้อนี้"), go:goSubmit}
   ];
 }
-function renderQuests(){
-  const box=$("questPanel"); if(!box) return;
-  const me=meR();
-  if(!me || S.spectator){ box.hidden=true; return; }
-  box.hidden=false;
-  const q=questsOf(), done=q.filter(x=>x.done).length, s=stats(me);
-  /* ครบ 3 ข้อ = นับเป็นวันภารกิจ (เก็บในเครื่อง) */
-  try{ const k="questDone."+me.id, kd="questDays."+me.id; const last=localStorage.getItem(k);
-    if(done===3 && last!==String(S.today)){ localStorage.setItem(k,String(S.today)); localStorage.setItem(kd, String((+localStorage.getItem(kd)||0)+1)); bigPop("ภารกิจครบ 3 ข้อ!","+30 XP · เก่งมาก","pass"); SFX.unlock(); } }catch(e){}
-  const shield = s.freezeLeft==null ? "" : `<span class="shield" title="พลาดวันได้โดย streak ไม่ขาด สปรินต์ละ 2 วัน">🛡 วันลา streak ${s.freezeLeft}/2</span>`;
-  box.innerHTML=`<div class="titlebar"><h2>ภารกิจวันนี้ · ${done}/3</h2><span>${done===3?"ครบแล้ว! +30 XP":"ครบ 3 ข้อได้ +30 XP"}</span></div>
-    <div class="body qBody">
-      ${levelHTML(me)}
-      <div class="qList">${q.map(x=>`<button class="q ${x.done?"done":""}" data-q="${x.k}"><i>${x.done?"✅":x.i}</i><b>${x.t}</b><small>${x.sub}</small></button>`).join("")}</div>
-      <div class="qFoot">${shield}<span>🔥 streak ${s.dayStreak} วัน</span></div>
-    </div>`;
-}
-$("questPanel").onclick=e=>{ const b=e.target.closest("button[data-q]"); if(!b) return; const q=questsOf().find(x=>x.k===b.dataset.q); if(q&&!q.done&&q.go) q.go(); };
+function renderQuests(){ /* รวมอยู่ในการ์ดวันนี้แล้ว */ }
 
 /* ---- ท้องฟ้าเปลี่ยนตามเวลาที่เหลือก่อนปิดรอบ (ส่งแล้วฟ้าสงบ) ---- */
 function updateSky(){
@@ -1920,6 +1924,7 @@ function comboPop(n){
 }
 /* ---- วิ่งจริงตอนส่งงาน: กล้องไปหาตัวเรา สปรินต์ ฝุ่นฟุ้ง จอสั่น ---- */
 function sprintMe(){
+  setSubTab("track");
   if(!document.querySelector(".lane.meLane")){ S.raceFilter="near"; renderFilters(); renderTrack(); }
   const lane=document.querySelector(".lane.meLane"); if(!lane) return;
   lane.scrollIntoView({block:"center", behavior:"smooth"});
@@ -1959,7 +1964,7 @@ if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serv
 let deferredInstall=null;
 window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredInstall=e; $("installBtn").hidden=false; });
 window.addEventListener("appinstalled", ()=>{ $("installBtn").hidden=true; toast("ติดตั้งแอปแล้ว 📲 เปิดจากหน้าจอโฮมได้เลย"); });
-$("installBtn").onclick=async()=>{ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $("installBtn").hidden=true; };
+$("installBtn").onclick=async()=>{ $("moreMenu").hidden=true; if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $("installBtn").hidden=true; };
 
 /* ---- กระดิ่ง: เหตุการณ์ที่เกี่ยวกับฉัน ---- */
 function myEvents(){
@@ -1999,9 +2004,9 @@ function renderBell(){
     : '<div class="none">ยังไม่มีอะไรใหม่ — ส่งงานแล้วเดี๋ยวมีคนมาเชียร์</div>';
   $("bellMenu")._ev=ev; $("bellMenu")._sig=sig;
 }
-$("bellBtn").onclick=()=>{ const m=$("bellMenu"); m.hidden=!m.hidden; if(!m.hidden){ try{ localStorage.setItem("bellSeen."+meR().id, m._sig||""); }catch(e){} $("bellN").hidden=true; } };
+$("bellBtn").onclick=()=>{ const m=$("bellMenu"); m.hidden=!m.hidden; $("moreMenu").hidden=true; if(!m.hidden){ try{ localStorage.setItem("bellSeen."+meR().id, m._sig||""); }catch(e){} $("bellN").hidden=true; } };
 $("bellMenu").onclick=e=>{ const it=e.target.closest(".it"); if(!it) return; const ev=($("bellMenu")._ev||[])[+it.dataset.ev]; $("bellMenu").hidden=true; if(ev&&ev.go) ev.go(); };
-document.addEventListener("click", e=>{ if(!e.target.closest("#bellMenu") && !e.target.closest("#bellBtn")) $("bellMenu").hidden=true; });
+document.addEventListener("click", e=>{ if(!e.target.closest("#bellMenu") && !e.target.closest("#bellBtn")) $("bellMenu").hidden=true; if(!e.target.closest("#moreMenu") && !e.target.closest("#moreBtn")) $("moreMenu").hidden=true; });
 
 /* ---- ใกล้ฉันในสกอร์บอร์ด: คนบน / ฉัน / คนล่าง ---- */
 function renderNearMe(){
@@ -2019,6 +2024,31 @@ function renderNearMe(){
 }
 $("nearMe").onclick=e=>{ const t=e.target.closest(".nr"); if(t) openProfile(t.dataset.n); };
 
+/* ---- แท็บในหน้า RACE: สนาม | TA WAR | ฟีด ---- */
+function setSubTab(k){
+  if(k==="ta" && $("taPanel").hidden) k="track";
+  document.querySelectorAll("#subTabs button").forEach(b=>b.classList.toggle("on", b.dataset.st===k));
+  $("trackPanel").hidden = k!=="track";
+  $("taPanel").style.display = k==="ta" ? "" : "none";
+  $("feedPanel").hidden = k!=="feed";
+  try{ localStorage.setItem("subTab", k); }catch(e){}
+}
+$("subTabs").onclick=e=>{ const b=e.target.closest("button[data-st]"); if(b) setSubTab(b.dataset.st); };
+(function(){ let k="track"; try{ k=localStorage.getItem("subTab")||"track"; }catch(e){} setTimeout(()=>setSubTab(k),0); })();
+
+/* ---- hint ยาว ๆ ซ่อนหลัง ⓘ ---- */
+document.querySelectorAll("#scArena .panel .hint, #scArena .shareSide .hint").forEach(el=>{
+  if(el.id || el.closest("details")) return;
+  const d=document.createElement("details"); d.className="infoD"; d.innerHTML="<summary>ⓘ รายละเอียด</summary>";
+  el.parentNode.insertBefore(d, el); d.appendChild(el);
+});
+
+/* ---- โปรไฟล์บนมือถือ: ปัดลงเพื่อปิด ---- */
+(function(){ let y0=null;
+  document.addEventListener("touchstart", e=>{ const t=e.target.closest(".modal.on .sheet .titlebar"); y0 = t ? e.touches[0].clientY : null; }, {passive:true});
+  document.addEventListener("touchmove", e=>{ if(y0==null) return; const dy=e.touches[0].clientY-y0; if(dy>70){ const m=e.target.closest(".modal"); if(m) m.classList.remove("on"); y0=null; } }, {passive:true});
+})();
+
 /* ---- ปุ่มส่งงานในเมนู: ไปหน้า RACE เลื่อนถึงช่อง แล้ววางเคอร์เซอร์ให้ ---- */
 function goSubmit(){
   if(S.spectator) return leaveSpectator();
@@ -2026,7 +2056,6 @@ function goSubmit(){
   setTimeout(()=>{ $("submitPanel").scrollIntoView({behavior:"smooth", block:"start"}); setTimeout(()=>$("url").focus({preventScroll:true}), 450); }, 30);
 }
 $("navSubmit").onclick=goSubmit;
-$("tbGo").onclick=goSubmit;
 /* ---- เดาแพลตฟอร์มจากลิงก์ ---- */
 function detectPlat(url){
   const u=url.toLowerCase();
@@ -2040,18 +2069,39 @@ $("url").addEventListener("input", ()=>{
   else $("platHint").textContent = $("url").value.trim() ? "เลือกแพลตฟอร์มด้านบนให้ตรง" : "";
 });
 /* ---- แถบวันนี้ (ติดขอบบน) ---- */
-function renderTodayBar(){
-  const bar=$("todayBar"); if(!bar) return;
+function renderTodayBar(){ renderToday(); }
+/* การ์ด "วันนี้ของฉัน" — ตัวละคร เลเวล สถานะวันนี้ นาฬิกา ภารกิจ streak โล่ รวมที่เดียว */
+function renderToday(){
+  const box=$("todayCard"); if(!box) return;
   const me=meR();
-  if(S.spectator || !me || !$("scArena").classList.contains("on")){ bar.hidden=true; return; }
-  bar.hidden=false;
-  const s=stats(me), n=Math.max(S.todayCount||0, (s.byDay||{})[S.today]||0);
+  if(S.spectator || !me || !$("scArena").classList.contains("on")){ box.hidden=true; return; }
+  box.hidden=false;
+  const s=stats(me), h=houseOf(me.house), role=roleOf(me);
+  const n=Math.max(S.todayCount||0,(s.byDay||{})[S.today]||0);
   const left=cutoffLeft(); const hrs=parseInt(left,10);
-  bar.className="todayBar "+(n?"ok":(isFinite(hrs)&&hrs<3?"late":"wait"));
-  $("tbState").textContent = n ? `✅ วันนี้ส่งแล้ว ${n} ชิ้น` : `⏳ วันนี้ยังไม่ส่ง`;
-  $("tbClock").textContent = left;
-  $("tbWeek").textContent = s.weekTarget ? `สัปดาห์นี้ ${s.weekDone}/${s.weekTarget}` : "ยังไม่เลือกเป้าสัปดาห์";
+  const stCls = n ? "ok" : (isFinite(hrs)&&hrs<3 ? "late" : "wait");
+  const q=questsOf(), done=q.filter(x=>x.done).length;
+  try{ const k="questDone."+me.id, kd="questDays."+me.id; const last=localStorage.getItem(k);
+    if(done===3 && last!==String(S.today)){ localStorage.setItem(k,String(S.today)); localStorage.setItem(kd, String((+localStorage.getItem(kd)||0)+1)); bigPop("ภารกิจครบ 3 ข้อ!","+30 XP · เก่งมาก","pass"); SFX.unlock(); } }catch(e){}
+  const roleLbl = role==="head" ? '<span style="color:#ff4d6d">🎓 หัวหน้าโค้ช</span>' : `${h.emoji} <span style="color:${h.color}">${h.name}</span>${role==="ta"?' · <span style="color:#5ef08c">TA</span>':""}`;
+  box.innerHTML=`<div class="titlebar"><h2>วันนี้ของฉัน · ภารกิจ ${done}/3</h2><span>${done===3?"ครบแล้ว +30 XP":"ครบ 3 ข้อ +30 XP"}</span></div>
+    <div class="body qBody">
+      <div class="tdTop">
+        <div class="tdMe">${sprite(avOf(me),2,s.style)}</div>
+        <div class="tdInfo"><div class="tdName">${me.name}<small>${roleLbl}</small></div>${levelHTML(me)}</div>
+        <div class="tdState ${stCls}"><b>${n?`✅ วันนี้ส่งแล้ว ${n} ชิ้น`:"⏳ วันนี้ยังไม่ส่ง"}</b><span>ปิดรอบใน <i id="tbClock">${left}</i></span></div>
+      </div>
+      <div class="qList">${q.map(x=>`<button class="q ${x.done?"done":""}" data-q="${x.k}"><i>${x.done?"✅":x.i}</i><b>${x.t}</b><small>${x.sub}</small></button>`).join("")}</div>
+      <div class="qFoot">
+        <span>🎯 สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b></span>
+        <span>🔥 streak ${s.dayStreak} วัน</span>
+        ${s.freezeLeft==null?"":`<span class="shield" title="พลาดวันได้โดย streak ไม่ขาด สปรินต์ละ 2 วัน">🛡 วันลา ${s.freezeLeft}/2</span>`}
+        ${n?"":'<button class="btn xs gold" id="tbGo">ส่งงาน ▶</button>'}
+      </div>
+    </div>`;
+  const go=$("tbGo"); if(go) go.onclick=goSubmit;
 }
+$("todayCard").onclick=e=>{ const b=e.target.closest("button[data-q]"); if(!b) return; const q=questsOf().find(x=>x.k===b.dataset.q); if(q&&!q.done&&q.go) q.go(); };
 /* ---- +1 ลอยเหนือหัวตัวเอง ---- */
 function floatPlus(txt="+1"){
   const el=document.querySelector(".runner.me .body"); if(!el) return;
@@ -2071,7 +2121,7 @@ function maybeOnboard(){
     $("obNext").onclick=()=>{ if(obIdx<2) obShow(obIdx+1); else done(); };
   });
 }
-$("helpBtn").onclick=()=>$("helpModal").classList.add("on");
+$("helpBtn").onclick=()=>{ $("moreMenu").hidden=true; $("helpModal").classList.add("on"); };
 $("eyeBtn").onclick=()=>{ const p=$("pass"); p.type = p.type==="password" ? "text" : "password"; $("eyeBtn").textContent = p.type==="password" ? "👁" : "🙈"; p.focus(); };
 window.addEventListener("scroll", ()=>{ $("toTop").hidden = window.scrollY < 600; }, {passive:true});
 $("toTop").onclick=()=>window.scrollTo({top:0, behavior:"smooth"});
