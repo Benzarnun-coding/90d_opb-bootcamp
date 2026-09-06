@@ -1381,7 +1381,7 @@ function drawCard(){
 
   const boxes=[
     ["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
-    ["STREAK", `${s.weekStreak} สัปดาห์`],
+    ["STREAK · สัปดาห์ติดกัน", String(s.weekStreak)],
     ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]
   ];
   const bw=300, gap=20, x0=(W-(bw*3+gap*2))/2;
@@ -1389,10 +1389,13 @@ function drawCard(){
     const x=x0+i*(bw+gap), y=1170;
     ctx.fillStyle="rgba(13,10,34,.72)"; ctx.fillRect(x,y,bw,110);
     ctx.strokeStyle=h.color+"88"; ctx.lineWidth=3; ctx.strokeRect(x,y,bw,110);
-    ctx.font="700 52px 'Pixelify Sans', monospace"; ctx.fillStyle="#fff";
-    ctx.fillText(String(v), x+bw/2, y+62);
-    ctx.font="500 24px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#a49ce0";
-    ctx.fillText(l, x+bw/2, y+95);
+    /* ตัวเลขใช้ฟอนต์พิกเซล (ไม่มีอักษรไทย) — ถ้ามีไทยหรือยาวเกินกล่อง ย่อฟอนต์ให้พอดี */
+    let fs=52; ctx.font=`700 ${fs}px 'Pixelify Sans', monospace`;
+    while(ctx.measureText(String(v)).width > bw-24 && fs>24){ fs-=4; ctx.font=`700 ${fs}px 'Pixelify Sans', monospace`; }
+    ctx.fillStyle="#fff"; ctx.fillText(String(v), x+bw/2, y+62);
+    let ls=24; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`;
+    while(ctx.measureText(l).width > bw-16 && ls>16){ ls-=2; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`; }
+    ctx.fillStyle="#a49ce0"; ctx.fillText(l, x+bw/2, y+95);
   });
 
   if(s.style!=="normal"){
