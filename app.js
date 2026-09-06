@@ -1603,7 +1603,7 @@ function renderHud(){
   $("hudDay").textContent=S.today;
   $("hudTotal").textContent=TOTAL;
   $("hudClock").textContent=cutoffLeft();
-  renderTodayBar(); renderBell();
+  renderTodayBar(); renderBell(); updateSky();
   $("submitPanel").style.display = S.spectator ? "none" : "";
   $("navSubmit").style.display = S.spectator ? "none" : "";
   $("statusNav").style.display   = S.spectator ? "none" : "";
@@ -1788,13 +1788,19 @@ $("pushBtn").onclick=async()=>{
   const url=$("url").value.trim();
   if(!/^https?:\/\/.+\..+/.test(url)) return toast("ใส่ลิงก์ให้ถูก<br>ต้องขึ้นต้นด้วย http(s)://");
   const before=stats(meR()), hadUnlocked=unlockedSet(before);
-  $("pushBtn").disabled=true;
+  $("pushBtn").disabled=true; S.submitting=true;
   try{
     await DB.submit({url, platform:$("plat").value});
-    $("url").value="";
+    $("url").value=""; $("platHint").textContent="";
     S.postedToday=true;
     await refresh();
+    S.submitting=false;
     const after=stats(meR());
+    sprintMe();
+    const todayN=(after.byDay||{})[S.today]||0;
+    if(todayN>=2) setTimeout(()=>comboPop(todayN), 350);
+    const passed=(S.lastPass&&S.lastPass.iPassed)||[];
+    if(passed.length) setTimeout(()=>{ bigPop(`แซง ${passed[0]}${passed.length>1?" +"+(passed.length-1):""} แล้ว!`, passed.length>1?`แซงไป ${passed.length} คนในชิ้นเดียว`:"", "pass"); SFX.unlock(); }, todayN>=2?1700:400);
     const o=after.weekTarget?optOf(after.weekTarget):null;
     let msg=`+1 CONTENT · รวม ${after.contents} ชิ้น`, kind="submit";
     if(o && before.weekDone<o.target && after.weekDone>=o.target){
@@ -1805,11 +1811,12 @@ $("pushBtn").onclick=async()=>{
     else if(o) msg=`+1 CONTENT · สัปดาห์นี้ ${after.weekDone}/${o.target}`;
     if(after.contents>=FINISH && before.contents<FINISH){ msg=`🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว!<br>ออร่าทองถาวรติดตัวตลอดรุ่น`; kind="target"; }
     celebrate(kind); toast(msg);
+    S.submitting=false;
     /* ปลดล็อกของแต่งตัวใหม่ */
     const fresh=[...unlockedSet(after)].filter(k=>!hadUnlocked.has(k));
     if(fresh.length) setTimeout(()=>{ celebrate("unlock");
       toast(`🔓 ปลดล็อกแล้ว: ${fresh.map(k=>UNLOCKS[k].th).join(" · ")}<br>ไปใส่ได้ที่ห้องแต่งตัว`); }, 2200);
-  }catch(err){ toast(err.message); }
+  }catch(err){ S.submitting=false; toast(err.message); }
   $("pushBtn").disabled=false;
 };
 $("pledgeBtn").onclick=openPledge;
@@ -1837,6 +1844,60 @@ $("simBtn").onclick=async()=>{
 };
 $("outBtn").onclick=async()=>{ await DB.signOut(); location.reload(); };
 $("outBtn2").onclick=()=>$("outBtn").click();
+/* ---- ท้องฟ้าเปลี่ยนตามเวลาที่เหลือก่อนปิดรอบ (ส่งแล้วฟ้าสงบ) ---- */
+function updateSky(){
+  const sky=$("sky"); if(!sky) return;
+  const [hh]=cutoffLeft().split(":").map(Number);
+  let cls = hh>10 ? "" : hh>=4 ? "dusk" : hh>=1 ? "night" : "late";
+  if(!$("scArena").classList.contains("on")) cls="";
+  else if(S.spectator || S.postedToday){ if(cls==="late"||cls==="night") cls="dusk"; }
+  ["dusk","night","late"].forEach(c=>sky.classList.toggle(c, c===cls));
+}
+/* ---- คอมโบ / ป้ายใหญ่กลางจอ ---- */
+function bigPop(main, sub="", cls=""){
+  const el=document.createElement("div"); el.className="combo "+cls; el.innerHTML=`<b>${main}</b>${sub?`<small>${sub}</small>`:""}`;
+  document.body.appendChild(el); setTimeout(()=>el.remove(), 1500);
+}
+function comboPop(n){
+  bigPop(`×${n} COMBO`, n>=4?"บ้าไปแล้ว!":n===3?"ร้อนแรง!":"วันนี้ชิ้นที่ 2!");
+  [0,1,2].forEach(i=>beep(880*Math.pow(1.12,n+i), .12, "square", .14, i*.07));
+}
+/* ---- วิ่งจริงตอนส่งงาน: กล้องไปหาตัวเรา สปรินต์ ฝุ่นฟุ้ง จอสั่น ---- */
+function sprintMe(){
+  if(!document.querySelector(".lane.meLane")){ S.raceFilter="near"; renderFilters(); renderTrack(); }
+  const lane=document.querySelector(".lane.meLane"); if(!lane) return;
+  lane.scrollIntoView({block:"center", behavior:"smooth"});
+  const r=lane.querySelector(".runner"); if(r){ r.classList.add("sprint"); setTimeout(()=>r.classList.remove("sprint"), 1600); }
+  document.body.classList.add("shake"); setTimeout(()=>document.body.classList.remove("shake"), 400);
+}
+/* ---- แซง / โดนแซง: เทียบจำนวนชิ้นกับรอบก่อน (เก็บในเครื่อง) ---- */
+S.passEvents=[];
+function trackOvertakes(){
+  const me=meR(); if(!me || S.spectator) return {iPassed:[],passedMe:[]};
+  const key="snap."+me.id; let prev=null; try{ prev=JSON.parse(localStorage.getItem(key)||"null"); }catch(e){}
+  const now={}; S.runners.forEach(r=>{ if(roleOf(r)==="student") now[r.name]=stats(r).contents; });
+  const out={iPassed:[],passedMe:[]};
+  if(prev && prev[me.name]!=null){
+    const mb=prev[me.name], ma=now[me.name];
+    Object.keys(now).forEach(n=>{
+      if(n===me.name || prev[n]==null) return;
+      const xb=prev[n], xa=now[n];
+      if(xb>=mb && xa<ma) out.iPassed.push(n);
+      if(xb<=mb && xa>ma && xa>xb) out.passedMe.push({who:n, gap:xa-ma});
+    });
+  }
+  try{ localStorage.setItem(key, JSON.stringify(now)); }catch(e){}
+  const ts=Date.now();
+  out.passedMe.forEach(p=>S.passEvents.unshift({who:p.who, gap:p.gap, ts}));
+  S.passEvents=S.passEvents.slice(0,10);
+  if(out.passedMe.length && !S.submitting && document.visibilityState==="visible"){
+    const p=out.passedMe[0];
+    bigPop(`${p.who} แซงคุณแล้ว!`, `ห่าง ${p.gap} ชิ้น — เอาคืนสิ`, "pass");
+    beep(330,.18,"sawtooth",.12); beep(262,.3,"sawtooth",.12,.18);
+  }
+  return out;
+}
+
 /* ---- PWA: ลงทะเบียน service worker + ปุ่มติดตั้ง ---- */
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
 let deferredInstall=null;
@@ -1864,6 +1925,7 @@ function myEvents(){
     if(b.damage>=b.hp) ev.push({k:"bk"+b.id, i:"💥", t:`ล้มบอส ${b.name} แล้ว!`, s:"ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER", go:()=>showPage("pgRace")});
     else if(b.hp-b.damage<=Math.ceil(b.hp*0.2)) ev.push({k:"bh"+b.id+b.damage, i:"👹", t:`บอส ${b.name} เหลือ HP ${b.hp-b.damage}`, s:"อีกนิดเดียว ส่งงานช่วยบ้าน!", go:()=>showPage("pgRace")});
   });
+  (S.passEvents||[]).filter(p=>Date.now()-p.ts<86400e3).slice(0,3).forEach(p=>ev.push({k:"pass"+p.who+p.ts, i:"🏃", t:`${p.who} แซงคุณแล้ว (ห่าง ${p.gap} ชิ้น)`, s:"ส่งอีกชิ้นเอาคืน", go:goSubmit}));
   if(isKingNow(me)) ev.push({k:"king"+cw, i:"👑", t:"คุณคือที่ 1 ของบ้านสัปดาห์นี้", s:"รักษาไว้จนจบสัปดาห์จะได้ป้าย King of the Week", go:()=>showPage("pgBoard")});
   const st=stats(me);
   if(st.dayStreak>=7 && [7,14,21,30].includes(st.dayStreak)) ev.push({k:"stk"+st.dayStreak, i:"🔥", t:`streak ${st.dayStreak} วันติด!`, s:"", go:()=>showPage("pgStatus")});
@@ -2465,6 +2527,7 @@ async function refresh(){
     if(best) S.kingsNow.add(best.id);
   });
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
+  S.lastPass=trackOvertakes();
   renderAll();
 }
 /* โหมดคนดู — ไม่ต้องล็อกอิน เห็นสนามแบบเรียลไทม์ แต่ส่งงานไม่ได้ (ฐานข้อมูลกันอยู่แล้ว)
@@ -2522,6 +2585,7 @@ if(LIVE && C.GOOGLE_AUTH){
   $("googleBtn").onclick=async()=>{ try{ await DB.signInGoogle(); }catch(e){ toast(e.message); } };
 }
 setInterval(()=>{ if($("scArena").classList.contains("on")){ $("hudClock").textContent=cutoffLeft(); const c=$("tbClock"); if(c) c.textContent=cutoffLeft(); } },1000);
+setInterval(updateSky, 60000);
 setInterval(()=>{ if($("pgRace").classList.contains("on")) renderFeed(); },60000);
 
 boot().catch(err=>{ console.error(err); show("scTitle"); toast("เชื่อมต่อไม่ได้<br>"+err.message); });

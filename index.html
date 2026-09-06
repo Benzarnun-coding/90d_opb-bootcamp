@@ -581,6 +581,29 @@
     .todayBar{font-size:12px; gap:6px 12px; padding:8px 10px}
     .todayBar #tbGo{margin-left:auto}
   }
+  /* ---- GAME FEEL: ท้องฟ้าตามเวลา / สปรินต์ / คอมโบ / จอสั่น ---- */
+  .sky::after{content:""; position:absolute; inset:0; opacity:0; transition:opacity 2.5s ease; pointer-events:none}
+  .sky.dusk::after{opacity:1; background:linear-gradient(180deg,rgba(60,20,90,.35) 0%,rgba(255,120,60,.25) 70%,rgba(255,170,80,.35) 100%)}
+  .sky.night::after{opacity:1; background:linear-gradient(180deg,rgba(5,3,25,.75) 0%,rgba(20,8,40,.6) 60%,rgba(120,20,40,.45) 100%)}
+  .sky.late::after{opacity:1; background:linear-gradient(180deg,rgba(40,0,10,.75) 0%,rgba(120,10,30,.6) 60%,rgba(255,40,60,.45) 100%); animation:lateSky 1.2s steps(2) infinite alternate}
+  @keyframes lateSky{to{opacity:.7}}
+  .sky.night .sun,.sky.late .sun{opacity:.15}
+  .runner.sprint .body{animation:bob .11s steps(2) infinite alternate}
+  .runner.sprint svg g.leg{animation-duration:.2s}
+  .runner.sprint .dust{animation-duration:.22s; width:10px; height:10px}
+  .runner.sprint::before{content:""; position:absolute; right:calc(100% + 2px); bottom:14px; width:46px; height:30px; opacity:.75; z-index:1;
+    background:repeating-linear-gradient(0deg, transparent 0 5px, rgba(255,255,255,.7) 5px 7px, transparent 7px 12px);
+    -webkit-mask:linear-gradient(90deg,transparent,#000); mask:linear-gradient(90deg,transparent,#000); animation:speedln .16s steps(2) infinite}
+  @keyframes speedln{to{transform:translateX(-10px)}}
+  body.shake{animation:shake .35s steps(6) 1}
+  @keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(3px,1px)}}
+  .combo{position:fixed; left:50%; top:34%; z-index:50; transform:translate(-50%,-50%); text-align:center; pointer-events:none; animation:comboPop 1.4s ease-out forwards}
+  .combo b{display:block; font-family:var(--f-px); font-weight:700; font-size:64px; line-height:1; color:var(--gold);
+    text-shadow:0 4px 0 #7a5000, 0 8px 0 #000, 0 0 30px rgba(255,204,77,.8)}
+  .combo small{display:block; font-family:var(--f-px); font-size:16px; color:#fff; text-shadow:0 2px 0 #000; margin-top:6px}
+  .combo.pass b{font-size:40px; color:var(--green); text-shadow:0 4px 0 #0d5c2c, 0 8px 0 #000, 0 0 30px rgba(94,240,140,.8)}
+  @keyframes comboPop{0%{opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}15%{opacity:1; transform:translate(-50%,-50%) scale(1.15) rotate(2deg)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1; transform:translate(-50%,-60%) scale(1)}100%{opacity:0; transform:translate(-50%,-80%) scale(.9)}}
+  @media(max-width:700px){ .combo b{font-size:44px} .combo.pass b{font-size:28px} }
   /* ---- กระดิ่ง / ติดตั้ง / ใกล้ฉัน ---- */
   .chip.bell{position:relative; padding:8px 11px}
   .bellN{position:absolute; top:-7px; right:-7px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:var(--red); color:#fff;
