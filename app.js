@@ -1357,7 +1357,7 @@ function drawCard(){
   ctx.globalAlpha=1;
 
   ctx.textAlign="center";
-  ctx.font="700 40px 'Pixelify Sans', monospace";
+  ctx.font="700 40px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#cdc7ff"; ctx.fillText(C.TITLE, W/2, 92);
   ctx.font="500 30px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#9a92d8";
@@ -1366,7 +1366,7 @@ function drawCard(){
   const px=22, sw=16*px;
   drawSpriteCanvas(ctx, (W-sw)/2, 150, px, avOf(r), s.style);
 
-  ctx.font="700 84px 'Pixelify Sans', monospace";
+  ctx.font="700 84px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
   ctx.fillText(r.name, W/2, 850);
   ctx.shadowOffsetY=0;
@@ -1374,12 +1374,12 @@ function drawCard(){
   ctx.fillStyle=h.color;
   ctx.fillText(`${h.emoji} ${h.name} · ${r.handle}`, W/2, 900);
 
-  ctx.font="700 190px 'Pixelify Sans', monospace";
+  ctx.font="700 190px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle=s.style==="flame"?"#ffc24d":s.style==="red"?"#ff6b85":"#ffcc4d";
   ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=40;
   ctx.fillText(String(s.contents), W/2, 1075);
   ctx.shadowBlur=0;
-  ctx.font="700 40px 'Pixelify Sans', monospace";
+  ctx.font="700 40px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#e6e1ff";
   ctx.fillText(s.contents>=FINISH ? `🏆 ครบ ${FINISH} ชิ้นแล้ว` : `CONTENTS · เป้า ${FINISH} ชิ้น`, W/2, 1125);
 
@@ -1394,8 +1394,8 @@ function drawCard(){
     ctx.fillStyle="rgba(13,10,34,.72)"; ctx.fillRect(x,y,bw,110);
     ctx.strokeStyle=h.color+"88"; ctx.lineWidth=3; ctx.strokeRect(x,y,bw,110);
     /* ตัวเลขใช้ฟอนต์พิกเซล (ไม่มีอักษรไทย) — ถ้ามีไทยหรือยาวเกินกล่อง ย่อฟอนต์ให้พอดี */
-    let fs=52; ctx.font=`700 ${fs}px 'Pixelify Sans', monospace`;
-    while(ctx.measureText(String(v)).width > bw-24 && fs>24){ fs-=4; ctx.font=`700 ${fs}px 'Pixelify Sans', monospace`; }
+    let fs=52; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`;
+    while(ctx.measureText(String(v)).width > bw-24 && fs>24){ fs-=4; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`; }
     ctx.fillStyle="#fff"; ctx.fillText(String(v), x+bw/2, y+62);
     let ls=24; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`;
     while(ctx.measureText(l).width > bw-16 && ls>16){ ls-=2; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`; }
@@ -1404,7 +1404,7 @@ function drawCard(){
 
   if(s.style!=="normal"){
     const o=optOf(s.weekTarget);
-    ctx.font="700 34px 'Pixelify Sans', monospace";
+    ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace";
     ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":"#39e5ff";
     ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":"🔵"} ${o.name} MODE`, W/2, 178);
   }
@@ -1426,7 +1426,7 @@ function drawCredit(ctx, W, y){
   if(!CREDIT) return;
   ctx.save();
   ctx.textAlign="right";
-  ctx.font="700 24px 'Pixelify Sans', monospace";
+  ctx.font="700 24px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="rgba(255,204,77,.95)"; ctx.shadowColor="#000"; ctx.shadowBlur=6;
   ctx.fillText(CREDIT, W-40, y);
   ctx.restore();
@@ -1467,14 +1467,14 @@ function drawCert(){
   });
 
   ctx.textAlign="center";
-  ctx.font="700 34px 'Pixelify Sans', monospace";
+  ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#cdc7ff";
   ctx.fillText("CERTIFICATE OF COMPLETION", W/2, 148);
   ctx.font="500 26px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle="#9a92d8";
   ctx.fillText("ใบรับรองการจบหลักสูตร", W/2, 190);
 
-  ctx.font="700 40px 'Pixelify Sans', monospace";
+  ctx.font="700 40px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle=gold; ctx.shadowColor=gold; ctx.shadowBlur=24;
   ctx.fillText(C.TITLE, W/2, 254);
   ctx.shadowBlur=0;
@@ -1486,7 +1486,7 @@ function drawCert(){
   ctx.fillStyle="#a49ce0";
   ctx.fillText("มอบให้แก่", W/2, 760);
 
-  ctx.font="700 96px 'Pixelify Sans', monospace";
+  ctx.font="700 96px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
   ctx.fillText(r.name, W/2, 858);
   ctx.shadowOffsetY=0;
@@ -1499,7 +1499,7 @@ function drawCert(){
   ctx.fillStyle="#e6e1ff";
   ctx.fillText("ปล่อยคอนเทนต์รวมทั้งสิ้น", W/2, 976);
 
-  ctx.font="700 150px 'Pixelify Sans', monospace";
+  ctx.font="700 150px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle=gold; ctx.shadowColor=gold; ctx.shadowBlur=36;
   ctx.fillText(String(s.contents), W/2, 1108);
   ctx.shadowBlur=0;
@@ -1516,7 +1516,7 @@ function drawCert(){
     ctx.strokeStyle="#ffcc4d88"; ctx.lineWidth=3;
     ctx.beginPath(); ctx.arc(0,0,64,0,Math.PI*2); ctx.stroke();
     ctx.fillStyle="#ffcc4d";
-    ctx.font="700 46px 'Pixelify Sans', monospace"; ctx.fillText(String(FINISH), 0, 2);
+    ctx.font="700 46px 'PxSeven','Pixelify Sans', monospace"; ctx.fillText(String(FINISH), 0, 2);
     ctx.font="500 18px 'IBM Plex Sans Thai', sans-serif"; ctx.fillText("ครบเป้า", 0, 32);
     ctx.restore();
   }
@@ -2595,17 +2595,17 @@ function drawRecapCard(me, st, pw, done, target, hit, king, kingMe, newBadges){
   const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,"#150f3a"); bg.addColorStop(.5,"#2d1f6b"); bg.addColorStop(1,"#0a0820");
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
   ctx.textAlign="center";
-  ctx.font="700 40px 'Pixelify Sans', monospace"; ctx.fillStyle="#cdc7ff"; ctx.fillText(C.TITLE, W/2, 90);
-  ctx.font="700 56px 'Pixelify Sans', monospace"; ctx.fillStyle="#ffcc4d"; ctx.fillText(`WEEK ${pw} RECAP`, W/2, 160);
+  ctx.font="700 40px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#cdc7ff"; ctx.fillText(C.TITLE, W/2, 90);
+  ctx.font="700 56px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#ffcc4d"; ctx.fillText(`WEEK ${pw} RECAP`, W/2, 160);
   drawSpriteCanvas(ctx, (W-16*18)/2, 200, 18, avOf(me), st.style);
-  ctx.font="700 80px 'Pixelify Sans', monospace"; ctx.fillStyle="#fff"; ctx.fillText(me.name, W/2, 760);
+  ctx.font="700 80px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#fff"; ctx.fillText(me.name, W/2, 760);
   ctx.font="500 30px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle=h.color; ctx.fillText(`${h.emoji} ${h.name}`, W/2, 810);
-  ctx.font="700 150px 'Pixelify Sans', monospace"; ctx.fillStyle=hit?"#5ef08c":"#ffcc4d"; ctx.fillText(`${done}${target?"/"+target:""}`, W/2, 980);
+  ctx.font="700 150px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle=hit?"#5ef08c":"#ffcc4d"; ctx.fillText(`${done}${target?"/"+target:""}`, W/2, 980);
   ctx.font="500 32px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#e6e1ff";
   ctx.fillText(target ? (hit?"ครบเป้าสัปดาห์นี้ ✅":"ยังไม่ถึงเป้า — สัปดาห์หน้าเอาใหม่") : "ปล่อยไป "+done+" ชิ้นในสัปดาห์นี้", W/2, 1040);
   ctx.fillStyle="#cdc7ff"; ctx.font="500 28px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillText(`รวมทั้งหมด ${st.contents} ชิ้น · อันดับ ${rankOf(me.name)||"-"} ของรุ่น`, W/2, 1100);
-  if(kingMe){ ctx.fillStyle="#ffcc4d"; ctx.font="700 36px 'Pixelify Sans', monospace"; ctx.fillText("👑 KING OF THE WEEK · "+h.name, W/2, 1170); }
+  if(kingMe){ ctx.fillStyle="#ffcc4d"; ctx.font="700 36px 'PxSeven','Pixelify Sans', monospace"; ctx.fillText("👑 KING OF THE WEEK · "+h.name, W/2, 1170); }
   else if(king){ ctx.fillStyle="#a49ce0"; ctx.fillText(`👑 King ของบ้าน: ${king.name}`, W/2, 1170); }
   if(newBadges.length){ ctx.font="40px sans-serif"; ctx.fillStyle="#fff"; ctx.fillText(newBadges.map(b=>b.e).join("  "), W/2, 1240); }
   ctx.textAlign="left"; ctx.font="600 22px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#9a92d8"; ctx.fillText(TAG, 40, H-16);
