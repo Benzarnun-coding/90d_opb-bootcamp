@@ -163,6 +163,21 @@
     </section>
 
     <section class="panel bevel">
+      <div class="titlebar"><h2>🔑 รหัสเข้าใช้รวม</h2><span>ใช้เช็คตอนสมัครครั้งแรก และใช้ตอนกด "รีเซ็ตรหัส" ให้คนที่เข้าไม่ได้</span></div>
+      <div class="body">
+        <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+          <div style="flex:1 1 240px"><label>รหัสที่แจกนักเรียน</label><input id="lcCode" type="password" placeholder="พิมพ์รหัสรวม" autocomplete="off"></div>
+          <div><button class="btn" id="lcSave">บันทึกรหัส</button></div>
+          <span id="lcState" style="color:var(--dim);font-size:13px"></span>
+        </div>
+        <div class="hint">
+          ทำไมต้องมี: การเข้าครั้งแรก = สมัครด้วยรหัสที่พิมพ์มา ถ้าใครพิมพ์ผิด (มือถือเติมช่องว่าง/ตัวใหญ่) บัญชีจะจำรหัสผิดนั้น พอไปเข้าเครื่องอื่นจะขึ้น "รหัสไม่ถูกต้อง"<br>
+          พอตั้งรหัสรวมไว้ที่นี่ ระบบจะรับสมัครเฉพาะคนที่พิมพ์ตรง และคุณกด <b>รีเซ็ตรหัส</b> หลังชื่อคนในตารางรายชื่อด้านล่างเพื่อให้รหัสของเขากลับเป็นรหัสรวมได้
+        </div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
       <div class="titlebar"><h2>แจ้งเตือน Discord</h2><span>ทุกวัน 20:00 สรุปใครยังไม่ส่ง · ทุกต้นสัปดาห์เตือนเลือกเป้า</span></div>
       <div class="body">
         <label>Webhook URL ของช่อง Discord</label>

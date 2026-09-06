@@ -45,7 +45,21 @@ async function boot(){
   const {data:co} = await sb.from("cohort").select("discord_webhook").eq("id",1).maybeSingle();
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
+  await loadLoginCode();
 }
+/* ---- รหัสเข้าใช้รวม ---- */
+async function loadLoginCode(){
+  const {data} = await sb.rpc("login_code_set");
+  $("lcState").textContent = data ? "✅ ตั้งไว้แล้ว (พิมพ์ใหม่แล้วบันทึกเพื่อเปลี่ยน)" : "⚠️ ยังไม่ได้ตั้ง — ปุ่มรีเซ็ตรหัสจะยังใช้ไม่ได้";
+}
+$("lcSave").onclick = async ()=>{
+  const c = $("lcCode").value;
+  if(!c || c.trim().length < 4) return toast("รหัสต้องยาวอย่างน้อย 4 ตัว");
+  if(!confirm("บันทึกรหัสนี้เป็นรหัสเข้าใช้รวม? ต้องตรงกับที่แจกนักเรียนเป๊ะ ๆ (ตัวพิมพ์ใหญ่-เล็กด้วย)")) return;
+  const {error} = await sb.rpc("admin_set_login_code", {c});
+  if(error) return toast(error.message);
+  $("lcCode").value = ""; toast("บันทึกรหัสรวมแล้ว"); await loadLoginCode();
+};
 /* ---- บอสประจำสัปดาห์ ---- */
 let curWeekNo = 1, curSkin = "ogre";
 function renderSkins(){
@@ -236,7 +250,7 @@ function render(){
       ? `<span class="tag ok">${esc(pr ? pr.name : "?")}</span> ${roleSel}`
       : `<span class="tag no">ยังไม่สมัคร</span> ${roleSel}`;
     const act = x.claimed_by
-      ? `<button class="btn xs danger" data-kick="${esc(x.email)}">เตะออก</button>`
+      ? `<button class="btn xs" data-reset="${esc(x.email)}" title="รหัสของเขากลับเป็นรหัสรวม">รีเซ็ตรหัส</button> <button class="btn xs danger" data-kick="${esc(x.email)}">เตะออก</button>`
       : `<button class="btn xs" data-del="${esc(x.email)}">ลบ</button>`;
     return `<tr>
       <td style="color:var(--dim)">${i+1}</td>
@@ -350,6 +364,16 @@ $("rows").onchange = async e => {
   await load();
 };
 $("rows").onclick = async e => {
+  const rs = e.target.closest("button[data-reset]");
+  if(rs){
+    const em = rs.dataset.reset;
+    if(!confirm(`รีเซ็ตรหัสของ ${em} ให้กลับเป็นรหัสรวม?`)) return;
+    rs.disabled = true;
+    const {error} = await sb.rpc("admin_reset_password", {em});
+    rs.disabled = false;
+    if(error) return toast(error.message);
+    return toast(`รีเซ็ตรหัสของ ${em} แล้ว<br>ให้เขา login ใหม่ด้วยรหัสรวม`);
+  }
   const d = e.target.closest("button[data-del]");
   const k = e.target.closest("button[data-kick]");
   if(d){

@@ -600,21 +600,28 @@ const LiveDB = (()=>{
     /* อีเมล + รหัสเดียวกันทั้งรุ่น — ไม่พึ่งอีเมลส่งลิงก์ (ติดเพดาน 2 ฉบับ/ชม.)
        เข้าครั้งแรก: เช็คว่าอยู่ในรายชื่อ แล้วสมัครให้เอง (Supabase ตั้ง autoconfirm ไว้) */
     async signIn(email, password){
-      const r1=await sb.auth.signInWithPassword({email,password});
-      if(!r1.error) return;                                    // onAuthStateChange จะรีโหลดให้
+      const WRONG="รหัสไม่ถูกต้อง<br><small>เคยเข้าได้แล้วแต่เข้าเครื่องใหม่ไม่ได้? แจ้งทีมงานให้กด \"รีเซ็ตรหัส\" ให้</small>";
+      /* มือถือชอบเติมช่องว่างท้ายรหัส — ลองแบบที่พิมพ์ก่อน แล้วค่อยลองแบบตัดช่องว่าง */
+      const tries=[password]; if(password.trim()!==password) tries.push(password.trim());
+      let r1;
+      for(const pw of tries){ r1=await sb.auth.signInWithPassword({email,password:pw}); if(!r1.error) return; }   // onAuthStateChange จะรีโหลดให้
       if(!/invalid login credentials/i.test(r1.error.message)) throw new Error(r1.error.message);
       const {data:ok,error:e2}=await sb.rpc("email_allowed",{em:email});
       if(e2) throw new Error(e2.message);
       if(!ok) throw new Error("อีเมลนี้ไม่อยู่ในรายชื่อรุ่น<br>ติดต่อทีมงานให้เพิ่มชื่อก่อน");
-      const r2=await sb.auth.signUp({email,password});
+      /* สมัครครั้งแรก: รหัสต้องตรงกับรหัสรวมที่ทีมงานตั้งไว้ ไม่งั้นบัญชีจะจำรหัสที่พิมพ์ผิดไปตลอด */
+      const {data:codeOk,error:e3}=await sb.rpc("login_code_ok",{c:password});
+      if(e3) throw new Error(e3.message);
+      if(codeOk===false) throw new Error("รหัสไม่ถูกต้อง<br><small>ใช้รหัสที่ทีมงานแจกเท่านั้น เช็คตัวพิมพ์ใหญ่-เล็ก</small>");
+      const r2=await sb.auth.signUp({email,password:password.trim()});
       if(r2.error){
-        if(/already registered/i.test(r2.error.message)) throw new Error("รหัสไม่ถูกต้อง");
+        if(/already registered/i.test(r2.error.message)) throw new Error(WRONG);
         throw new Error(r2.error.message);
       }
       /* อีเมลนี้มีบัญชีอยู่แล้วแต่รหัสผิด — Supabase คืน user ปลอมที่ไม่มี identities */
       if(!r2.data.session){
         const ids=(r2.data.user&&r2.data.user.identities)||[];
-        throw new Error(ids.length ? "สมัครแล้วแต่ยังเข้าไม่ได้ — เปิด autoconfirm ใน Supabase" : "รหัสไม่ถูกต้อง");
+        throw new Error(ids.length ? "สมัครแล้วแต่ยังเข้าไม่ได้ — เปิด autoconfirm ใน Supabase" : WRONG);
       }
     },
     async signInGoogle(){
