@@ -561,6 +561,21 @@
     .navBtn{font-size:14px; padding:11px 8px; min-width:0}
     .ring{width:86px;height:86px}
   }
+  /* ---- ปุ่มพื้นฐาน: ตา / วิธีเล่น / กลับขึ้นบน ---- */
+  .pwWrap{position:relative}
+  .pwWrap input{padding-right:46px}
+  .eye{position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:0; cursor:pointer; font-size:18px; line-height:1; padding:6px; opacity:.7}
+  .eye:hover{opacity:1}
+  .chip.btnChip{cursor:pointer; background:linear-gradient(180deg,#4b41a8,#2e2678 60%,#1e1856); color:#fff}
+  .chip.btnChip:hover{filter:brightness(1.15)}
+  .toTop{position:fixed; right:14px; bottom:44px; z-index:40; width:44px; height:44px; font-size:20px; cursor:pointer; color:#fff;
+    background:linear-gradient(180deg,#4b41a8,#2e2678 60%,#1e1856); border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6; box-shadow:0 4px 0 rgba(0,0,0,.5)}
+  .help h3{font-family:var(--f-px); font-size:13px; color:var(--gold); margin:14px 0 6px; text-shadow:0 2px 0 #000}
+  .help h3:first-child{margin-top:0}
+  .help ul{margin:0; padding-left:18px; font-size:13px; line-height:1.75; color:#e6e1ff}
+  .help li{margin-bottom:4px}
+  .help b{color:#fff}
+  .rk.top1{font-size:19px} .rk.top2{font-size:19px} .rk.top3{font-size:19px}
   /* ---- TA ROOM ---- */
   #taRoom{padding:6px 16px 12px}
   .taRow{display:flex; align-items:center; gap:12px; padding:8px 8px; border-bottom:2px solid var(--line); cursor:pointer}
@@ -682,7 +697,9 @@
       <label>EMAIL</label>
       <input id="email" type="email" placeholder="you@email.com" autocomplete="email">
       <label style="margin-top:14px">รหัสเข้า</label>
-      <input id="pass" type="password" placeholder="รหัสที่ทีมงานแจก" autocomplete="current-password">
+      <div class="pwWrap"><input id="pass" type="password" placeholder="รหัสที่ทีมงานแจก" autocomplete="current-password">
+        <button type="button" class="eye" id="eyeBtn" title="แสดง/ซ่อนรหัส">👁</button></div>
+      <div class="hint" style="margin-top:6px">พิมพ์แล้วกด 👁 เช็คตัวพิมพ์ใหญ่-เล็กก่อนเข้า · ระบบตัดช่องว่างท้ายให้เอง</div>
       <button class="btn go" id="authBtn" style="margin-top:18px">▶ เข้าสู่ระบบ</button>
       <button class="btn sm" id="googleBtn" style="display:none;width:100%;margin-top:12px;padding:13px">เข้าด้วย GOOGLE</button>
       <div class="hint" id="authNote">ต้องเป็นอีเมลที่อยู่ในรายชื่อรุ่นเท่านั้น ถ้าเข้าไม่ได้ให้ติดต่อทีมงาน</div>
@@ -731,6 +748,8 @@
       <div class="chip">DAY <b id="hudDay">--</b>/<span id="hudTotal">84</span></div>
       <div class="chip clock">ปิดรอบใน <b id="hudClock">--:--:--</b></div>
       <div class="chip live" id="modeTag">DEMO</div>
+      <button class="chip btnChip" id="helpBtn">❓ วิธีเล่น</button>
+      <button class="chip btnChip" id="outBtn2">⏏ SIGN OUT</button>
     </div>
   </header>
 
@@ -800,6 +819,17 @@
         <span><button class="btn sm" id="jumpMe">ไปที่อันดับฉัน</button></span>
       </div>
       <div class="filters" id="boardFilters"></div>
+      <div class="legend" id="boardLegend" style="padding:0 16px 10px;margin-top:0">
+        <span><i style="background:#fff"></i>นักเรียน</span>
+        <span><i style="background:#5ef08c"></i>TA</span>
+        <span><i style="background:#ff4d6d"></i>หัวหน้าโค้ช</span>
+        <span><i style="background:#ff8a00"></i>LASER FOCUS</span>
+        <span><i style="background:#ffcc4d"></i>PRO MAX</span>
+        <span><i style="background:linear-gradient(90deg,#ff4d6d,#ffcc4d,#5ef08c,#4ee1ff)"></i>เข้าเส้นชัย 90</span>
+        <span><i style="background:#8a8a9a"></i>ร่างกระโหลก</span>
+        <span><i style="background:#9fb3e6"></i>ร่างหมดแรง</span>
+        <span>👑 King of the Week</span>
+      </div>
       <div style="max-height:70vh;overflow-y:auto">
         <table>
           <thead><tr>
@@ -974,6 +1004,45 @@
     </div>
   </div>
 </div></div>
+
+<!-- ============ HOW TO PLAY ============ -->
+<div class="modal" id="helpModal"><div class="sheet bevel" style="max-width:640px">
+  <div class="titlebar"><h2>❓ วิธีเล่น</h2><div class="closeX" data-close>[ X ]</div></div>
+  <div class="body help">
+    <h3>🏁 กติกาหลัก</h3>
+    <ul>
+      <li><b>ส่งงาน</b> = วางลิงก์คอนเทนต์ที่โพสต์แล้ว 1 ลิงก์ = 1 ชิ้น = วิ่งไป 1 ก้าว เส้นชัยอยู่ที่ 90 ชิ้น</li>
+      <li><b>ปิดรอบตี 4</b> งานที่ส่งก่อนตี 4 นับเป็นของ "วันนี้" ส่งหลังตี 4 นับเป็นวันถัดไป</li>
+      <li><b>เป้าสัปดาห์</b> ทุกต้นสัปดาห์เลือกว่าจะส่งกี่ชิ้น (4 / 7 / 10 / 14) เลือกแล้วเปลี่ยนได้ แต่ลดไม่ได้</li>
+      <li><b>ส่งผิดลิงก์</b> ลบเองได้ภายใน 10 นาทีที่หน้า MY STATUS · เลือกแพลตฟอร์มผิดแก้ได้ตลอด</li>
+    </ul>
+    <h3>🧍 ร่างของตัวละคร</h3>
+    <ul>
+      <li><b>ปกติ</b> เป้า 4 หรือ 7 ชิ้น · <b>LASER FOCUS</b> เป้า 10 ตัวลุกเป็นไฟแดง · <b>PRO MAX</b> เป้า 14 ไฟทองท่วมตัว</li>
+      <li><b>ร่างหมดแรง 😵</b> พลาดเป้า 4/7 ของสัปดาห์ที่แล้ว · <b>ร่างกระโหลก 💀</b> ไม่ส่งเลยทั้งสัปดาห์ — ทำครบเป้าสัปดาห์นี้แล้วฟื้นเป็นปกติ</li>
+      <li><b>ไฟที่เท้า 🔥</b> ส่งติดต่อกัน 7 วัน · ใหญ่ขึ้นเมื่อครบ 14 วัน</li>
+    </ul>
+    <h3>🏠 บ้าน · 👑 King · 🏆 ถ้วย</h3>
+    <ul>
+      <li>4 บ้าน WISDOM · JUSTICE · COURAGE · DISCIPLINE แข่งกันด้วย <b>ค่าเฉลี่ยต่อคน</b> บ้านเล็กไม่เสียเปรียบ</li>
+      <li><b>ถ้วยบ้าน</b> ให้ทุกสัปดาห์กับบ้านที่เฉลี่ยสูงสุด · <b>King of the Week</b> = ที่ 1 ของแต่ละบ้าน ได้ใส่มงกุฎราชา 1 สัปดาห์</li>
+    </ul>
+    <h3>⚔️ ของเล่นในสนาม</h3>
+    <ul>
+      <li><b>เชียร์</b> คลิกตัวละครเพื่อน ส่ง 👏🔥💪❤️ ได้วันละครั้งต่อคน · ได้เชียร์ 10 ครั้งในสัปดาห์ = ป้าย POPULAR</li>
+      <li><b>ดวล 7 วัน</b> ท้าเพื่อน ใครส่งมากกว่าชนะ ผู้แพ้ใส่หมวกที่ผู้ชนะเลือก 7 วัน</li>
+      <li><b>บอสประจำสัปดาห์</b> โค้ชปล่อยบอสให้บ้าน ทุกชิ้นที่ส่ง = 1 ดาเมจ HP หมด = ทั้งบ้านได้ป้าย BOSS SLAYER</li>
+      <li><b>ห้องแต่งตัว</b> เปลี่ยนเพศ ผิว ผม แว่น เสื้อ กางเกง หมวก · ไอเทมพิเศษปลดล็อกที่ 30 / 60 / 90 ชิ้น</li>
+      <li><b>ป้ายรางวัล</b> ดูได้ในโปรไฟล์ · <b>การ์ดแชร์</b> ที่ MY STATUS เซฟรูปไปโพสต์ได้เลย</li>
+    </ul>
+    <h3>🔔 ไม่พลาดรอบ</h3>
+    <ul>
+      <li>กด "เปิดเตือนก่อนปิดรอบ" ที่ MY STATUS จะมีแจ้งเตือนตอน 2 ทุ่มถ้าวันนั้นยังไม่ส่ง</li>
+      <li>เข้าไม่ได้ / รหัสไม่ผ่าน / ส่งผิด ติดต่อทีมงานใน Discord ได้เลย</li>
+    </ul>
+  </div>
+</div></div>
+<button id="toTop" class="toTop" hidden title="กลับขึ้นบน">⬆</button>
 
 <div id="toast"></div>
 <div id="wm" class="wm"></div>

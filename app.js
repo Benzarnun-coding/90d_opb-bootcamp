@@ -1133,18 +1133,18 @@ function renderBoard(){
   $("board").innerHTML=list.map(r=>{
     const s=stats(r), h=houseOf(r.house);
     const role=roleOf(r);
-    const i=role==="student" ? rankOf(r.name)-1 : -1;
-    const medal=role==="head"?"🎓":role==="ta"?"TA":i===0?"👑":i===1?"🥈":i===2?"🥉":String(i+1).padStart(2,"0");
+    const i=list.indexOf(r);                                   // เลขเรียงตามแถวที่เห็น 1..N · เหรียญเฉพาะ 3 อันดับแรก
+    const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":String(i+1).padStart(2,"0");
     const o=s.weekTarget?optOf(s.weekTarget):null;
     const wk = o ? `<span class="wkTag ${s.weekDone>=s.weekTarget?"hit":o.style}">${s.weekDone}/${s.weekTarget}${o.style==="red"?" 🔴":o.style==="flame"?" 🔥":""}</span>`
                  : `<span class="wkTag normal" style="opacity:.5">—</span>`;
     const pc = s.pace>0?"var(--green)":s.pace<0?"var(--orange)":"var(--cyan)";
     return `<tr class="${r.name===S.me?"me":""}" data-n="${r.name}" id="row-${r.name}">
       <td class="rk ${i<3?"top"+(i+1):""}">${medal}</td>
-      <td class="nm" style="color:${nameColor(r)}">${isKingNow(r)?"👑 ":""}${r.name}
+      <td class="nm" style="color:${boardColor(r,s)}">${isKingNow(r)?"👑 ":""}${r.name}
         <span style="font-family:var(--f-th);font-size:11px;color:var(--dim)">${r.handle}</span></td>
       <td class="hideSm">${role==="head" ? '<span style="color:#ff4d6d;font-size:12px">🎓 หัวหน้าโค้ช</span>'
-        : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>${role==="ta"?' <span style="color:#5ef08c;font-size:11px">TA</span>':""}`}</td>
+        : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>`}</td>
       <td class="num" style="color:${r.color}">${s.contents}</td>
       <td>${wk}</td>
       <td class="hideSm streak">${s.weekStreak}🔥</td>
@@ -1155,6 +1155,19 @@ function renderBoard(){
         ${s.target?`<span class="goal" style="left:${Math.min(100,s.target/FINISH*100)}%"></span>`:""}
       </div></td></tr>`;
   }).join("");
+}
+
+/* สีชื่อในสกอร์บอร์ด: ปกติขาว · TA เขียว · หัวหน้าโค้ชแดง · ร่างพิเศษมีสีของตัวเอง */
+function boardColor(r,s){
+  const role=roleOf(r);
+  if(role==="head") return "#ff4d6d";
+  if(role==="ta")   return "#5ef08c";
+  if(s.contents>=FINISH) return "#ffcc4d";
+  if(s.style==="flame")  return "#ffcc4d";
+  if(s.style==="red")    return "#ff8a00";
+  if(s.burnout)          return "#8a8a9a";
+  if(s.weak)             return "#9fb3e6";
+  return "#fff";
 }
 
 /* ================= FEED ================= */
@@ -1615,6 +1628,8 @@ function renderHud(){
   $("simBtn").style.display = DB.canSim?"":"none";
   $("adminNav").style.display = (DB.mode==="demo" || roleOf(r)==="head") ? "" : "none";
   $("outBtn").textContent = DB.mode==="live"?"SIGN OUT":"RESET DEMO";
+  $("outBtn2").textContent = DB.mode==="live"?"⏏ SIGN OUT":"↺ RESET DEMO";
+  $("outBtn2").style.display = S.spectator ? "none" : "";
   $("modeTag").textContent = DB.mode==="live"?"LIVE":"DEMO MODE";
   $("modeTag").className = "chip "+(DB.mode==="live"?"live":"warnChip");
 }
@@ -1817,6 +1832,11 @@ $("simBtn").onclick=async()=>{
   }catch(err){ toast(err.message); }
 };
 $("outBtn").onclick=async()=>{ await DB.signOut(); location.reload(); };
+$("outBtn2").onclick=()=>$("outBtn").click();
+$("helpBtn").onclick=()=>$("helpModal").classList.add("on");
+$("eyeBtn").onclick=()=>{ const p=$("pass"); p.type = p.type==="password" ? "text" : "password"; $("eyeBtn").textContent = p.type==="password" ? "👁" : "🙈"; p.focus(); };
+window.addEventListener("scroll", ()=>{ $("toTop").hidden = window.scrollY < 600; }, {passive:true});
+$("toTop").onclick=()=>window.scrollTo({top:0, behavior:"smooth"});
 
 /* ---- share ---- */
 $("shDownload").onclick=async()=>{
