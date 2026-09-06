@@ -46,7 +46,95 @@ async function boot(){
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
+  loadRisk(); loadSessions(); loadRetention(); loadAudit();
 }
+/* ---- กลุ่มเสี่ยง ---- */
+const RISK_TH = {never:["🆕 ยังไม่เคยส่ง","no"], silent3:["⛔ หายไป 3 วัน+","no"], silent2:["⚠️ ไม่ส่ง 2 วัน","no"], burnout:["💀 กระโหลก","no"], weak:["😵 หมดแรง","no"], nopledge:["🎯 ยังไม่เลือกเป้า","no"], ok:["✅ ปกติ","ok"]};
+async function loadRisk(){
+  if(!$("rkHouse").options.length || $("rkHouse").options.length===1) $("rkHouse").innerHTML = '<option value="">🌏 ทั้งรุ่น</option>' + HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
+  const hid = $("rkHouse").value ? +$("rkHouse").value : null;
+  let q = sb.from("v_at_risk").select("*").neq("risk","ok").order("days_silent",{ascending:false});
+  if(hid) q = q.eq("house_id", hid);
+  const [{data, error}, {data:txt}] = await Promise.all([q, sb.rpc("risk_text", {hid})]);
+  if(error) return toast(error.message);
+  const list = data || [];
+  $("rkSum").textContent = `เสี่ยง ${list.length} คน`;
+  $("rkRows").innerHTML = list.length ? list.map(x=>{ const h=houseOf(x.house_id), t=RISK_TH[x.risk]||[x.risk,"no"];
+    return `<tr><td><span class="tag ${t[1]}">${t[0]}</span></td><td><b>${esc(x.name)}</b></td><td>${h.emoji} ${h.name}</td><td>${x.contents}</td>
+      <td>${x.last_day ? "วันที่ "+x.last_day+" ("+x.days_silent+" วันก่อน)" : "—"}</td><td>${x.week_target ? x.week_done+"/"+x.week_target : '<span style="color:var(--red)">ยังไม่เลือก</span>'}</td></tr>`; }).join("")
+    : '<tr><td colspan="6" style="color:var(--dim);padding:16px">ไม่มีใครเสี่ยง 🎉</td></tr>';
+  $("rkText").value = txt || "";
+}
+$("rkHouse").onchange = loadRisk; $("rkReload").onclick = loadRisk;
+$("rkCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText($("rkText").value); toast("คัดลอกแล้ว วางใน Discord ได้เลย"); }catch(e){ $("rkText").select(); toast("กด Ctrl+C เพื่อคัดลอก"); } };
+
+/* ---- เรียนสด ---- */
+async function loadSessions(){
+  if(!$("lsDate").value) $("lsDate").value = new Date(Date.now()+7*3600e3).toISOString().slice(0,10);
+  const {data, error} = await sb.from("v_session_attendance").select("*");
+  if(error) return toast(error.message);
+  const now = Date.now();
+  $("lsRows").innerHTML = (data||[]).length ? data.map(s=>{
+    const st=new Date(s.starts_at), en=new Date(s.ends_at); const live = now>=st.getTime()-30*60e3 && now<=en.getTime()+60*60e3;
+    return `<tr><td><b>${esc(s.title)}</b>${live?' <span class="tag ok">LIVE</span>':""}</td>
+      <td>${st.toLocaleString("th-TH",{dateStyle:"short",timeStyle:"short"})} – ${en.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}</td>
+      <td><b class="px" style="color:var(--gold)">${s.n}</b> / ${s.students} คน <button class="btn xs" data-att="${s.id}">รายชื่อ</button><div id="att-${s.id}" style="font-size:12px;color:var(--dim);margin-top:4px"></div></td>
+      <td><button class="btn xs danger" data-lsdel="${s.id}">ลบ</button></td></tr>`; }).join("")
+    : '<tr><td colspan="4" style="color:var(--dim);padding:16px">ยังไม่มีคาบเรียน</td></tr>';
+}
+$("lsAdd").onclick = async ()=>{
+  const title=$("lsTitle").value.trim(), d=$("lsDate").value, t=$("lsTime").value, min=+$("lsMin").value||90;
+  if(!title || !d || !t) return toast("ใส่ชื่อคาบ วันที่ และเวลาเริ่ม");
+  const starts = new Date(`${d}T${t}:00+07:00`); const ends = new Date(starts.getTime()+min*60e3);
+  const {error} = await sb.from("live_sessions").insert({title, starts_at:starts.toISOString(), ends_at:ends.toISOString()});
+  if(error) return toast(error.message);
+  toast("สร้างคาบแล้ว นักเรียนจะเห็นปุ่มเช็คอินในแอปเมื่อถึงเวลา"); $("lsTitle").value=""; await loadSessions();
+};
+$("lsRows").onclick = async e=>{
+  const d=e.target.closest("button[data-lsdel]");
+  if(d){ if(!confirm("ลบคาบนี้และรายชื่อเช็คอิน?")) return; const {error}=await sb.from("live_sessions").delete().eq("id",+d.dataset.lsdel); if(error) return toast(error.message); await loadSessions(); return; }
+  const a=e.target.closest("button[data-att]");
+  if(a){ const {data}=await sb.from("checkins").select("profile_id,at").eq("session_id",+a.dataset.att); const ids=(data||[]).map(c=>c.profile_id);
+    const {data:ps}= ids.length ? await sb.from("profiles").select("id,name,house_id").in("id",ids) : {data:[]};
+    $("att-"+a.dataset.att).textContent = (ps||[]).map(p=>houseOf(p.house_id).emoji+" "+p.name).sort().join(", ") || "ยังไม่มีใครเช็คอิน"; }
+};
+
+/* ---- retention ---- */
+async function loadRetention(){
+  const {data, error} = await sb.from("daily_snapshots").select("day_index,posted,role").eq("role","student");
+  if(error){ $("rtRows").textContent = error.message; return; }
+  const by={}; (data||[]).forEach(r=>{ const o=by[r.day_index]=by[r.day_index]||{n:0,p:0}; o.n++; if(r.posted) o.p++; });
+  const days=Object.keys(by).map(Number).sort((a,b)=>a-b);
+  $("rtRows").innerHTML = days.length ? days.map(d=>{ const o=by[d], pct=o.n?Math.round(o.p/o.n*100):0;
+    return `<div style="display:grid;grid-template-columns:70px 1fr 120px;gap:10px;align-items:center;padding:3px 0"><span>วันที่ ${d}</span>
+      <div style="height:12px;background:#0b0316;border:2px solid var(--line)"><i style="display:block;height:100%;width:${pct}%;background:linear-gradient(90deg,#20c060,#8dff9d)"></i></div>
+      <span><b>${pct}%</b> · ${o.p}/${o.n} คน</span></div>`; }).join("")
+    : '<span style="color:var(--dim)">ยังไม่มี snapshot (จะเริ่มเก็บทุกคืน 03:55)</span>';
+}
+
+/* ---- audit ---- */
+async function loadAudit(){
+  const {data, error} = await sb.from("audit_log").select("at,actor_name,action,target,detail").order("at",{ascending:false}).limit(60);
+  if(error){ $("auRows").innerHTML = "<li>"+esc(error.message)+"</li>"; return; }
+  const H = id => id ? houseOf(id).emoji+" "+houseOf(id).name : "—";
+  $("auRows").innerHTML = (data||[]).length ? data.map(x=>{
+    const d=x.detail||{}; let what=x.action;
+    if(x.action==="profile.update"){ const p=[]; if(d.house&&d.house[0]!==d.house[1]) p.push("ย้าย "+H(d.house[0])+" → "+H(d.house[1])); if(d.role&&d.role[0]!==d.role[1]) p.push("บทบาท "+d.role[0]+" → "+d.role[1]); if(d.name&&d.name[0]!==d.name[1]) p.push("ชื่อ "+d.name[0]+" → "+d.name[1]); what="แก้โปรไฟล์: "+p.join(" · "); }
+    else if(x.action==="roster.update"){ const p=[]; if(d.house&&d.house[0]!==d.house[1]) p.push("ย้าย "+H(d.house[0])+" → "+H(d.house[1])); if(d.role&&d.role[0]!==d.role[1]) p.push("บทบาท "+d.role[0]+" → "+d.role[1]); what="แก้รายชื่อ: "+p.join(" · "); }
+    else if(x.action==="roster.add") what="เพิ่มเข้ารายชื่อ "+H(d.house);
+    else if(x.action==="roster.delete") what="ลบออกจากรายชื่อ";
+    else if(x.action==="profile.create") what="สมัครเข้าบ้าน "+H(d.house);
+    else if(x.action==="profile.delete") what="ลบโปรไฟล์";
+    else if(x.action==="submission.delete") what="ลบงาน วันที่ "+d.day+" ("+(d.platform||"")+")";
+    else if(x.action==="password.reset") what="รีเซ็ตรหัส";
+    else if(x.action==="login_code.set") what="ตั้งรหัสเข้าใช้รวม";
+    else if(x.action==="boss.create") what="ปล่อยบอส สัปดาห์ "+d.week+" HP "+d.hp;
+    else if(x.action==="boss.delete") what="ลบบอส";
+    else if(x.action==="sheet.sync") what=`ซิงก์ชีท: เพิ่ม ${(d.added||[]).length} · ย้าย ${(d.moved||[]).length} · TA ใหม่ ${(d.newTa||[]).length}`;
+    return `<li>${new Date(x.at).toLocaleString("th-TH",{dateStyle:"short",timeStyle:"short"})} · <b>${esc(x.actor_name||"ระบบ")}</b> · ${esc(what)}${x.target?" · "+esc(x.target):""}</li>`; }).join("")
+    : "<li style=\"color:var(--dim)\">ยังไม่มีบันทึก</li>";
+}
+
 /* ---- รหัสเข้าใช้รวม ---- */
 async function loadLoginCode(){
   const {data} = await sb.rpc("login_code_set");

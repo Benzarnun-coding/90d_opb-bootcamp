@@ -657,6 +657,17 @@
     .filters::-webkit-scrollbar{display:none}
     .filters .fBtn{flex:0 0 auto; white-space:nowrap; font-size:12px; padding:7px 10px}
   }
+  /* ---- ข้อมูลต่อชิ้น / เช็คอิน ---- */
+  .feed .kd{font-size:13px} .feed .kudo{color:var(--gold); font-size:12px} .feed .stat{font-size:11px; color:var(--dim); white-space:nowrap}
+  .feed .note{flex-basis:100%; font-size:12px; color:#cdc7ff; padding-left:4px; line-height:1.5}
+  .statIn{width:74px; padding:4px 6px; font-size:12px; font-family:var(--f-th); text-align:right}
+  .feed select.kindSel{width:auto; padding:4px 6px; font-size:12px}
+  .feed input.noteIn{flex:1 1 160px; padding:4px 8px; font-size:12px; min-width:120px}
+  .liveRow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding:10px 12px; background:#2a0a1c; border:2px solid var(--red)}
+  .liveRow b{font-family:var(--f-px); color:#fff; text-shadow:0 2px 0 #000}
+  .liveRow .btn{margin-left:auto}
+  .liveRow.done{border-color:var(--green); background:#0d3a20}
+  .board td.reach{font-family:var(--f-px); font-size:12px}
   /* ---- XP / ภารกิจ ---- */
   .qBody{padding:12px 16px 14px}
   .lvBox{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px}
@@ -978,6 +989,12 @@
           <div><label>RUNNER</label><div class="meBox" id="who">—</div></div>
           <div><label>PLATFORM</label><select id="plat"></select></div>
         </div>
+        <div class="row">
+          <div><label>ประเภทคอนเทนต์</label><select id="kind">
+            <option value="">— ไม่ระบุ —</option><option value="short">🎬 คลิปสั้น</option><option value="long">🎥 คลิปยาว</option>
+            <option value="image">🖼 รูป / โพสต์ภาพ</option><option value="article">📝 บทความ / ข้อความ</option><option value="live">🔴 ไลฟ์</option><option value="other">✨ อื่น ๆ</option></select></div>
+          <div><label>สรุป 1 บรรทัด <span class="platHint" style="color:var(--dim)">ไม่บังคับ</span></label><input id="note" maxlength="140" placeholder="ชิ้นนี้เกี่ยวกับอะไร / ได้เรียนรู้อะไร"></div>
+        </div>
         <label>CONTENT URL <span id="platHint" class="platHint"></span></label>
         <input id="url" placeholder="วางลิงก์โพสต์ที่เพิ่งปล่อย" inputmode="url" autocomplete="off">
         <button class="btn go" id="pushBtn">▶ SUBMIT</button>
@@ -1032,7 +1049,7 @@
     <section class="panel bevel">
       <div class="titlebar">
         <h2>SCOREBOARD</h2>
-        <span><button class="btn sm" id="jumpMe">ไปที่อันดับฉัน</button></span>
+        <span><button class="btn sm" id="reachToggle">👁 ยอดวิว</button> <button class="btn sm" id="jumpMe">ไปที่อันดับฉัน</button></span>
       </div>
       <div class="nearMe" id="nearMe" hidden></div>
       <div class="filters" id="boardFilters"></div>

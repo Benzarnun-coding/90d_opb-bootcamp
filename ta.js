@@ -80,6 +80,10 @@ async function load(){
     const {data:sub} = await sb.from("submissions").select("profile_id").eq("day_index", today).eq("status","approved").in("profile_id", ids);
     (sub||[]).forEach(s=>postedToday.add(s.profile_id));
   }
+  try{ const {data:rk}=await sb.from("v_at_risk").select("name,risk,days_silent,contents,week_target,week_done").eq("house_id",HOUSE).neq("risk","ok").order("days_silent",{ascending:false});
+    const RT={never:"🆕 ยังไม่เคยส่ง",silent3:"⛔ หายไป 3 วัน+",silent2:"⚠️ ไม่ส่ง 2 วัน",burnout:"💀 กระโหลก",weak:"😵 หมดแรง",nopledge:"🎯 ยังไม่เลือกเป้า"};
+    $("rkRows").innerHTML = (rk||[]).length ? rk.map(x=>`<div><span class="tag no">${RT[x.risk]||x.risk}</span> <b>${esc(x.name)}</b> · ${x.contents} ชิ้น${x.last_day?"":""}${x.week_target?" · เป้า "+x.week_done+"/"+x.week_target:""}</div>`).join("") : '<span style="color:var(--dim)">ไม่มีใครเสี่ยง 🎉</span>';
+    const {data:txt}=await sb.rpc("risk_text",{hid:HOUSE}); $("rkText").value=txt||""; }catch(e){}
   const {data:mv} = await sb.from("house_moves").select("email,from_house,to_house,moved_at,note").or(`from_house.eq.${HOUSE},to_house.eq.${HOUSE}`).order("moved_at",{ascending:false}).limit(30);
   renderMoves(mv||[]);
   render();
@@ -137,16 +141,19 @@ function renderMoves(mv){
 /* ================= งานของนักเรียน ================= */
 async function loadSubs(pid){
   const box = $("subBox"); if(!box) return;
-  const {data, error} = await sb.from("submissions").select("id,day_index,platform,url,created_at").eq("profile_id", pid).order("created_at",{ascending:false}).limit(200);
+  const {data, error} = await sb.from("submissions").select("id,day_index,platform,url,created_at,views,likes,kind,note,kudos(submission_id)").eq("profile_id", pid).order("created_at",{ascending:false}).limit(200);
   if(error){ box.textContent = error.message; return; }
-  box.innerHTML = (data||[]).length ? `<table><thead><tr><th>วัน</th><th>แพลตฟอร์ม</th><th>ลิงก์</th><th class="hideSm">ส่งเมื่อ</th><th></th></tr></thead><tbody>` +
-    data.map(s=>`<tr>
+  const KI={short:"🎬",long:"🎥",image:"🖼",article:"📝",live:"🔴",other:"✨"};
+  box.innerHTML = (data||[]).length ? `<table><thead><tr><th>วัน</th><th>แพลตฟอร์ม</th><th>ลิงก์</th><th>👁 วิว</th><th>❤ ไลก์</th><th>👍</th><th></th></tr></thead><tbody>` +
+    data.map(s=>{ const k=!!(s.kudos&&s.kudos.length); return `<tr>
       <td>${s.day_index}</td>
-      <td><select data-plat="${s.id}">${PLATS.map(p=>`<option ${p===s.platform?"selected":""}>${p}</option>`).join("")}</select></td>
-      <td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--cyan)">${esc(s.url)}</a></td>
-      <td class="hideSm">${ago(s.created_at)}ที่แล้ว</td>
-      <td><button class="btn xs danger" data-del="${s.id}">ลบ</button></td></tr>`).join("") + `</tbody></table>
-    <div class="hint">ลบ = งานหายจากคะแนนทันที ใช้กับลิงก์ผิด/ซ้ำ/ไม่ใช่งานจริง · เปลี่ยนแพลตฟอร์มบันทึกทันที</div>`
+      <td><select data-plat="${s.id}">${PLATS.map(p=>`<option ${p===s.platform?"selected":""}>${p}</option>`).join("")}</select>${s.kind?" "+KI[s.kind]:""}</td>
+      <td style="max-width:320px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--cyan)">${esc(s.url)}</a></div>${s.note?`<div style="font-size:12px;color:var(--dim)">💬 ${esc(s.note)}</div>`:""}</td>
+      <td><input type="number" min="0" data-views="${s.id}" value="${s.views||""}" style="width:80px;padding:4px 6px;font-size:12px"></td>
+      <td><input type="number" min="0" data-likes="${s.id}" value="${s.likes||""}" style="width:80px;padding:4px 6px;font-size:12px"></td>
+      <td><button class="btn xs" data-kudo="${s.id}" data-on="${k?1:0}" style="${k?"background:linear-gradient(180deg,#ffd96b,#e0a018 60%,#a86f06);color:#3a2600;text-shadow:none":""}">${k?"👍 งานดี":"👍"}</button></td>
+      <td><button class="btn xs danger" data-del="${s.id}">ลบ</button></td></tr>`; }).join("") + `</tbody></table>
+    <div class="hint">👍 = งานดี (นักเรียนได้ป้าย QUALITY เมื่อครบ 3) · ใส่ยอดวิว/ไลก์แทนนักเรียนได้ · ลบ = งานหายจากคะแนนทันที</div>`
     : `<div style="color:var(--dim)">ยังไม่มีงาน</div>`;
 }
 $("rows").onclick = async e=>{
@@ -162,8 +169,16 @@ $("rows").onclick = async e=>{
   }
   const mv = e.target.closest("button[data-move]");
   if(mv) openMove(mv.dataset.move, mv.dataset.nm || "");
+  const kd = e.target.closest("button[data-kudo]");
+  if(kd){ kd.disabled=true; const give = kd.dataset.on!=="1";
+    const {error} = await sb.rpc("ta_kudos", {sid:+kd.dataset.kudo, give});
+    if(error){ kd.disabled=false; return toast(error.message); }
+    toast(give ? "ให้ 👍 งานดีแล้ว" : "ยกเลิก 👍 แล้ว"); if(openPid) loadSubs(openPid); }
 };
 $("rows").onchange = async e=>{
+  const vi = e.target.closest("input[data-views], input[data-likes]");
+  if(vi){ vi.disabled=true; const p = vi.dataset.views!=null ? {sid:+vi.dataset.views, v:+vi.value||0} : {sid:+vi.dataset.likes, lk:+vi.value||0};
+    const {error} = await sb.rpc("ta_update_submission", p); vi.disabled=false; if(error) return toast(error.message); toast("บันทึกยอดแล้ว"); return; }
   const s = e.target.closest("select[data-plat]"); if(!s) return;
   s.disabled = true;
   const {error} = await sb.rpc("ta_fix_platform", {sid: +s.dataset.plat, plat: s.value});
@@ -199,5 +214,6 @@ $("mvCode").onkeydown = e => { if(e.key==="Enter") $("mvGo").click(); };
 $("filters").onclick = e => { const b=e.target.closest(".fBtn[data-f]"); if(!b) return; filter=b.dataset.f; render(); };
 $("q").oninput = e => { q=e.target.value.trim(); render(); };
 $("reload").onclick = load;
+$("rkCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText($("rkText").value); toast("คัดลอกแล้ว"); }catch(e){ $("rkText").select(); toast("กด Ctrl+C เพื่อคัดลอก"); } };
 
 boot();

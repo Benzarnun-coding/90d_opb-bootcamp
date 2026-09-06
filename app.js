@@ -16,6 +16,10 @@ const HEAVY   = C.HEAVY_TARGET || 10;      // รับเป้าตั้ง�
 const WEEKS   = Math.round((SPD * NSP) / 7);
 const FINISH  = C.GOAL_TOTAL || 7 * WEEKS; // เส้นชัย = ปล่อยครบกี่ชิ้น (ส่งเกินได้)
 const NEAR    = C.NEAR_RANGE || 3;
+const KIND_ICON={short:"🎬",long:"🎥",image:"🖼",article:"📝",live:"🔴",other:"✨"};
+const KIND_TH={short:"คลิปสั้น",long:"คลิปยาว",image:"รูป",article:"บทความ",live:"ไลฟ์",other:"อื่น ๆ"};
+const kindOpts=(v)=>`<option value="">—</option>`+Object.keys(KIND_ICON).map(k=>`<option value="${k}" ${k===v?"selected":""}>${KIND_ICON[k]} ${KIND_TH[k]}</option>`).join("");
+const fmtN=n=>n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+"K":String(n);
 const TAG     = C.HASHTAG || "#CreatorBootcamp";
 const CREDIT  = C.CREDIT  || "";
 const LIVE    = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY) && !/[?&]demo\b/.test(location.search);  // ?demo = ลองในเครื่องด้วยข้อมูลปลอม
@@ -478,7 +482,9 @@ const DemoDB = (()=>{
         return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
       const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.role==="student"&&r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
+      const reach={}; db.subs.forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who); if(!r0) return; const o=reach[r0.id]=reach[r0.id]||{profile_id:r0.id,total_views:0,total_likes:0,best_views:0,pieces:0}; o.total_views+=s.views||0; o.total_likes+=s.likes||0; o.best_views=Math.max(o.best_views,s.views||0); o.pieces++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
+              reach:Object.values(reach), kudos:[], sessions:[], myCheckins:[],
               cheers:db.cheers||[], cheerWeeks, duels, bosses, bossKills,
               started:true, daysUntil:0, startDate:null};
     },
@@ -526,14 +532,21 @@ const DemoDB = (()=>{
       db.subs.splice(i,1); save(); onChange();
     },
     async savePush(){}, async removePush(){},
-    async submit({url, platform}){
+    async submit({url, platform, kind, note}){
       const r=db.runners.find(x=>x.name===db.me);
       if(db.subs.some(s=>s.url.toLowerCase()===url.toLowerCase())) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
       const s=spOf(db.today);
       if(!r.joined.includes(s)) throw new Error(`ไม่ได้ลงสปรินต์ ${s+1}`);
-      db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now()});
+      db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now(), kind:kind||null, note:note||null, views:0, likes:0});
       save(); onChange();
     },
+    async updateSub(id, patch){
+      const s=db.subs.find(x=>x.id===id && x.who===db.me); if(!s) throw new Error("ไม่พบงานชิ้นนี้");
+      if(patch.platform!=null) s.plat=patch.platform; if(patch.kind!==undefined) s.kind=patch.kind||null; if(patch.note!==undefined) s.note=patch.note||null;
+      if(patch.views!=null) s.views=+patch.views||0; if(patch.likes!=null) s.likes=+patch.likes||0;
+      save(); onChange();
+    },
+    async checkin(){ throw new Error("โหมดทดลองไม่มีเรียนสด"); },
     async rename(name){
       if(db.runners.some(r=>r.name.toUpperCase()===name.toUpperCase() && r.name!==db.me)) throw new Error("ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น");
       const r=db.runners.find(x=>x.name===db.me);
@@ -654,7 +667,8 @@ const LiveDB = (()=>{
     async fetchAll(){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
       const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows},
-             {data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows}]=await Promise.all([
+             {data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},
+             {data:reachRows},{data:kudosRows},{data:sessRows},{data:ckRows}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
@@ -667,7 +681,11 @@ const LiveDB = (()=>{
         sb.from("v_cheers_week").select("*"),
         sb.from("v_duels").select("*"),
         sb.from("v_boss_progress").select("*"),
-        sb.from("v_boss_kills").select("boss_id,week_no,name,profile_id")
+        sb.from("v_boss_kills").select("boss_id,week_no,name,profile_id"),
+        sb.from("v_reach").select("profile_id,total_views,total_likes,best_views,pieces"),
+        sb.from("v_kudos").select("profile_id,n"),
+        sb.from("live_sessions").select("id,title,starts_at,ends_at").gte("ends_at", new Date(Date.now()-2*3600e3).toISOString()).order("starts_at"),
+        uidNow ? sb.from("checkins").select("session_id").eq("profile_id",uidNow) : Promise.resolve({data:[]})
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -735,10 +753,12 @@ const LiveDB = (()=>{
         cups: cups||[],
         kings: kingRows||[],
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[], bosses: bossRows||[], bossKills: killRows||[],
+        reach: reachRows||[], kudos: kudosRows||[], sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id),
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
-          plat:f.platform, url:f.url, ts:new Date(f.created_at).getTime()}))
+          plat:f.platform, url:f.url, ts:new Date(f.created_at).getTime(),
+          kind:f.kind||null, views:f.views||0, likes:f.likes||0, note:f.note||null, kudos:!!f.kudos}))
       };
     },
     /* ---- รายชื่อนักเรียน (RLS ให้เฉพาะหัวหน้าโค้ช) ---- */
@@ -757,7 +777,7 @@ const LiveDB = (()=>{
     async detail(runner){
       const [{data},{data:wk}]=await Promise.all([
         sb.from("submissions")
-          .select("id,platform,url,day_index,sprint_idx,created_at")
+          .select("id,platform,url,day_index,sprint_idx,created_at,kind,views,likes,note,kudos(submission_id)")
           .eq("profile_id",runner.id).eq("status","approved")
           .order("created_at",{ascending:false}).limit(400),
         sb.from("v_week_progress").select("week_no,target,done,hit,finished").eq("profile_id",runner.id)
@@ -768,11 +788,12 @@ const LiveDB = (()=>{
       const early=(data||[]).some(s=>((new Date(s.created_at).getUTCHours()+7)%24) < 6);
       return {byDay, weeks:wk||[], early, recent:(data||[]).map(s=>({
         id:s.id, who:runner.name, day:s.day_index, sp:s.sprint_idx,
-        plat:s.platform, url:s.url, ts:new Date(s.created_at).getTime()}))};
+        plat:s.platform, url:s.url, ts:new Date(s.created_at).getTime(),
+        kind:s.kind||null, views:s.views||0, likes:s.likes||0, note:s.note||null, kudos:!!(s.kudos&&s.kudos.length)}))};
     },
-    async submit({url, platform}){
+    async submit({url, platform, kind, note}){
       const {error}=await sb.from("submissions").insert({
-        profile_id:session.user.id, url, url_key:url, platform, day_index:1, sprint_idx:0});
+        profile_id:session.user.id, url, url_key:url, platform, day_index:1, sprint_idx:0, kind:kind||null, note:note||null});
       if(error){
         if(error.code==="23505"||/duplicate/i.test(error.message)){
           /* บอกให้ชัดว่าลิงก์นี้ชนกับของใคร — ของตัวเองหรือคนอื่น */
@@ -791,6 +812,17 @@ const LiveDB = (()=>{
         }
         throw new Error(error.message.replace(/^.*?:\s*/,""));
       }
+    },
+    /* ---- ข้อมูลต่อชิ้น (เจ้าของแก้เอง: แพลตฟอร์ม/ประเภท/สรุป/ยอดวิว/ไลก์) ---- */
+    async updateSub(id, patch){
+      const p={}; if(patch.platform!=null) p.platform=patch.platform; if(patch.kind!==undefined) p.kind=patch.kind||null;
+      if(patch.note!==undefined) p.note=patch.note||null; if(patch.views!=null) p.views=Math.max(0,+patch.views||0); if(patch.likes!=null) p.likes=Math.max(0,+patch.likes||0);
+      const {error}=await sb.from("submissions").update(p).eq("id",id).eq("profile_id",session.user.id);
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
+    },
+    async checkin(sessionId){
+      const {error}=await sb.from("checkins").insert({session_id:sessionId, profile_id:session.user.id});
+      if(error){ if(error.code==="23505") return; throw new Error(/policy/i.test(error.message)?"เช็คอินได้เฉพาะช่วงเวลาเรียนสด":error.message); }
     },
     /* ---- สังคม: เชียร์ / ดวล / ลบงานล่าสุด / push ---- */
     async cheer(toId, emoji){
@@ -1153,7 +1185,8 @@ function renderHouses(){
     </div>`).join("");
 }
 function boardList(){
-  const all=ranked();
+  let all=ranked();
+  if(S.boardMode==="reach"){ const v=r=>((S.reach||{})[r.id]||{}).total_views||0; all=[...all].sort((a,b)=>v(b)-v(a)); }
   if(S.boardFilter==="ta") return all.filter(r=>roleOf(r)!=="student");
   return S.boardFilter==="all"||S.boardFilter==="near" ? all : all.filter(r=>r.house===+S.boardFilter || roleOf(r)==="head");
 }
@@ -1176,7 +1209,7 @@ function renderBoard(){
         <span style="font-family:var(--f-th);font-size:11px;color:var(--dim)">${r.handle}</span></td>
       <td class="hideSm">${role==="head" ? '<span style="color:#ff4d6d;font-size:12px">🎓 หัวหน้าโค้ช</span>'
         : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>`}</td>
-      <td class="num" style="color:${r.color}">${s.contents}</td>
+      ${S.boardMode==="reach" ? `<td class="num reach" style="color:var(--cyan)">👁 ${fmtN(((S.reach||{})[r.id]||{}).total_views||0)}<br><small style="color:var(--dim)">❤ ${fmtN(((S.reach||{})[r.id]||{}).total_likes||0)} · ${s.contents} ชิ้น</small></td>` : `<td class="num" style="color:${r.color}">${s.contents}</td>`}
       <td>${wk}</td>
       <td class="hideSm streak">${s.weekStreak}🔥</td>
       <td class="hideMd num" style="color:${pc}">${s.pace>0?"+":""}${s.pace}</td>
@@ -1208,9 +1241,10 @@ function renderFeed(){
     const r=S.runners.find(x=>x.name===f.who)||{};
     const h=houseOf(r.house);
     return `<li><span class="who" style="color:${r.color||"#fff"}">${h.emoji} ${f.who}</span>
-      <span class="sp">S${f.sp+1}</span><span class="plat">${f.plat}</span>
+      <span class="sp">S${f.sp+1}</span><span class="plat">${f.plat}</span>${f.kind?`<span class="kd" title="${KIND_TH[f.kind]}">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      <span class="when">${ago(f.ts)}</span></li>`;
+      ${f.kudos?'<span class="kudo">👍</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}</span>`:""}
+      <span class="when">${ago(f.ts)}</span>${f.note?`<span class="note">💬 ${f.note.replace(/</g,"&lt;")}</span>`:""}</li>`;
   }).join("") : `<li style="color:var(--dim)">ยังไม่มีใครส่งงานเลย — วางลิงก์ชิ้นแรกแล้วชื่อคุณจะขึ้นตรงนี้เป็นคนแรกของรุ่น</li>`;
 }
 
@@ -1284,9 +1318,10 @@ async function openProfile(name){
   $("mLevel").innerHTML=levelHTML(r);
   $("mCheer").innerHTML=cheerHTML(r)+duelBtnHTML(r);
   $("mFeed").innerHTML=det.recent.slice(0,12)
-    .map(f=>`<li><span class="plat">${f.plat}</span>
+    .map(f=>`<li><span class="plat">${f.plat}</span>${f.kind?`<span class="kd">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      <span class="when">${ago(f.ts)}</span></li>`).join("") || `<li style="color:var(--dim)">ยังไม่มีงาน</li>`;
+      ${f.kudos?'<span class="kudo">👍</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}${f.likes?" · ❤ "+fmtN(f.likes):""}</span>`:""}
+      <span class="when">${ago(f.ts)}</span>${f.note?`<span class="note">💬 ${f.note.replace(/</g,"&lt;")}</span>`:""}</li>`).join("") || `<li style="color:var(--dim)">ยังไม่มีงาน</li>`;
 }
 
 /* ป้ายอธิบายร่างปัจจุบันของตัวละคร */
@@ -1818,6 +1853,7 @@ $("adUpload").onclick=async()=>{
   $("adUpload").disabled=false;
 };
 $("adBehind").onclick=e=>{ const t=e.target.closest("tr[data-n]"); if(t) openProfile(t.dataset.n); };
+$("reachToggle").onclick=()=>{ S.boardMode = S.boardMode==="reach" ? "contents" : "reach"; $("reachToggle").textContent = S.boardMode==="reach" ? "🏁 จำนวนชิ้น" : "👁 ยอดวิว"; renderBoard(); };
 $("jumpMe").onclick=()=>{
   const el=$("row-"+S.me);
   if(el) el.scrollIntoView({block:"center",behavior:"smooth"});
@@ -1832,8 +1868,8 @@ $("pushBtn").onclick=async()=>{
   const before=stats(meR()), hadUnlocked=unlockedSet(before);
   $("pushBtn").disabled=true; S.submitting=true;
   try{
-    await DB.submit({url, platform:$("plat").value});
-    $("url").value=""; $("platHint").textContent="";
+    await DB.submit({url, platform:$("plat").value, kind:$("kind").value, note:$("note").value.trim()});
+    $("url").value=""; $("platHint").textContent=""; $("note").value="";
     S.postedToday=true;
     await refresh();
     S.submitting=false;
@@ -2123,6 +2159,7 @@ function renderToday(){
         <div class="tdInfo"><div class="tdName">${me.name}<small>${roleLbl}</small></div>${levelHTML(me)}</div>
         <div class="tdState ${stCls}"><b>${n?`✅ วันนี้ส่งแล้ว ${n} ชิ้น`:"⏳ วันนี้ยังไม่ส่ง"}</b><span>ปิดรอบใน <i id="tbClock">${left}</i></span></div>
       </div>
+      ${liveHTML()}
       <div class="qList">${q.map(x=>`<button class="q ${x.done?"done":""}" data-q="${x.k}"><i>${x.done?"✅":x.i}</i><b>${x.t}</b><small>${x.sub}</small></button>`).join("")}</div>
       <div class="qFoot">
         <span>🎯 สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b></span>
@@ -2134,6 +2171,24 @@ function renderToday(){
   const go=$("tbGo"); if(go) go.onclick=goSubmit;
 }
 $("todayCard").onclick=e=>{ const b=e.target.closest("button[data-q]"); if(!b) return; const q=questsOf().find(x=>x.k===b.dataset.q); if(q&&!q.done&&q.go) q.go(); };
+/* ---- เรียนสด: เช็คอิน (โชว์เมื่ออยู่ในช่วง −30 นาที ถึง +60 นาทีของคาบ) ---- */
+function liveNow(){
+  const now=Date.now();
+  return (S.sessions||[]).find(s=>now>=new Date(s.starts_at).getTime()-30*60e3 && now<=new Date(s.ends_at).getTime()+60*60e3)||null;
+}
+function liveHTML(){
+  const s=liveNow(); if(!s) return "";
+  const done=S.myCheckins && S.myCheckins.has(s.id);
+  const t=new Date(s.starts_at).toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"});
+  return `<div class="liveRow ${done?"done":""}">📺 <b>${s.title}</b><span style="font-size:12px;color:#cdc7ff">เรียนสด ${t} น.</span>
+    ${done?'<span style="color:var(--green);font-weight:700">✅ เช็คอินแล้ว</span>':`<button class="btn xs gold" data-checkin="${s.id}">เช็คอินเข้าเรียน</button>`}</div>`;
+}
+document.addEventListener("click", async e=>{
+  const b=e.target.closest("button[data-checkin]"); if(!b) return;
+  b.disabled=true;
+  try{ await DB.checkin(+b.dataset.checkin); SFX.coin(); toast("เช็คอินแล้ว ✅ ขอให้สนุกกับคาบเรียน"); await refresh(); }
+  catch(err){ toast(err.message); b.disabled=false; }
+});
 /* ---- +1 ลอยเหนือหัวตัวเอง ---- */
 function floatPlus(txt="+1"){
   const el=document.querySelector(".runner.me .body"); if(!el) return;
@@ -2315,6 +2370,8 @@ const BADGES=[
   {k:"popular", e:"💖", n:"POPULAR",      th:"มีคนเชียร์ 10 ครั้งขึ้นไปในสัปดาห์เดียว",     test:c=>c.popular},
   {k:"duelist", e:"⚔️", n:"DUELIST",      th:"ชนะดวล 7 วัน",                                test:c=>c.duelWins>0,
                 label:c=>c.duelWins>1?`DUELIST ×${c.duelWins}`:"DUELIST"},
+  {k:"quality", e:"👍", n:"QUALITY",      th:"TA ให้ 'งานดี' 3 ชิ้นขึ้นไป",                  test:c=>c.kudosN>=3},
+  {k:"reach",   e:"👁", n:"10K VIEWS",    th:"ยอดวิวรวมที่กรอกไว้ถึง 10,000",              test:c=>c.views>=10000},
   {k:"slayer",  e:"🗡️", n:"BOSS SLAYER",  th:"ร่วมล้มบอสประจำสัปดาห์กับบ้าน",               test:c=>c.bossKills>0,
                 label:c=>c.bossKills>1?`SLAYER ×${c.bossKills}`:"BOSS SLAYER"}
 ];
@@ -2336,7 +2393,8 @@ function badgeCtx(r, det){
   const popular=(S.cheerWeeks||[]).some(w=>w.profile_id===r.id && w.n>=10);
   const duelWins=(S.duels||[]).filter(d=>d.status==="done" && d.winner===r.id).length;
   const bossKills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
-  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelWins, bossKills};
+  const kudosN=(S.kudos||{})[r.id]||0, views=((S.reach||{})[r.id]||{}).total_views||0;
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelWins, bossKills, kudosN, views};
 }
 const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)).map(b=>Object.assign({},b,{n:b.label?b.label(c):b.n})); };
 function badgesHTML(list, showAll){
@@ -2400,10 +2458,16 @@ function renderMyFeed(list){
   $("myFeedCount").textContent = list.length ? `ทั้งหมด ${list.length} ชิ้น` : "";
   $("myFeed").innerHTML = list.length ? list.map(f=>`<li>
       <select class="platFix" data-fix="${f.id}">${PLATS.map(p=>`<option ${p===f.plat?"selected":""}>${p}</option>`).join("")}</select>
+      <select class="kindSel" data-kind="${f.id}" title="ประเภท">${kindOpts(f.kind)}</select>
       <span class="sp">วันที่ ${f.day}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
+      ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}
       <span class="when">${ago(f.ts)}</span>
-      ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}</li>`).join("")
+      ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}
+      <span class="note" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input class="statIn" type="number" min="0" inputmode="numeric" data-views="${f.id}" value="${f.views||""}" placeholder="👁 วิว">
+        <input class="statIn" type="number" min="0" inputmode="numeric" data-likes="${f.id}" value="${f.likes||""}" placeholder="❤ ไลก์">
+        <input class="noteIn" maxlength="140" data-note="${f.id}" value="${(f.note||"").replace(/"/g,"&quot;")}" placeholder="สรุป 1 บรรทัด / ได้เรียนรู้อะไร"></span></li>`).join("")
     : `<li style="color:var(--dim)">ยังไม่มีงานที่ส่ง</li>`;
 }
 $("myFeed").onclick=async e=>{
@@ -2426,6 +2490,15 @@ $("renameBtn").onclick=async()=>{
   catch(err){ toast(err.message); }
 };
 $("myFeed").onchange=async e=>{
+  const t=e.target;
+  const key = t.dataset.views!=null ? "views" : t.dataset.likes!=null ? "likes" : t.dataset.kind!=null ? "kind" : t.dataset.note!=null ? "note" : null;
+  if(key){
+    const id = isNaN(+t.dataset[key]) ? t.dataset[key] : +t.dataset[key];
+    t.disabled=true;
+    try{ await DB.updateSub(id, {[key]: t.value}); toast(key==="views"||key==="likes" ? "บันทึกยอดแล้ว 👁" : "บันทึกแล้ว"); await refresh(); }
+    catch(err){ toast(err.message); }
+    t.disabled=false; return;
+  }
   const s=e.target.closest("select[data-fix]"); if(!s) return;
   const id = isNaN(+s.dataset.fix) ? s.dataset.fix : +s.dataset.fix;
   s.disabled=true;
@@ -2658,6 +2731,9 @@ async function refresh(){
   S.cups = d.cups||[];
   S.kings = d.kings||[];                       // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
   S.cheers=d.cheers||[]; S.cheerWeeks=d.cheerWeeks||[]; S.duels=d.duels||[]; S.bosses=d.bosses||[]; S.bossKills=d.bossKills||[];
+  S.reach={}; (d.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
+  S.kudos={}; (d.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
+  S.sessions=d.sessions||[]; S.myCheckins=new Set(d.myCheckins||[]);
   /* King ของสัปดาห์นี้ (สด): นักเรียนที่ทำชิ้นสัปดาห์นี้มากสุดของแต่ละบ้าน (ต้องรับเป้าไว้และมีอย่างน้อย 1 ชิ้น) */
   S.kingsNow = new Set();
   HOUSES.forEach(h=>{

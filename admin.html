@@ -178,6 +178,51 @@
     </section>
 
     <section class="panel bevel">
+      <div class="titlebar"><h2>🚨 กลุ่มเสี่ยง</h2><span>ใครกำลังจะหลุด — ส่งให้ TA ตาม 1 ต่อ 1 · คัดลอกวาง Discord ได้เลย</span></div>
+      <div class="body">
+        <div class="filters">
+          <select id="rkHouse" style="width:auto"><option value="">🌏 ทั้งรุ่น</option></select>
+          <button class="btn" id="rkReload">↻ โหลดใหม่</button>
+          <button class="btn" id="rkCopy">📋 คัดลอกข้อความ</button>
+          <span id="rkSum" style="color:var(--dim);font-size:13px"></span>
+        </div>
+        <div class="scroll"><table>
+          <thead><tr><th>สถานะ</th><th>ชื่อ</th><th>บ้าน</th><th>ชิ้น</th><th>ส่งล่าสุด</th><th>เป้าสัปดาห์</th></tr></thead>
+          <tbody id="rkRows"></tbody>
+        </table></div>
+        <label>ข้อความสำหรับ Discord</label>
+        <textarea id="rkText" style="min-height:120px;font-size:13px"></textarea>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>📺 เรียนสด · เช็คอิน</h2><span>สร้างคาบเรียน นักเรียนกดเช็คอินในแอปได้ตั้งแต่ 30 นาทีก่อนเริ่ม ถึง 60 นาทีหลังจบ</span></div>
+      <div class="body">
+        <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+          <div style="flex:1 1 220px"><label>ชื่อคาบ</label><input id="lsTitle" placeholder="เช่น Live สัปดาห์ที่ 2 · Attention"></div>
+          <div style="flex:0 0 170px"><label>วันที่</label><input id="lsDate" type="date"></div>
+          <div style="flex:0 0 120px"><label>เริ่ม</label><input id="lsTime" type="time" value="20:00"></div>
+          <div style="flex:0 0 110px"><label>นาที</label><input id="lsMin" type="number" value="90" min="15"></div>
+          <div><button class="btn" id="lsAdd">+ สร้างคาบ</button></div>
+        </div>
+        <div class="scroll" style="margin-top:12px"><table>
+          <thead><tr><th>คาบ</th><th>เวลา</th><th>เช็คอิน</th><th></th></tr></thead>
+          <tbody id="lsRows"><tr><td colspan="4" style="color:var(--dim);padding:16px">ยังไม่มีคาบเรียน</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>📈 Retention รายวัน</h2><span>จาก snapshot ทุกคืน 03:55 · % นักเรียนที่ส่งงานในวันนั้น</span></div>
+      <div class="body"><div id="rtRows" style="font-size:13px"></div></div>
+    </section>
+
+    <section class="panel bevel">
+      <div class="titlebar"><h2>📜 บันทึกการแก้ไข</h2><span>ใครทำอะไร เมื่อไหร่ (ย้ายบ้าน บทบาท ลบงาน รีเซ็ตรหัส บอส ซิงก์ชีท)</span></div>
+      <div class="body"><ul id="auRows" style="margin:0;padding-left:18px;font-size:13px;line-height:1.9;color:#e6e1ff"></ul></div>
+    </section>
+
+    <section class="panel bevel">
       <div class="titlebar"><h2>แจ้งเตือน Discord</h2><span>ทุกวัน 20:00 สรุปใครยังไม่ส่ง · ทุกต้นสัปดาห์เตือนเลือกเป้า</span></div>
       <div class="body">
         <label>Webhook URL ของช่อง Discord</label>
