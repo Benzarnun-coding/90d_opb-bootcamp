@@ -38,6 +38,11 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:8px}
   .grid div{padding:10px 12px; background:rgba(0,0,0,.25); border:2px solid var(--line); font-size:14px}
   .grid b{display:block; color:var(--gold); font-family:var(--f-px); font-size:14px; margin-bottom:4px}
+  .shots{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:14px}
+  .shots figure{margin:0; text-align:center}
+  .shots img{width:100%; max-width:300px; border:3px solid var(--line); box-shadow:0 6px 0 rgba(0,0,0,.45)}
+  .shots figcaption{font-size:13px; color:var(--dim); margin-top:8px; line-height:1.5}
+  .shots figcaption b{color:#fff}
   footer{margin-top:30px; text-align:center; color:var(--dim); font-size:13px; font-family:var(--f-px)}
   .printBtn{position:fixed; right:14px; bottom:14px; padding:10px 14px; font-family:var(--f-th); font-weight:700; color:#fff; background:#2e2678; border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6; cursor:pointer}
   @media print{
@@ -48,7 +53,7 @@
     ol li{border-color:#ddd} ol li::before{background:#c9f7d9; color:#000; border-color:#9dffc4 #0d5c2c #0d5c2c #9dffc4}
     .k{background:#f3f3f3; color:#000; border-color:#999} .tip{background:#f6f6ff; color:#333} .tip b{color:#000}
     .warn{background:#fff7d6; color:#333} .warn b{color:#000} .grid div{background:#fafafa; color:#111} .grid b{color:#4a2a80}
-    .faq dt{color:#000} .faq dd{color:#333} footer{color:#555} .printBtn{display:none} .lede{color:#555}
+    .faq dt{color:#000} .faq dd{color:#333} footer{color:#555} .printBtn{display:none} .lede{color:#555} .shots img{box-shadow:none; border-color:#999} .shots figcaption{color:#555} .shots figcaption b{color:#000}
   }
 </style>
 </head>
@@ -73,15 +78,19 @@
   </div>
 
   <section>
-    <h2>🍎 iPhone / iPad<small>ต้องใช้ Safari เท่านั้น (Chrome บน iPhone ติดตั้งไม่ได้)</small></h2>
+    <h2>🍎 iPhone / iPad<small>ใช้ Safari หรือ Chrome ก็ได้ (iOS 16.4 ขึ้นไป) ทำตามรูปด้านล่าง</small></h2>
     <div class="body">
       <ol>
-        <li>เปิด <b>Safari</b> แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
-        <li>กดปุ่ม <b>แชร์</b> <span class="ico">⬆</span> (สี่เหลี่ยมมีลูกศรชี้ขึ้น อยู่แถบล่างตรงกลาง)</li>
-        <li>เลื่อนเมนูลงมา กด <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen) <span class="ico">➕</span></li>
-        <li>กด <b>"เพิ่ม"</b> มุมขวาบน → ไอคอน 🐉 จะไปอยู่บนหน้าจอโฮม</li>
+        <li>เปิดเบราว์เซอร์แล้วพิมพ์ <span class="k">opb-bootcamp.netlify.app</span></li>
+        <li><b>Safari:</b> กดปุ่ม <b>แชร์</b> <span class="ico">⬆</span> แถบล่างตรงกลาง<br><b>Chrome / อื่น ๆ:</b> กด <span class="k">⋯</span> มุมขวาล่าง → <b>Share</b> (รูปที่ 1)</li>
+        <li>ในหน้าแชร์ <b>เลื่อนรายการลงมา</b> กด <b>"Add to Home Screen"</b> / <b>"เพิ่มไปยังหน้าจอโฮม"</b> <span class="ico">➕</span> (รูปที่ 2 · ถ้าไม่เห็น กด "Options" หรือเลื่อนลงอีก)</li>
+        <li>กด <b>"เพิ่ม / Add"</b> มุมขวาบน → ไอคอน 🐉 จะไปอยู่บนหน้าจอโฮม</li>
         <li>เปิดจากไอคอน → ใส่อีเมล + รหัสที่ทีมงานแจก → เข้าได้เลย</li>
       </ol>
+      <div class="shots">
+        <figure><img src="https://opb-bootcamp.netlify.app/img/ios-step1.png" alt="กด ⋯ แล้วเลือก Share" loading="lazy"><figcaption>รูปที่ 1 · กด <b>⋯</b> → <b>Share</b> (Chrome) หรือปุ่มแชร์ ⬆ (Safari)</figcaption></figure>
+        <figure><img src="https://opb-bootcamp.netlify.app/img/ios-step2.png" alt="เลื่อนลงแล้วกด Add to Home Screen" loading="lazy"><figcaption>รูปที่ 2 · เลื่อนลง กด <b>Add to Home Screen</b></figcaption></figure>
+      </div>
       <div class="tip">🔔 <b>อยากได้แจ้งเตือนก่อนปิดรอบ:</b> ต้องเปิดแอปจาก<b>ไอคอนบนหน้าจอโฮม</b> (ไม่ใช่จาก Safari) แล้วไปที่ <b>MY STATUS → เปิดเตือนก่อนปิดรอบ</b> กด "อนุญาต" · ใช้ได้กับ iOS 16.4 ขึ้นไป</div>
     </div>
   </section>
@@ -163,8 +172,8 @@
       <dl>
         <dt>ไม่มีปุ่ม "ติดตั้งแอป" / ไม่มีเมนู "เพิ่มไปยังหน้าจอหลัก"</dt>
         <dd>คุณกำลังเปิดอยู่ในหน้าต่างของ LINE/Facebook — ออกมาเปิดใน Safari (iPhone) หรือ Chrome (Android) ก่อน · ถ้าเป็น Chrome ให้อัปเดต Chrome เป็นเวอร์ชันล่าสุด</dd>
-        <dt>iPhone หาเมนู "เพิ่มไปยังหน้าจอโฮม" ไม่เจอ</dt>
-        <dd>ต้องเป็น <b>Safari</b> เท่านั้น และกดปุ่มแชร์ (สี่เหลี่ยมลูกศรขึ้น) แล้ว<b>เลื่อนเมนูลง</b>อีกนิด เมนูอยู่ค่อนข้างล่าง</dd>
+        <dt>iPhone หาเมนู "Add to Home Screen" ไม่เจอ</dt>
+        <dd>ในหน้าแชร์ให้<b>เลื่อนรายการลง</b>อีกนิด เมนูอยู่ค่อนข้างล่าง (ดูรูปที่ 2) · ถ้า iOS ต่ำกว่า 16.4 ต้องใช้ <b>Safari</b> เท่านั้น · ถ้าเปิดจากในแอป LINE/Facebook จะไม่มีเมนูนี้ ให้ออกมาเปิดในเบราว์เซอร์ก่อน</dd>
         <dt>ขึ้นว่า "รหัสไม่ถูกต้อง"</dt>
         <dd>กด 👁 ดูว่าพิมพ์ตรงกับรหัสที่แจกไหม (ตัวพิมพ์ใหญ่-เล็กมีผล) · ถ้าเคยเข้าได้แล้วแต่เข้าเครื่องใหม่ไม่ได้ แจ้งทีมงานให้กด "รีเซ็ตรหัส" ให้</dd>
         <dt>ไม่ได้รับแจ้งเตือน</dt>
