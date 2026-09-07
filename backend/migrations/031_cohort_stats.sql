@@ -52,3 +52,18 @@ begin
   return res;
 end $fn$;
 grant execute on function public.admin_cohort_stats() to authenticated;
+
+-- รายคน: ใครเลือกเป้าอะไรในแต่ละสัปดาห์ (ทำได้กี่ชิ้น ครบไหม) — หัวหน้าโค้ช + TA
+create or replace function public.cohort_people()
+returns jsonb language sql security definer set search_path = public stable as $fn$
+  select case when (public.is_head_coach() or public.is_ta()) then
+    coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'house_id', p.house_id,
+              'contents', (select count(*) from public.v_counted v where v.profile_id = p.id),
+              'weeks', (select coalesce(jsonb_agg(jsonb_build_object('w', pl.week_no, 't', pl.target,
+                          'd', coalesce((select wp.done from public.v_week_progress wp where wp.profile_id = p.id and wp.week_no = pl.week_no), 0),
+                          'hit', coalesce((select wp.hit from public.v_week_progress wp where wp.profile_id = p.id and wp.week_no = pl.week_no), false)) order by pl.week_no), '[]'::jsonb)
+                        from public.pledges pl where pl.profile_id = p.id)) order by p.house_id, p.name)
+              from public.profiles p where p.role = 'student'), '[]'::jsonb)
+  else '[]'::jsonb end;
+$fn$;
+grant execute on function public.cohort_people() to authenticated;

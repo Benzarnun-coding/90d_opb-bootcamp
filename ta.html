@@ -98,6 +98,10 @@
   .csRow .bar i.dim{background:#2a2360 !important; color:var(--dim)}
   .csRow .bar i.hit{filter:brightness(1.25); box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
   .csRow .v{font-family:var(--f-px); font-size:12px; color:#cdc7ff; white-space:nowrap}
+  .ppTable td.w{font-family:var(--f-px); font-size:11px; white-space:nowrap; text-align:center; padding:6px 4px}
+  .ppTable td.w.hit{color:#5ef08c} .ppTable td.w.miss{color:#ff4d6d} .ppTable td.w.on{color:#ffcc4d} .ppTable td.w.none{color:#3a3470}
+  .ppTable td.w b{display:block; font-size:9px; opacity:.75; font-weight:400}
+  .ppTable th.w{text-align:center; padding:8px 4px}
   .csLegend{display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:var(--dim); margin-top:6px} .csLegend i{display:inline-block; width:10px; height:10px; margin-right:4px; vertical-align:-1px}
   .egGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:6px}
   #csPanel h3{font-family:var(--f-px); font-size:13px; color:#cdc7ff; margin:8px 0 6px} #csPanel h3 small{font-family:inherit; font-size:11px; color:var(--dim); font-weight:400; margin-left:6px}
@@ -209,6 +213,18 @@
         <div class="csLegend"><span><i style="background:#8a86c9"></i>COMPROMISE 4</span><span><i style="background:#39e5ff"></i>RECOMMENDED 7</span><span><i style="background:#ff2436"></i>LASER FOCUS 10</span><span><i style="background:#ffb324"></i>PRO MAX 14</span><span><i style="background:#2a2360"></i>ยังไม่เลือก</span></div>
         <h3 style="margin-top:14px">เป้าสัปดาห์นี้ แยกตามบ้าน</h3>
         <div id="csPledgeHouse"></div>
+        <h3 style="margin-top:16px">🎯 ใครเลือกเป้าอะไร <small>รายคน แยกสัปดาห์ · ตัวเลข = ทำแล้ว/เป้า · เขียว = ครบ · แดง = สัปดาห์ที่จบแล้วไม่ครบ · — = ไม่ได้เลือก</small></h3>
+        <div class="filters">
+          <select id="ppHouse" style="width:auto"><option value="">🌏 ทั้งรุ่น</option></select>
+          <select id="ppTarget" style="width:auto"><option value="">ทุกเป้า (สัปดาห์นี้)</option><option value="4">COMPROMISE 4</option><option value="7">RECOMMENDED 7</option><option value="10">LASER FOCUS 10</option><option value="14">PRO MAX 14</option><option value="0">ยังไม่เลือก</option></select>
+          <input id="ppFind" placeholder="ค้นหาชื่อ" style="width:160px">
+          <button class="btn" id="ppCsv">⬇ CSV</button>
+          <span id="ppSum" style="color:var(--dim);font-size:13px"></span>
+        </div>
+        <div class="scroll"><table class="ppTable">
+          <thead id="ppHead"></thead>
+          <tbody id="ppRows"></tbody>
+        </table></div>
         <h3 style="margin-top:16px">💖 Popular Vote <small>ใครได้รับเชียร์ (👏🔥❤️) เยอะสุด · แฟน = จำนวนคนที่กดให้ไม่ซ้ำ</small> <span id="csPopSum" class="tag"></span></h3>
         <div class="scroll"><table>
           <thead><tr><th>#</th><th>ชื่อ</th><th>บ้าน</th><th>เชียร์รวม</th><th>สัปดาห์นี้</th><th>แฟน</th><th>อีโมจิยอดฮิต</th></tr></thead>

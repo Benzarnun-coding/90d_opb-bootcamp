@@ -126,7 +126,7 @@ async function loadCohortStats(){
       <span class="v">${rows.map(r=>`${r.target}:${Math.round(r.n/students*100)}%`).join(" ")}</span></div>`; }).join("")
     : '<span style="color:var(--dim)">ยังไม่มีใครเลือกเป้า</span>';
   const ph={}; (data.pledges_by_house||[]).forEach(p=>{ (ph[p.house_id]=ph[p.house_id]||{})[p.target]=p.n; });
-  renderPopular(data);
+  renderPopular(data); loadPeople(cw);
   $("csPledgeHouse").innerHTML = hs.map(h=>{ const c=houseOf(h.id), m=ph[h.id]||{}; const tot=Object.values(m).reduce((s,v)=>s+v,0), none=Math.max(0,h.students-tot);
     return `<div class="csRow"><span style="color:${c.color}">${c.emoji} ${c.name}</span><div class="bar">${[4,7,10,14].filter(t=>m[t]).map(t=>`<i title="${TARGET_TH[t][0]} · ${m[t]} คน" style="width:${h.students?m[t]/h.students*100:0}%;background:${TARGET_TH[t][1]}">${m[t]}</i>`).join("")}<i class="dim" style="width:${h.students?none/h.students*100:0}%">${none||""}</i></div>
       <span class="v">${[4,7,10,14].filter(t=>m[t]).map(t=>`${t}:${m[t]}`).join(" ")}</span></div>`; }).join("");
@@ -140,7 +140,42 @@ function renderPopular(data){
       <td>${p.week}</td><td>${p.fans}</td><td style="font-size:18px">${p.top_emoji||""}</td></tr>`; }).join("")
     : '<tr><td colspan="7" style="color:var(--dim)">ยังไม่มีใครกดเชียร์</td></tr>';
 }
-$("csReload").onclick=loadCohortStats;
+/* ---- ใครเลือกเป้าอะไร (รายคน) ---- */
+let PP=null, PP_CW=1;
+const TARGET_SHORT = {4:"C4", 7:"R7", 10:"L10", 14:"PM14"};
+async function loadPeople(cw){
+  PP_CW = cw || PP_CW;
+  const {data, error} = await sb.rpc("cohort_people");
+  if(error){ $("ppSum").textContent = error.message; return; }
+  PP = data || []; renderPeople();
+}
+function renderPeople(){
+  if(!PP) return;
+  const hid = +($("ppHouse").value||0), tg = $("ppTarget").value, q = ($("ppFind").value||"").trim().toLowerCase();
+  const maxW = Math.max(PP_CW, ...PP.flatMap(p=>p.weeks.map(w=>w.w)));
+  const cur = p => (p.weeks.find(w=>w.w===PP_CW)||{}).t || 0;
+  const list = PP.filter(p => (!hid || p.house_id===hid) && (tg==="" || cur(p)===+tg) && (!q || String(p.name).toLowerCase().includes(q)));
+  $("ppSum").textContent = list.length + " คน";
+  $("ppHead").innerHTML = "<tr><th>ชื่อ</th><th>บ้าน</th><th>ชิ้นรวม</th>" + Array.from({length:maxW},(_,i)=>`<th class="w">W${i+1}</th>`).join("") + "</tr>";
+  $("ppRows").innerHTML = list.length ? list.map(p => { const c = houseOf(p.house_id);
+    const cells = Array.from({length:maxW},(_,i)=>{ const w = p.weeks.find(x=>x.w===i+1);
+      if(!w) return `<td class="w none">—</td>`;
+      const cls = w.hit ? "hit" : (i+1 < PP_CW ? "miss" : "on");
+      return `<td class="w ${cls}" title="${TARGET_TH[w.t]?TARGET_TH[w.t][0]:w.t} · ทำแล้ว ${w.d}/${w.t}">${w.d}/${w.t}<b>${TARGET_SHORT[w.t]||w.t}</b></td>`; }).join("");
+    return `<tr><td><b>${esc(p.name)}</b></td><td style="color:${c.color}">${c.emoji} ${c.name}</td><td>${p.contents}</td>${cells}</tr>`; }).join("")
+    : '<tr><td colspan="99" style="color:var(--dim)">ไม่มีใครตรงเงื่อนไข</td></tr>';
+}
+function peopleCsv(){
+  if(!PP) return;
+  const maxW = Math.max(PP_CW, ...PP.flatMap(p=>p.weeks.map(w=>w.w)));
+  const head = ["name","house","contents"].concat(Array.from({length:maxW},(_,i)=>["W"+(i+1)+"_target","W"+(i+1)+"_done","W"+(i+1)+"_hit"]).flat());
+  const rows = [head].concat(PP.map(p => [p.name, houseOf(p.house_id).name, p.contents].concat(Array.from({length:maxW},(_,i)=>{ const w=p.weeks.find(x=>x.w===i+1); return w ? [w.t, w.d, w.hit?1:0] : ["","",""]; }).flat())));
+  const csv = "\ufeff" + rows.map(r=>r.map(v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="pledges-by-person.csv"; a.click();
+}
+$("ppHouse").onchange=renderPeople; $("ppTarget").onchange=renderPeople; $("ppFind").oninput=renderPeople; $("ppCsv").onclick=peopleCsv;
+HOUSES.forEach(h=>{ const o=document.createElement("option"); o.value=h.id; o.textContent=h.emoji+" "+h.name; $("ppHouse").appendChild(o); });
+$("csReload").onclick=()=>{ loadCohortStats(); loadPeople(); };
 
 /* ---- engagement / analytics ---- */
 let EG=null;
