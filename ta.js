@@ -46,6 +46,7 @@ async function boot(){
   $("headPick").style.display = IS_HEAD ? "" : "none";
   if(IS_HEAD){ $("headHouse").innerHTML = HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join(""); $("headHouse").value = HOUSE; }
   show("scTA");
+  loadCohortStats();
   try{ sb.rpc("track_visit",{p_page:"ta",p_kind:"open",p_vkey:(localStorage.getItem("opb_vk")||"ta"),p_device:/Mobi|Android|iPhone/i.test(navigator.userAgent)?"mobile":"desktop",p_pwa:false,p_ref:null}); }catch(e){}
   await load();
 }
@@ -63,6 +64,48 @@ $("outBtn").onclick = $("deniedOut").onclick = async ()=>{ await sb.auth.signOut
 $("headHouse").onchange = async ()=>{ HOUSE = +$("headHouse").value; openPid = null; await load(); };
 
 /* ================= LOAD ================= */
+/* ---- ภาพรวมรุ่น (ใช้ฟังก์ชันเดียวกับหน้า admin — TA เรียกได้) ---- */
+const TARGET_TH = {4:["COMPROMISE","#8a86c9"], 7:["RECOMMENDED","#39e5ff"], 10:["LASER FOCUS","#ff2436"], 14:["PRO MAX","#ffb324"]};
+async function loadCohortStats(){
+  $("csSum").textContent = "กำลังโหลด…";
+  const {data, error} = await sb.rpc("admin_cohort_stats");
+  if(error){ $("csSum").textContent = error.message; return; }
+  const hs = data.houses||[], students = data.students||0, cw = data.week;
+  const maxRoster = Math.max(1, ...hs.map(h=>h.roster));
+  $("csSum").textContent = `สัปดาห์ที่ ${cw} · นักเรียนสมัครแล้ว ${students} คน จากรายชื่อ ${data.roster} · ยังไม่เลือกเป้าสัปดาห์นี้ ${data.no_pledge_week} คน`;
+  $("csHouses").innerHTML = hs.map(h=>{ const c=houseOf(h.id); const pct=students?Math.round(h.students/students*100):0;
+    return `<div class="csRow ${h.id===HOUSE?"mine":""}"><span style="color:${c.color}">${c.emoji} ${c.name}</span>
+      <div class="bar"><i style="width:${h.students/maxRoster*100}%;background:${c.color}">${h.students}</i><i class="dim" style="width:${(h.roster-h.registered)/maxRoster*100}%">${h.roster-h.registered}</i></div>
+      <span class="v">${pct}% · TA ${h.tas}</span></div>`; }).join("");
+  $("csHouseWeek").innerHTML = hs.map(h=>{ const c=houseOf(h.id); const pp=h.students?Math.round(h.posted_week/h.students*100):0;
+    return `<div class="csRow ${h.id===HOUSE?"mine":""}"><span style="color:${c.color}">${c.emoji} ${c.name}</span>
+      <div class="bar"><i style="width:${h.students?h.pledged_week/h.students*100:0}%;background:#8a86c9;opacity:.7">${h.pledged_week}</i></div>
+      <span class="v">ส่ง ${h.posted_week}/${h.students} (${pp}%) · ${h.contents} ชิ้น</span></div>`; }).join("");
+  /* pledge tiers per week */
+  const byW={}; (data.pledges||[]).forEach(p=>{ (byW[p.week_no]=byW[p.week_no]||[]).push(p); });
+  const weeks=Object.keys(byW).map(Number).sort((a,b)=>a-b);
+  $("csPledges").innerHTML = weeks.length ? weeks.map(w=>{ const rows=byW[w]; const tot=rows.reduce((s,r)=>s+r.n,0); const none=Math.max(0, students-tot);
+    return `<div class="csRow"><span>สัปดาห์ ${w}${w===cw?" (นี้)":""}</span><div class="bar">${rows.map(r=>{ const t=TARGET_TH[r.target]||[r.target,"#fff"]; const hitW=r.n?r.hit/r.n*100:0;
+        return `<i title="${t[0]} ${r.target} ชิ้น · ${r.n} คน · ครบเป้าแล้ว ${r.hit}" style="width:${r.n/students*100}%;background:linear-gradient(90deg,${t[1]} ${hitW}%,${t[1]}bb ${hitW}%)">${r.n}</i>`; }).join("")}<i class="dim" style="width:${none/students*100}%" title="ยังไม่เลือกเป้า">${none||""}</i></div>
+      <span class="v">${rows.map(r=>`${r.target}:${Math.round(r.n/students*100)}%`).join(" ")}</span></div>`; }).join("")
+    : '<span style="color:var(--dim)">ยังไม่มีใครเลือกเป้า</span>';
+  const ph={}; (data.pledges_by_house||[]).forEach(p=>{ (ph[p.house_id]=ph[p.house_id]||{})[p.target]=p.n; });
+  renderPopular(data);
+  $("csPledgeHouse").innerHTML = hs.map(h=>{ const c=houseOf(h.id), m=ph[h.id]||{}; const tot=Object.values(m).reduce((s,v)=>s+v,0), none=Math.max(0,h.students-tot);
+    return `<div class="csRow ${h.id===HOUSE?"mine":""}"><span style="color:${c.color}">${c.emoji} ${c.name}</span><div class="bar">${[4,7,10,14].filter(t=>m[t]).map(t=>`<i title="${TARGET_TH[t][0]} · ${m[t]} คน" style="width:${h.students?m[t]/h.students*100:0}%;background:${TARGET_TH[t][1]}">${m[t]}</i>`).join("")}<i class="dim" style="width:${h.students?none/h.students*100:0}%">${none||""}</i></div>
+      <span class="v">${[4,7,10,14].filter(t=>m[t]).map(t=>`${t}:${m[t]}`).join(" ")}</span></div>`; }).join("");
+}
+function renderPopular(data){
+  const list=data.popular||[]; $("csPopSum").textContent = `${data.cheer_total||0} ครั้ง · สัปดาห์นี้ ${data.cheer_week||0} · คนกดเชียร์ ${data.cheer_givers||0} คน`;
+  const mx=Math.max(1,...list.map(p=>p.total));
+  $("csPopRows").innerHTML = list.length ? list.map((p,i)=>{ const c=houseOf(p.house_id); const medal=i<3?["🥇","🥈","🥉"][i]:i+1;
+    return `<tr><td>${medal}</td><td><b>${esc(p.name)}</b></td><td style="color:${c.color}">${c.emoji} ${c.name}</td>
+      <td><div style="display:flex;align-items:center;gap:8px"><b>${p.total}</b><span style="display:inline-block;height:8px;width:${Math.round(p.total/mx*120)}px;background:linear-gradient(90deg,#ff4d6d,#ffb324)"></span></div></td>
+      <td>${p.week}</td><td>${p.fans}</td><td style="font-size:18px">${p.top_emoji||""}</td></tr>`; }).join("")
+    : '<tr><td colspan="7" style="color:var(--dim)">ยังไม่มีใครกดเชียร์</td></tr>';
+}
+$("csReload").onclick=loadCohortStats;
+
 async function load(){
   const h = houseOf(HOUSE);
   $("ttl").innerHTML = `TA · <span style="color:${h.color}">${h.emoji} ${h.name}</span>`;

@@ -91,6 +91,18 @@
   .top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
   .top a{color:var(--cyan); font-size:13px}
   .scroll{overflow-x:auto}
+  /* ---- ภาพรวมรุ่น ---- */
+  .csRow{display:grid; grid-template-columns:120px 1fr 110px; gap:10px; align-items:center; padding:4px 0; font-size:13px}
+  .csRow .bar{height:18px; background:#0b0316; border:2px solid var(--line); display:flex; overflow:hidden}
+  .csRow .bar i{display:block; height:100%; font-family:var(--f-px); font-size:11px; color:#000; line-height:18px; text-align:center; overflow:hidden; white-space:nowrap}
+  .csRow .bar i.dim{background:#2a2360 !important; color:var(--dim)}
+  .csRow .bar i.hit{filter:brightness(1.25); box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+  .csRow .v{font-family:var(--f-px); font-size:12px; color:#cdc7ff; white-space:nowrap}
+  .csLegend{display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:var(--dim); margin-top:6px} .csLegend i{display:inline-block; width:10px; height:10px; margin-right:4px; vertical-align:-1px}
+  .egGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:6px}
+  #csPanel h3{font-family:var(--f-px); font-size:13px; color:#cdc7ff; margin:8px 0 6px} #csPanel h3 small{font-family:inherit; font-size:11px; color:var(--dim); font-weight:400; margin-left:6px}
+  .csRow.mine{background:rgba(255,204,77,.08); outline:1px solid rgba(255,204,77,.35); border-radius:4px; padding-left:4px}
+
   @media(max-width:700px){ .row{grid-template-columns:1fr} .hideSm{display:none} }
 </style>
 <style>
@@ -181,6 +193,27 @@
         <label>ข้อความสำหรับ Discord</label>
         <textarea id="rkText" style="min-height:110px;font-size:13px"></textarea>
         <div style="margin-top:8px"><button class="btn" id="rkCopy">📋 คัดลอกข้อความ</button></div>
+      </div>
+    </section>
+
+    <section class="panel bevel" id="csPanel">
+      <div class="titlebar"><h2>🥧 ภาพรวมรุ่น</h2><span>ทั้งรุ่น 4 บ้าน · บ้านของคุณไฮไลต์ · เป้าที่เลือก 4 / 7 / 10 / 14 · Popular Vote</span></div>
+      <div class="body">
+        <div class="filters"><button class="btn" id="csReload">↻ โหลดใหม่</button><span id="csSum" style="color:var(--dim);font-size:13px"></span></div>
+        <div class="egGrid">
+          <div><h3>จำนวนคนต่อบ้าน <small>นักเรียนที่สมัครแล้ว (เทา = มีชื่อแต่ยังไม่สมัคร)</small></h3><div id="csHouses"></div></div>
+          <div><h3>สัปดาห์นี้ต่อบ้าน <small>เลือกเป้าแล้ว / ส่งงานแล้ว / ชิ้นรวม</small></h3><div id="csHouseWeek"></div></div>
+        </div>
+        <h3 style="margin-top:14px">สัดส่วนเป้าที่เลือก แยกรายสัปดาห์ <small>แถบ = นักเรียนทั้งหมด · ตัวเลขในแถบ = จำนวนคน · เข้ม = ทำครบเป้าแล้ว</small></h3>
+        <div id="csPledges"></div>
+        <div class="csLegend"><span><i style="background:#8a86c9"></i>COMPROMISE 4</span><span><i style="background:#39e5ff"></i>RECOMMENDED 7</span><span><i style="background:#ff2436"></i>LASER FOCUS 10</span><span><i style="background:#ffb324"></i>PRO MAX 14</span><span><i style="background:#2a2360"></i>ยังไม่เลือก</span></div>
+        <h3 style="margin-top:14px">เป้าสัปดาห์นี้ แยกตามบ้าน</h3>
+        <div id="csPledgeHouse"></div>
+        <h3 style="margin-top:16px">💖 Popular Vote <small>ใครได้รับเชียร์ (👏🔥❤️) เยอะสุด · แฟน = จำนวนคนที่กดให้ไม่ซ้ำ</small> <span id="csPopSum" class="tag"></span></h3>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>ชื่อ</th><th>บ้าน</th><th>เชียร์รวม</th><th>สัปดาห์นี้</th><th>แฟน</th><th>อีโมจิยอดฮิต</th></tr></thead>
+          <tbody id="csPopRows"></tbody>
+        </table></div>
       </div>
     </section>
 

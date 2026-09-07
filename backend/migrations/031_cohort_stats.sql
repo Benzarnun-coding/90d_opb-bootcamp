@@ -1,12 +1,12 @@
 -- ============================================================
 -- ภาพรวมรุ่น: จำนวนคนต่อบ้าน · สัดส่วนเป้าแต่ละสัปดาห์ (4/7/10/14) · ใครส่งบ้าง
--- ใช้ในหน้า admin (หัวหน้าโค้ชเท่านั้น)   รันหลัง 030
+-- ใช้ในหน้า admin และหน้า TA (หัวหน้าโค้ช + TA)   รันหลัง 030
 -- ============================================================
 create or replace function public.admin_cohort_stats()
 returns jsonb language plpgsql security definer set search_path = public as $fn$
 declare res jsonb; cw int := public.current_week();
 begin
-  if not public.is_head_coach() then raise exception 'เฉพาะหัวหน้าโค้ชเท่านั้น'; end if;
+  if not (public.is_head_coach() or public.is_ta()) then raise exception 'เฉพาะหัวหน้าโค้ชหรือ TA เท่านั้น'; end if;
   select jsonb_build_object(
     'week', cw,
     'houses', (select coalesce(jsonb_agg(jsonb_build_object(
