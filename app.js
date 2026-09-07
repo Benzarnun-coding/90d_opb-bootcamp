@@ -288,7 +288,8 @@ const weekStart = w => (w-1)*7+1;
 const weekEnd   = w => w*7;
 const spOfWeek  = w => Math.floor(((w-1)*7)/SPD);
 const curSp     = () => spOf(S.today);
-const curWeek   = () => weekOf(S.today);
+const curWeek   = () => S.week || weekOf(S.today);            // live: เลขสัปดาห์จากเซิร์ฟเวอร์ (ตัดพุธ 19:30) · demo: คิดจากวัน
+const isVacation = () => !!S.vacationWeek && curWeek()===S.vacationWeek;
 const joinedIn  = (r,s) => r.joined.includes(s);
 const joinedWeek= (r,w) => joinedIn(r, spOfWeek(w));
 const meR       = () => S.spectator ? null : (S.runners.find(r=>r.name===S.me) || S.runners[0]);
@@ -727,6 +728,8 @@ const LiveDB = (()=>{
         if(e0) throw e0;
         const row = Array.isArray(cs) ? cs[0] : cs;
         todayIdx  = Number(row.day_index);
+        S.week = Number(row.week_no)||null; S.weekEndsAt = row.week_ends_at ? new Date(row.week_ends_at).getTime() : null;
+        S.vacationWeek = row.vacation_week==null ? null : Number(row.vacation_week); S.weekCut = row.week_cut_time || null;
         started   = !!row.started;
         daysUntil = Number(row.days_until) || 0;
         if(row.total_days && Number(row.total_days) !== TOTAL)
@@ -988,6 +991,12 @@ function renderPledge(){
     return;
   }
   const st=stats(r), cw=curWeek();
+  if(isVacation() && !st.weekTarget){
+    $("pledgeCard").innerHTML=`<div class="paceNum on">🏖</div>
+      <div class="pledgeTxt"><span class="big normal">สัปดาห์นี้ปิดเทอม</span><br>ไม่ต้องเลือกเป้า streak ไม่ขาด ร่างไม่โดนลงโทษ · ใครอยากส่งก็ส่งได้ นับรวมยอด<br>
+        <span style="color:var(--dim)">กลับมาเลือกเป้ากันใหม่สัปดาห์หน้า</span></div>` + bossHTML();
+    return;
+  }
   if(!st.weekTarget){
     $("pledgeCard").innerHTML=`
       <div class="pledgeTxt"><span class="big normal">ยังไม่ได้เลือกเป้าของสัปดาห์ที่ ${cw}</span><br>
@@ -1974,7 +1983,8 @@ function renderWeekCut(){
   const box=$("weekCut"); if(!box) return;
   if(!$("scArena").classList.contains("on") || !S.started || (typeof finished==="function" && finished())){ box.hidden=true; return; }
   box.hidden=false;
-  let ms=nextWeekCut(); if(ms<0) ms=0;
+  let ms=(S.weekEndsAt ? S.weekEndsAt-Date.now() : nextWeekCut()); if(ms<0) ms=0;
+  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent="🏖 ปิดเทอม"; $("dlClock").innerHTML="พักผ่อน"; $("dlSub").textContent=`streak ไม่ขาด ไม่ต้องเลือกเป้า · เจอกันอีกที ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"19:30"} น.`; return; }
   const s=Math.floor(ms/1000), dd=Math.floor(s/86400), hh=Math.floor(s%86400/3600), mi=Math.floor(s%3600/60), ss=s%60;
   const pad=n=>String(n).padStart(2,"0");
   $("dlLabel").textContent=`⏳ ${C.WEEK_CUTOFF_LABEL||"ตัดรับงานสัปดาห์นี้"}`;
@@ -2806,7 +2816,7 @@ async function boot(){
   renderPushBtn();
   await maybeOnboard();                                  // เข้าครั้งแรก: 3 หน้าสั้น ๆ ก่อนเริ่ม
   const recap = await maybeShowRecap();               // ขึ้นสัปดาห์ใหม่ → สรุปสัปดาห์ที่แล้วก่อน แล้วค่อยเลือกเป้า
-  if(!recap && !(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
+  if(!recap && !isVacation() && !(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
 }
 
 /* ---- static bits ---- */
