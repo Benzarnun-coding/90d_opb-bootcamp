@@ -291,6 +291,7 @@ const curSp     = () => spOf(S.today);
 const curWeek   = () => S.week || weekOf(S.today);            // live: เลขสัปดาห์จากเซิร์ฟเวอร์ (ตัดพุธ 19:30) · demo: คิดจากวัน
 const vacDay     = d => !!S.vacFrom && d>=S.vacFrom && d<=S.vacTo;           // วันปิดเทอม (14–20 ต.ค. = วันที่ 43–49)
 const isVacation = () => vacDay(S.today);                                       // วันนี้ปิดเทอม → ป้าย/มีม
+const starN      = r => (r && S.holiday && S.holiday[r.id]) || 0;             // ชิ้นที่ส่งช่วงปิดเทอม → นักเรียนดีเด่น 🏅
 const noPledgeWeek = () => isVacation() || (!!S.vacationWeek && curWeek()===S.vacationWeek);   // สัปดาห์นี้ไม่ต้องเลือกเป้า
 const dayDateTH  = (d,opt) => { const x=new Date((S.startDate||"")+"T00:00:00"); if(isNaN(x)) return "วันที่ "+d; x.setDate(x.getDate()+d-1); return x.toLocaleDateString("th-TH",opt||{day:"numeric",month:"short"}); };
 const VAC_MEMES  = ["🏅 นักเรียนดีเด่น! ส่งงานช่วงปิดเทอม นับรวมยอดให้เลย"];
@@ -1003,7 +1004,7 @@ function renderPledge(){
         <span style="color:var(--gold)">ใครส่งช่วงนี้ = นักเรียนดีเด่น 🏅 นับรวมยอดและได้ป้าย STAR STUDENT</span>`
       : `<span class="big normal">กลับมาแล้ว! 💪</span><br>งานวันนี้นับรวมยอดเลย · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"19:30"} น.<br>
         <span style="color:var(--dim)">ค่อยเลือกเป้าสัปดาห์ใหม่ตอนนั้น</span>`;
-    $("pledgeCard").innerHTML=`<div class="paceNum on">${isVacation()?"🏖":"💪"}</div><div class="pledgeTxt">${vacTxt}</div>` + bossHTML();
+    $("pledgeCard").innerHTML=`<div class="paceNum on">${isVacation()?"🏖":"💪"}</div><div class="pledgeTxt">${vacTxt}</div>` + starBoardHTML() + bossHTML();
     return;
   }
   if(!st.weekTarget){
@@ -1128,10 +1129,10 @@ function renderTrack(){
       <div class="runner ${r.name===S.me?"me":""} ${s.style} ${r.house===champHouse()&&roleOf(r)==="student"?"cup":""} ${s.contents>=FINISH?"champ":""}" style="--p:${p}">
         <div class="body">
           <div class="lbl ${side}" style="bottom:${(ROWS-top)*2}px">
-            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}${s.dayStreak>=2?` <em class="stk">🔥${s.dayStreak}</em>`:""}</span>
+            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${starN(r)?"🏅 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}${s.dayStreak>=2?` <em class="stk">🔥${s.dayStreak}</em>`:""}</span>
             <span class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</span>
           </div>
-          ${hasAura(s.style)?aura(s.style):""}${sprite(av,2,s.style)}${s.dayStreak>=7?`<span class="feetfire ${s.dayStreak>=14?"big":""}"></span>`:""}
+          ${hasAura(s.style)?aura(s.style):""}${starN(r)?'<span class="medal" title="นักเรียนดีเด่น ส่งงานช่วงปิดเทอม">🏅</span>':""}${sprite(av,2,s.style)}${s.dayStreak>=7?`<span class="feetfire ${s.dayStreak>=14?"big":""}"></span>`:""}
           ${s.dayStreak?'<span class="dust"></span><span class="dust b"></span>':''}</div>
         <div class="shadow"></div>
       </div></div>`;
@@ -1223,7 +1224,7 @@ function renderBoard(){
     const pc = s.pace>0?"var(--green)":s.pace<0?"var(--orange)":"var(--cyan)";
     return `<tr class="${r.name===S.me?"me":""}" data-n="${r.name}" id="row-${r.name}">
       <td class="rk ${i<3?"top"+(i+1):""}">${medal}</td>
-      <td class="nm" style="color:${boardColor(r,s)}">${isKingNow(r)?"👑 ":""}${r.name} <em class="lvMini">Lv${levelOf(xpOf(r))}</em>
+      <td class="nm" style="color:${boardColor(r,s)}">${isKingNow(r)?"👑 ":""}${starN(r)?"🏅 ":""}${r.name} <em class="lvMini">Lv${levelOf(xpOf(r))}</em>
         <span style="font-family:var(--f-th);font-size:11px;color:var(--dim)">${r.handle}</span></td>
       <td class="hideSm">${role==="head" ? '<span style="color:#ff4d6d;font-size:12px">🎓 หัวหน้าโค้ช</span>'
         : `<span class="hs">${h.emoji}</span> <span style="color:${h.color};font-size:12px">${h.name}</span>`}</td>
@@ -1906,8 +1907,10 @@ $("pushBtn").onclick=async()=>{
     }
     else if(o) msg=`+1 CONTENT · สัปดาห์นี้ ${after.weekDone}/${o.target}`;
     if(after.contents>=FINISH && before.contents<FINISH){ msg=`🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว!<br>ออร่าทองถาวรติดตัวตลอดรุ่น`; kind="target"; }
-    if(isVacation()){ msg=`${VAC_MEMES[Math.floor(Math.random()*VAC_MEMES.length)]}<br>${msg}`; if(kind==="submit") kind="unlock"; }
+    const starPop = isVacation();
+    if(starPop){ msg=`${VAC_MEMES[Math.floor(Math.random()*VAC_MEMES.length)]}<br>${msg}`; }
     celebrate(kind); toast(msg);
+    if(starPop) setTimeout(()=>{ bigPop("🏅 นักเรียนดีเด่น", `ส่งงานช่วงปิดเทอม · ชิ้นที่ ${starN(meR())||1}`, "star"); SFX.fanfare(); confetti(60); }, todayN>=2?1900:500);
     S.submitting=false;
     /* ปลดล็อกของแต่งตัวใหม่ */
     const fresh=[...unlockedSet(after)].filter(k=>!hadUnlocked.has(k));
@@ -1994,7 +1997,8 @@ function renderWeekCut(){
   if(!$("scArena").classList.contains("on") || !S.started || (typeof finished==="function" && finished())){ box.hidden=true; return; }
   box.hidden=false;
   let ms=(S.weekEndsAt ? S.weekEndsAt-Date.now() : nextWeekCut()); if(ms<0) ms=0;
-  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent=`🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}`; $("dlClock").innerHTML="พัก"; $("dlSub").textContent=`ไม่ต้องส่งการบ้าน streak ไม่ขาด · กลับมาส่ง ${dayDateTH(S.vacTo+1)} · ส่งช่วงนี้ = นักเรียนดีเด่น 🏅`; return; }
+  box.classList.toggle("vac", isVacation());
+  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent=`🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}`; $("dlClock").innerHTML='<span class="vacClock">🌴 พัก 🌴</span>'; $("dlSub").textContent=`ไม่ต้องส่งการบ้าน streak ไม่ขาด · กลับมาส่ง ${dayDateTH(S.vacTo+1)} · ส่งช่วงนี้ = นักเรียนดีเด่น 🏅`; return; }
   const s=Math.floor(ms/1000), dd=Math.floor(s/86400), hh=Math.floor(s%86400/3600), mi=Math.floor(s%3600/60), ss=s%60;
   const pad=n=>String(n).padStart(2,"0");
   $("dlLabel").textContent=`⏳ ${C.WEEK_CUTOFF_LABEL||"ตัดรับงานสัปดาห์นี้"}`;
@@ -2655,6 +2659,15 @@ document.addEventListener("click", async e=>{
 });
 
 /* ---- บอสประจำสัปดาห์ (หัวหน้าโค้ชตั้ง) ---- */
+/* 🏅 บอร์ดนักเรียนดีเด่น — ใครส่งงานช่วงปิดเทอมบ้าง */
+function starBoardHTML(){
+  const rows=S.runners.filter(r=>roleOf(r)==="student" && starN(r)>0).sort((a,b)=>starN(b)-starN(a) || stats(b).contents-stats(a).contents);
+  const me=meR(), mine=me?starN(me):0;
+  const list = rows.length ? rows.slice(0,10).map((r,i)=>`<li class="${r.name===S.me?"me":""}"><span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="nm" style="color:${r.color}">${houseOf(r.house).emoji} ${r.name}</span><span class="n">${starN(r)} ชิ้น</span></li>`).join("")
+    : `<li class="none">ยังไม่มีใครส่งเลย · คนแรกได้เหรียญ 🏅 ติดตัวบนสนามทั้งรุ่น</li>`;
+  return `<div class="starBoard"><div class="sbHead"><b>🏅 บอร์ดนักเรียนดีเด่น</b><span>ส่งงานช่วงปิดเทอม · ${rows.length} คน</span></div>
+    <ul>${list}</ul>${mine?`<div class="sbMe">คุณส่งไป ${mine} ชิ้นแล้ว 🏅 เหรียญติดตัวบนสนามและในสกอร์บอร์ด</div>`:isVacation()?`<div class="sbMe dim">ส่งชิ้นเดียวก็ได้เหรียญ 🏅 และป้าย STAR STUDENT</div>`:""}</div>`;
+}
 function bossHTML(){
   const me=meR(), cw=curWeek();
   const list=(S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null || (me && b.house_id===me.house) || S.spectator));
