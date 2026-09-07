@@ -289,7 +289,11 @@ const weekEnd   = w => w*7;
 const spOfWeek  = w => Math.floor(((w-1)*7)/SPD);
 const curSp     = () => spOf(S.today);
 const curWeek   = () => S.week || weekOf(S.today);            // live: เลขสัปดาห์จากเซิร์ฟเวอร์ (ตัดพุธ 19:30) · demo: คิดจากวัน
-const isVacation = () => !!S.vacationWeek && curWeek()===S.vacationWeek;
+const vacDay     = d => !!S.vacFrom && d>=S.vacFrom && d<=S.vacTo;           // วันปิดเทอม (14–20 ต.ค. = วันที่ 43–49)
+const isVacation = () => vacDay(S.today);                                       // วันนี้ปิดเทอม → ป้าย/มีม
+const noPledgeWeek = () => isVacation() || (!!S.vacationWeek && curWeek()===S.vacationWeek);   // สัปดาห์นี้ไม่ต้องเลือกเป้า
+const dayDateTH  = (d,opt) => { const x=new Date((S.startDate||"")+"T00:00:00"); if(isNaN(x)) return "วันที่ "+d; x.setDate(x.getDate()+d-1); return x.toLocaleDateString("th-TH",opt||{day:"numeric",month:"short"}); };
+const VAC_MEMES  = ["🏖 ขยันวันหยุด! คนอื่นนอนตีพุง คุณส่งงาน", "😎 ปิดเทอมแล้วยังส่ง? โหดเกินไปแล้ว", "🔥 พักไม่เป็นสินะ ขยันวันหยุดตัวจริง", "🏝 ชายหาดรอได้ คอนเทนต์รอไม่ได้", "🧠 สมองไม่มีวันหยุด นับรวมยอดให้เลย", "☕ วันหยุดของคนอื่น = วันทำงานของคุณ"];
 const joinedIn  = (r,s) => r.joined.includes(s);
 const joinedWeek= (r,w) => joinedIn(r, spOfWeek(w));
 const meR       = () => S.spectator ? null : (S.runners.find(r=>r.name===S.me) || S.runners[0]);
@@ -669,7 +673,7 @@ const LiveDB = (()=>{
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
       const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows},
              {data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},
-             {data:reachRows},{data:kudosRows},{data:sessRows},{data:ckRows}]=await Promise.all([
+             {data:reachRows},{data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
         sb.from("v_feed").select("*").limit(50),
@@ -686,7 +690,8 @@ const LiveDB = (()=>{
         sb.from("v_reach").select("profile_id,total_views,total_likes,best_views,pieces"),
         sb.from("v_kudos").select("profile_id,n"),
         sb.from("live_sessions").select("id,title,starts_at,ends_at").gte("ends_at", new Date(Date.now()-2*3600e3).toISOString()).order("starts_at"),
-        uidNow ? sb.from("checkins").select("session_id").eq("profile_id",uidNow) : Promise.resolve({data:[]})
+        uidNow ? sb.from("checkins").select("session_id").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
+        sb.from("v_holiday_grinders").select("profile_id,n")
       ]);
       if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
       cohort=co;
@@ -730,6 +735,7 @@ const LiveDB = (()=>{
         todayIdx  = Number(row.day_index);
         S.week = Number(row.week_no)||null; S.weekEndsAt = row.week_ends_at ? new Date(row.week_ends_at).getTime() : null;
         S.vacationWeek = row.vacation_week==null ? null : Number(row.vacation_week); S.weekCut = row.week_cut_time || null;
+        S.vacFrom = row.vacation_from_day==null ? null : Number(row.vacation_from_day); S.vacTo = row.vacation_to_day==null ? null : Number(row.vacation_to_day);
         started   = !!row.started;
         daysUntil = Number(row.days_until) || 0;
         if(row.total_days && Number(row.total_days) !== TOTAL)
@@ -756,7 +762,7 @@ const LiveDB = (()=>{
         cups: cups||[],
         kings: kingRows||[],
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[], bosses: bossRows||[], bossKills: killRows||[],
-        reach: reachRows||[], kudos: kudosRows||[], sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id),
+        reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[], sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id),
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -991,10 +997,13 @@ function renderPledge(){
     return;
   }
   const st=stats(r), cw=curWeek();
-  if(isVacation() && !st.weekTarget){
-    $("pledgeCard").innerHTML=`<div class="paceNum on">🏖</div>
-      <div class="pledgeTxt"><span class="big normal">สัปดาห์นี้ปิดเทอม</span><br>ไม่ต้องเลือกเป้า streak ไม่ขาด ร่างไม่โดนลงโทษ · ใครอยากส่งก็ส่งได้ นับรวมยอด<br>
-        <span style="color:var(--dim)">กลับมาเลือกเป้ากันใหม่สัปดาห์หน้า</span></div>` + bossHTML();
+  if(noPledgeWeek() && !st.weekTarget){
+    const vacTxt = isVacation()
+      ? `<span class="big normal">🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}</span><br>ไม่ต้องส่งการบ้าน streak ไม่ขาด ร่างไม่โดนลงโทษ · กลับมาส่งกัน ${dayDateTH(S.vacTo+1)}<br>
+        <span style="color:var(--gold)">แต่ถ้าส่งช่วงนี้ = "ขยันวันหยุด" 😎 นับรวมยอดและได้ป้าย HOLIDAY HUSTLE</span>`
+      : `<span class="big normal">กลับมาแล้ว! 💪</span><br>งานวันนี้นับรวมยอดเลย · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"19:30"} น.<br>
+        <span style="color:var(--dim)">ค่อยเลือกเป้าสัปดาห์ใหม่ตอนนั้น</span>`;
+    $("pledgeCard").innerHTML=`<div class="paceNum on">${isVacation()?"🏖":"💪"}</div><div class="pledgeTxt">${vacTxt}</div>` + bossHTML();
     return;
   }
   if(!st.weekTarget){
@@ -1252,7 +1261,7 @@ function renderFeed(){
     return `<li><span class="who" style="color:${r.color||"#fff"}">${h.emoji} ${f.who}</span>
       <span class="sp">S${f.sp+1}</span><span class="plat">${f.plat}</span>${f.kind?`<span class="kd" title="${KIND_TH[f.kind]}">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      ${f.kudos?'<span class="kudo">👍</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}</span>`:""}
+      ${f.kudos?'<span class="kudo">👍</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏖 ขยันวันหยุด</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}</span>`:""}
       <span class="when">${ago(f.ts)}</span>${f.note?`<span class="note">💬 ${f.note.replace(/</g,"&lt;")}</span>`:""}</li>`;
   }).join("") : `<li style="color:var(--dim)">ยังไม่มีใครส่งงานเลย — วางลิงก์ชิ้นแรกแล้วชื่อคุณจะขึ้นตรงนี้เป็นคนแรกของรุ่น</li>`;
 }
@@ -1329,7 +1338,7 @@ async function openProfile(name){
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>${f.kind?`<span class="kd">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      ${f.kudos?'<span class="kudo">👍</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}${f.likes?" · ❤ "+fmtN(f.likes):""}</span>`:""}
+      ${f.kudos?'<span class="kudo">👍</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏖 ขยันวันหยุด</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}${f.likes?" · ❤ "+fmtN(f.likes):""}</span>`:""}
       <span class="when">${ago(f.ts)}</span>${f.note?`<span class="note">💬 ${f.note.replace(/</g,"&lt;")}</span>`:""}</li>`).join("") || `<li style="color:var(--dim)">ยังไม่มีงาน</li>`;
 }
 
@@ -1897,6 +1906,7 @@ $("pushBtn").onclick=async()=>{
     }
     else if(o) msg=`+1 CONTENT · สัปดาห์นี้ ${after.weekDone}/${o.target}`;
     if(after.contents>=FINISH && before.contents<FINISH){ msg=`🏆 ถึงเส้นชัย ${FINISH} ชิ้นแล้ว!<br>ออร่าทองถาวรติดตัวตลอดรุ่น`; kind="target"; }
+    if(isVacation()){ msg=`${VAC_MEMES[Math.floor(Math.random()*VAC_MEMES.length)]}<br>${msg}`; if(kind==="submit") kind="unlock"; }
     celebrate(kind); toast(msg);
     S.submitting=false;
     /* ปลดล็อกของแต่งตัวใหม่ */
@@ -1984,12 +1994,17 @@ function renderWeekCut(){
   if(!$("scArena").classList.contains("on") || !S.started || (typeof finished==="function" && finished())){ box.hidden=true; return; }
   box.hidden=false;
   let ms=(S.weekEndsAt ? S.weekEndsAt-Date.now() : nextWeekCut()); if(ms<0) ms=0;
-  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent="🏖 ปิดเทอม"; $("dlClock").innerHTML="พักผ่อน"; $("dlSub").textContent=`streak ไม่ขาด ไม่ต้องเลือกเป้า · เจอกันอีกที ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"19:30"} น.`; return; }
+  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent=`🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}`; $("dlClock").innerHTML="พัก"; $("dlSub").textContent=`ไม่ต้องส่งการบ้าน streak ไม่ขาด · กลับมาส่ง ${dayDateTH(S.vacTo+1)} · ส่งช่วงนี้ = ขยันวันหยุด 😎`; return; }
   const s=Math.floor(ms/1000), dd=Math.floor(s/86400), hh=Math.floor(s%86400/3600), mi=Math.floor(s%3600/60), ss=s%60;
   const pad=n=>String(n).padStart(2,"0");
   $("dlLabel").textContent=`⏳ ${C.WEEK_CUTOFF_LABEL||"ตัดรับงานสัปดาห์นี้"}`;
   $("dlClock").innerHTML=(dd>0?`${dd}<small>วัน</small>`:"")+`${pad(hh)}:${pad(mi)}:${pad(ss)}`;
-  $("dlSub").textContent=`${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${C.WEEK_CUTOFF_TIME||"19:30"} น. · งานที่ส่งหลังเวลานี้นับเป็นสัปดาห์ถัดไป`;
+  const preVac = S.vacFrom && S.today<S.vacFrom && S.today>=S.vacFrom-7;
+  const postVac = noPledgeWeek() && !isVacation();
+  $("dlSub").textContent = preVac ? `ส่งการบ้านให้ครบภายใน ${dayDateTH(S.vacFrom-1)} · ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)} ปิดเทอม 🏖`
+    : postVac ? `กลับมาแล้ว! งานวันนี้นับรวมยอด · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${C.WEEK_CUTOFF_TIME||"19:30"} น.`
+    : `${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${C.WEEK_CUTOFF_TIME||"19:30"} น. · งานที่ส่งหลังเวลานี้นับเป็นสัปดาห์ถัดไป`;
+  if(postVac) $("dlLabel").textContent="📅 สัปดาห์ใหม่เริ่มใน";
   box.classList.toggle("soon", ms<24*3600e3);
 }
 /* ---- ท้องฟ้าเปลี่ยนตามเวลาที่เหลือก่อนปิดรอบ (ส่งแล้วฟ้าสงบ) ---- */
@@ -2405,6 +2420,8 @@ const BADGES=[
                 label:c=>c.duelWins>1?`DUELIST ×${c.duelWins}`:"DUELIST"},
   {k:"quality", e:"👍", n:"QUALITY",      th:"TA ให้ 'งานดี' 3 ชิ้นขึ้นไป",                  test:c=>c.kudosN>=3},
   {k:"reach",   e:"👁", n:"10K VIEWS",    th:"ยอดวิวรวมที่กรอกไว้ถึง 10,000",              test:c=>c.views>=10000},
+  {k:"holiday", e:"🏖", n:"HOLIDAY HUSTLE", th:"ส่งงานช่วงปิดเทอม (ขยันวันหยุด)",              test:c=>c.holiday>0,
+                label:c=>c.holiday>1?`HOLIDAY ×${c.holiday}`:"HOLIDAY HUSTLE"},
   {k:"slayer",  e:"🗡️", n:"BOSS SLAYER",  th:"ร่วมล้มบอสประจำสัปดาห์กับบ้าน",               test:c=>c.bossKills>0,
                 label:c=>c.bossKills>1?`SLAYER ×${c.bossKills}`:"BOSS SLAYER"}
 ];
@@ -2427,7 +2444,8 @@ function badgeCtx(r, det){
   const duelWins=(S.duels||[]).filter(d=>d.status==="done" && d.winner===r.id).length;
   const bossKills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
   const kudosN=(S.kudos||{})[r.id]||0, views=((S.reach||{})[r.id]||{}).total_views||0;
-  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelWins, bossKills, kudosN, views};
+  const holiday = det ? Object.keys(byDay).reduce((s,d)=>s+(vacDay(+d)?byDay[d]:0),0) : ((S.holiday||{})[r.id]||0);
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelWins, bossKills, kudosN, views, holiday};
 }
 const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)).map(b=>Object.assign({},b,{n:b.label?b.label(c):b.n})); };
 function badgesHTML(list, showAll){
@@ -2494,7 +2512,7 @@ function renderMyFeed(list){
       <select class="kindSel" data-kind="${f.id}" title="ประเภท">${kindOpts(f.kind)}</select>
       <span class="sp">วันที่ ${f.day}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}
+      ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏖 ขยันวันหยุด</span>':""}
       <span class="when">${ago(f.ts)}</span>
       ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}
       <span class="note" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -2766,6 +2784,7 @@ async function refresh(){
   S.cheers=d.cheers||[]; S.cheerWeeks=d.cheerWeeks||[]; S.duels=d.duels||[]; S.bosses=d.bosses||[]; S.bossKills=d.bossKills||[];
   S.reach={}; (d.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
   S.kudos={}; (d.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
+  S.holiday={}; (d.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });
   S.sessions=d.sessions||[]; S.myCheckins=new Set(d.myCheckins||[]);
   /* King ของสัปดาห์นี้ (สด): นักเรียนที่ทำชิ้นสัปดาห์นี้มากสุดของแต่ละบ้าน (ต้องรับเป้าไว้และมีอย่างน้อย 1 ชิ้น) */
   S.kingsNow = new Set();
@@ -2816,7 +2835,7 @@ async function boot(){
   renderPushBtn();
   await maybeOnboard();                                  // เข้าครั้งแรก: 3 หน้าสั้น ๆ ก่อนเริ่ม
   const recap = await maybeShowRecap();               // ขึ้นสัปดาห์ใหม่ → สรุปสัปดาห์ที่แล้วก่อน แล้วค่อยเลือกเป้า
-  if(!recap && !isVacation() && !(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
+  if(!recap && !noPledgeWeek() && !(meR().pledges||{})[curWeek()]) setTimeout(openPledge, 400);
 }
 
 /* ---- static bits ---- */
