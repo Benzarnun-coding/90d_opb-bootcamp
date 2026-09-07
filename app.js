@@ -293,7 +293,7 @@ const vacDay     = d => !!S.vacFrom && d>=S.vacFrom && d<=S.vacTo;           // 
 const isVacation = () => vacDay(S.today);                                       // วันนี้ปิดเทอม → ป้าย/มีม
 const noPledgeWeek = () => isVacation() || (!!S.vacationWeek && curWeek()===S.vacationWeek);   // สัปดาห์นี้ไม่ต้องเลือกเป้า
 const dayDateTH  = (d,opt) => { const x=new Date((S.startDate||"")+"T00:00:00"); if(isNaN(x)) return "วันที่ "+d; x.setDate(x.getDate()+d-1); return x.toLocaleDateString("th-TH",opt||{day:"numeric",month:"short"}); };
-const VAC_MEMES  = ["🏖 ขยันวันหยุด! คนอื่นนอนตีพุง คุณส่งงาน", "😎 ปิดเทอมแล้วยังส่ง? โหดเกินไปแล้ว", "🔥 พักไม่เป็นสินะ ขยันวันหยุดตัวจริง", "🏝 ชายหาดรอได้ คอนเทนต์รอไม่ได้", "🧠 สมองไม่มีวันหยุด นับรวมยอดให้เลย", "☕ วันหยุดของคนอื่น = วันทำงานของคุณ"];
+const VAC_MEMES  = ["🏅 นักเรียนดีเด่น! ส่งงานช่วงปิดเทอม นับรวมยอดให้เลย"];
 const joinedIn  = (r,s) => r.joined.includes(s);
 const joinedWeek= (r,w) => joinedIn(r, spOfWeek(w));
 const meR       = () => S.spectator ? null : (S.runners.find(r=>r.name===S.me) || S.runners[0]);
@@ -1000,7 +1000,7 @@ function renderPledge(){
   if(noPledgeWeek() && !st.weekTarget){
     const vacTxt = isVacation()
       ? `<span class="big normal">🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}</span><br>ไม่ต้องส่งการบ้าน streak ไม่ขาด ร่างไม่โดนลงโทษ · กลับมาส่งกัน ${dayDateTH(S.vacTo+1)}<br>
-        <span style="color:var(--gold)">แต่ถ้าส่งช่วงนี้ = "ขยันวันหยุด" 😎 นับรวมยอดและได้ป้าย HOLIDAY HUSTLE</span>`
+        <span style="color:var(--gold)">ใครส่งช่วงนี้ = นักเรียนดีเด่น 🏅 นับรวมยอดและได้ป้าย STAR STUDENT</span>`
       : `<span class="big normal">กลับมาแล้ว! 💪</span><br>งานวันนี้นับรวมยอดเลย · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"19:30"} น.<br>
         <span style="color:var(--dim)">ค่อยเลือกเป้าสัปดาห์ใหม่ตอนนั้น</span>`;
     $("pledgeCard").innerHTML=`<div class="paceNum on">${isVacation()?"🏖":"💪"}</div><div class="pledgeTxt">${vacTxt}</div>` + bossHTML();
@@ -1261,7 +1261,7 @@ function renderFeed(){
     return `<li><span class="who" style="color:${r.color||"#fff"}">${h.emoji} ${f.who}</span>
       <span class="sp">S${f.sp+1}</span><span class="plat">${f.plat}</span>${f.kind?`<span class="kd" title="${KIND_TH[f.kind]}">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      ${f.kudos?'<span class="kudo">👍</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏖 ขยันวันหยุด</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}</span>`:""}
+      ${f.kudos?'<span class="kudo">👍</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏅 นักเรียนดีเด่น</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}</span>`:""}
       <span class="when">${ago(f.ts)}</span>${f.note?`<span class="note">💬 ${f.note.replace(/</g,"&lt;")}</span>`:""}</li>`;
   }).join("") : `<li style="color:var(--dim)">ยังไม่มีใครส่งงานเลย — วางลิงก์ชิ้นแรกแล้วชื่อคุณจะขึ้นตรงนี้เป็นคนแรกของรุ่น</li>`;
 }
@@ -1338,7 +1338,7 @@ async function openProfile(name){
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>${f.kind?`<span class="kd">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      ${f.kudos?'<span class="kudo">👍</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏖 ขยันวันหยุด</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}${f.likes?" · ❤ "+fmtN(f.likes):""}</span>`:""}
+      ${f.kudos?'<span class="kudo">👍</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏅 นักเรียนดีเด่น</span>':""}${f.views?`<span class="stat">👁 ${fmtN(f.views)}${f.likes?" · ❤ "+fmtN(f.likes):""}</span>`:""}
       <span class="when">${ago(f.ts)}</span>${f.note?`<span class="note">💬 ${f.note.replace(/</g,"&lt;")}</span>`:""}</li>`).join("") || `<li style="color:var(--dim)">ยังไม่มีงาน</li>`;
 }
 
@@ -1994,7 +1994,7 @@ function renderWeekCut(){
   if(!$("scArena").classList.contains("on") || !S.started || (typeof finished==="function" && finished())){ box.hidden=true; return; }
   box.hidden=false;
   let ms=(S.weekEndsAt ? S.weekEndsAt-Date.now() : nextWeekCut()); if(ms<0) ms=0;
-  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent=`🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}`; $("dlClock").innerHTML="พัก"; $("dlSub").textContent=`ไม่ต้องส่งการบ้าน streak ไม่ขาด · กลับมาส่ง ${dayDateTH(S.vacTo+1)} · ส่งช่วงนี้ = ขยันวันหยุด 😎`; return; }
+  if(isVacation()){ box.classList.remove("soon"); $("dlLabel").textContent=`🏖 ปิดเทอม ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)}`; $("dlClock").innerHTML="พัก"; $("dlSub").textContent=`ไม่ต้องส่งการบ้าน streak ไม่ขาด · กลับมาส่ง ${dayDateTH(S.vacTo+1)} · ส่งช่วงนี้ = นักเรียนดีเด่น 🏅`; return; }
   const s=Math.floor(ms/1000), dd=Math.floor(s/86400), hh=Math.floor(s%86400/3600), mi=Math.floor(s%3600/60), ss=s%60;
   const pad=n=>String(n).padStart(2,"0");
   $("dlLabel").textContent=`⏳ ${C.WEEK_CUTOFF_LABEL||"ตัดรับงานสัปดาห์นี้"}`;
@@ -2420,8 +2420,8 @@ const BADGES=[
                 label:c=>c.duelWins>1?`DUELIST ×${c.duelWins}`:"DUELIST"},
   {k:"quality", e:"👍", n:"QUALITY",      th:"TA ให้ 'งานดี' 3 ชิ้นขึ้นไป",                  test:c=>c.kudosN>=3},
   {k:"reach",   e:"👁", n:"10K VIEWS",    th:"ยอดวิวรวมที่กรอกไว้ถึง 10,000",              test:c=>c.views>=10000},
-  {k:"holiday", e:"🏖", n:"HOLIDAY HUSTLE", th:"ส่งงานช่วงปิดเทอม (ขยันวันหยุด)",              test:c=>c.holiday>0,
-                label:c=>c.holiday>1?`HOLIDAY ×${c.holiday}`:"HOLIDAY HUSTLE"},
+  {k:"holiday", e:"🏅", n:"STAR STUDENT", th:"นักเรียนดีเด่น ส่งงานช่วงปิดเทอม",              test:c=>c.holiday>0,
+                label:c=>c.holiday>1?`STAR STUDENT ×${c.holiday}`:"STAR STUDENT"},
   {k:"slayer",  e:"🗡️", n:"BOSS SLAYER",  th:"ร่วมล้มบอสประจำสัปดาห์กับบ้าน",               test:c=>c.bossKills>0,
                 label:c=>c.bossKills>1?`SLAYER ×${c.bossKills}`:"BOSS SLAYER"}
 ];
@@ -2512,7 +2512,7 @@ function renderMyFeed(list){
       <select class="kindSel" data-kind="${f.id}" title="ประเภท">${kindOpts(f.kind)}</select>
       <span class="sp">วันที่ ${f.day}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
-      ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏖 ขยันวันหยุด</span>':""}
+      ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏅 นักเรียนดีเด่น</span>':""}
       <span class="when">${ago(f.ts)}</span>
       ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}
       <span class="note" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
