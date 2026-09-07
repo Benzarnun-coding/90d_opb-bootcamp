@@ -90,6 +90,7 @@
   .top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
   .top a{color:var(--cyan); font-size:13px}
   .scroll{overflow-x:auto}
+  .jump{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 14px} .jump a{font-family:var(--f-px); font-size:11px; color:#cdc7ff; text-decoration:none; border:2px solid var(--line); padding:4px 8px; background:rgba(0,0,0,.25)} .jump a:hover{border-color:var(--gold); color:var(--gold)}
   /* ---- engagement ---- */
   .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px}
   .kpi{border:2px solid var(--line); padding:10px 12px; background:rgba(0,0,0,.25)}
@@ -149,10 +150,40 @@
         <button class="btn" id="outBtn">ออกจากระบบ</button>
       </div>
     </div>
+    <nav class="jump"><a href="#engPanel">📊 Engagement</a><a href="#rkHouse">🚨 กลุ่มเสี่ยง</a><a href="#lsRows">📺 เรียนสด</a><a href="#rtRows">📈 Retention</a><a href="#auRows">📜 บันทึก</a><a href="#taRows">⚔️ TA</a><a href="#listTitle">👥 รายชื่อ</a></nav>
 
     <section class="panel bevel">
       <div class="titlebar"><h2>บ้านทั้ง 4</h2><span>คลิกการ์ดเพื่อกรองรายชื่อ · ตัวเลข = สมัครแล้ว / มีชื่อทั้งหมด</span></div>
       <div class="body"><div class="houseGrid" id="houses"></div></div>
+    </section>
+
+    <section class="panel bevel" id="engPanel">
+      <div class="titlebar"><h2>📊 Engagement · ใครเข้าแอปบ้าง</h2><span>นับจากการเปิดแอปจริง (ไม่ใช่การส่งงาน) · pulse ทุก 5 นาทีตอนเปิดหน้าค้าง = เวลาใช้งาน</span></div>
+      <div class="body">
+        <div class="filters">
+          <select id="egDays" style="width:auto"><option value="7">7 วันล่าสุด</option><option value="14">14 วัน</option><option value="30" selected>30 วัน</option><option value="90">ทั้งรุ่น (90 วัน)</option></select>
+          <button class="btn" id="egReload">↻ โหลดใหม่</button>
+          <button class="btn" id="egCsv">⬇ CSV รายคน</button>
+          <span id="egSum" style="color:var(--dim);font-size:13px"></span>
+        </div>
+        <div class="kpis" id="egKpis"></div>
+        <div class="egGrid">
+          <div><h3>เข้าแอปรายวัน <small>คนล็อกอิน (ทึบ) · คนดูข้างนอก (โปร่ง)</small></h3><div class="egChart" id="egDaily"></div></div>
+          <div><h3>ช่วงเวลาที่เปิดแอป <small>ตามชั่วโมง เวลาไทย</small></h3><div class="egChart" id="egHours"></div></div>
+        </div>
+        <div class="egGrid">
+          <div><h3>หน้าที่เปิด</h3><div id="egPages" style="font-size:13px"></div></div>
+          <div><h3>อุปกรณ์</h3><div id="egDevice" style="font-size:13px"></div></div>
+        </div>
+        <h3 style="margin-top:14px">ใครเข้าบ่อย <small>เรียงตามจำนวนวันที่เข้า</small></h3>
+        <div class="filters"><select id="egHouse" style="width:auto"><option value="">🌏 ทั้งรุ่น</option></select><input id="egFind" placeholder="ค้นหาชื่อ" style="width:180px"></div>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>ชื่อ</th><th>บ้าน</th><th>วันที่เข้า</th><th>ครั้ง</th><th>เวลาใช้ (นาที)</th><th>ล่าสุด</th><th>ครั้งแรก</th><th>อุปกรณ์</th></tr></thead>
+          <tbody id="egRows"></tbody>
+        </table></div>
+        <h3 style="margin-top:14px">หายไป 7 วัน+ <small>สมัครแล้วแต่ไม่ได้เปิดแอปเลยใน 7 วัน</small> <span id="egAbsN" class="tag"></span></h3>
+        <div id="egAbsent" style="font-size:13px;line-height:1.9"></div>
+      </div>
     </section>
 
     <section class="panel bevel">
@@ -226,34 +257,6 @@
       </div>
     </section>
 
-    <section class="panel bevel" id="engPanel">
-      <div class="titlebar"><h2>📊 Engagement · ใครเข้าแอปบ้าง</h2><span>นับจากการเปิดแอปจริง (ไม่ใช่การส่งงาน) · pulse ทุก 5 นาทีตอนเปิดหน้าค้าง = เวลาใช้งาน</span></div>
-      <div class="body">
-        <div class="filters">
-          <select id="egDays" style="width:auto"><option value="7">7 วันล่าสุด</option><option value="14">14 วัน</option><option value="30" selected>30 วัน</option><option value="90">ทั้งรุ่น (90 วัน)</option></select>
-          <button class="btn" id="egReload">↻ โหลดใหม่</button>
-          <button class="btn" id="egCsv">⬇ CSV รายคน</button>
-          <span id="egSum" style="color:var(--dim);font-size:13px"></span>
-        </div>
-        <div class="kpis" id="egKpis"></div>
-        <div class="egGrid">
-          <div><h3>เข้าแอปรายวัน <small>คนล็อกอิน (ทึบ) · คนดูข้างนอก (โปร่ง)</small></h3><div class="egChart" id="egDaily"></div></div>
-          <div><h3>ช่วงเวลาที่เปิดแอป <small>ตามชั่วโมง เวลาไทย</small></h3><div class="egChart" id="egHours"></div></div>
-        </div>
-        <div class="egGrid">
-          <div><h3>หน้าที่เปิด</h3><div id="egPages" style="font-size:13px"></div></div>
-          <div><h3>อุปกรณ์</h3><div id="egDevice" style="font-size:13px"></div></div>
-        </div>
-        <h3 style="margin-top:14px">ใครเข้าบ่อย <small>เรียงตามจำนวนวันที่เข้า</small></h3>
-        <div class="filters"><select id="egHouse" style="width:auto"><option value="">🌏 ทั้งรุ่น</option></select><input id="egFind" placeholder="ค้นหาชื่อ" style="width:180px"></div>
-        <div class="scroll"><table>
-          <thead><tr><th>#</th><th>ชื่อ</th><th>บ้าน</th><th>วันที่เข้า</th><th>ครั้ง</th><th>เวลาใช้ (นาที)</th><th>ล่าสุด</th><th>ครั้งแรก</th><th>อุปกรณ์</th></tr></thead>
-          <tbody id="egRows"></tbody>
-        </table></div>
-        <h3 style="margin-top:14px">หายไป 7 วัน+ <small>สมัครแล้วแต่ไม่ได้เปิดแอปเลยใน 7 วัน</small> <span id="egAbsN" class="tag"></span></h3>
-        <div id="egAbsent" style="font-size:13px;line-height:1.9"></div>
-      </div>
-    </section>
 
     <section class="panel bevel">
       <div class="titlebar"><h2>📈 Retention รายวัน</h2><span>จาก snapshot ทุกคืน 03:55 · % นักเรียนที่ส่งงานในวันนั้น</span></div>
