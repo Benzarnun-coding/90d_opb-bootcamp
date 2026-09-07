@@ -259,7 +259,7 @@
     transition:transform .8s cubic-bezier(.2,.85,.3,1)}
   .runner .tag{font-family:var(--f-px); font-weight:700; font-size:12px;
     color:#fff; text-shadow:0 2px 0 #000; margin-bottom:1px}
-  .runner .body{position:relative; animation:bob .26s steps(2) infinite alternate}
+  .runner .body{position:relative; padding:0; animation:bob .26s steps(2) infinite alternate}   /* padding:0 กัน .body{padding:16px} ของการ์ด ไม่งั้นเลขไปทับหัวและเงาลอยใต้เท้า */
   @keyframes bob{to{transform:translateY(-3px)}}
   .runner.idle .body{animation:none}
   .runner svg{display:block; margin:0 auto; position:relative; z-index:2}
