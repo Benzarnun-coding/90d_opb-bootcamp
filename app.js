@@ -1418,44 +1418,56 @@ function drawCard(){
   ctx.fillStyle="#9a92d8";
   ctx.fillText(`สัปดาห์ที่ ${curWeek()} จาก ${WEEKS} · วันที่ ${S.today}`, W/2, 142);
 
-  const px=22, sw=16*px;
-  drawSpriteCanvas(ctx, (W-sw)/2, 150, px, avOf(r), s.style);
+  const px=18, sw=16*px;
+  drawSpriteCanvas(ctx, (W-sw)/2, 160, px, avOf(r), s.style);
 
-  ctx.font="700 84px 'PxSeven','Pixelify Sans', monospace";
+  /* อันดับ · เลเวล · เหรียญ */
+  const isStu = roleOf(r)==="student";
+  const stuList = ranked().filter(x=>roleOf(x)==="student");
+  const rankAll = isStu ? stuList.findIndex(x=>x.id===r.id)+1 : 0;
+  const houseList = stuList.filter(x=>x.house===r.house);
+  const rankHouse = isStu ? houseList.findIndex(x=>x.id===r.id)+1 : 0;
+  const lv = levelOf(xpOf(r)), lvTitle = titleOf(lv);
+  const marks = (isKingNow(r)?"👑 ":"") + (starN(r)?"🏅 ":"");
+
+  ctx.font="700 78px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
-  ctx.fillText(r.name, W/2, 850);
+  let nf=78; while(ctx.measureText(marks+r.name).width > W-120 && nf>40){ nf-=4; ctx.font=`700 ${nf}px 'PxSeven','Pixelify Sans', monospace`; }
+  ctx.fillText(marks+r.name, W/2, 735);
   ctx.shadowOffsetY=0;
-  ctx.font="500 32px 'IBM Plex Sans Thai', sans-serif";
+  ctx.font="500 30px 'IBM Plex Sans Thai', sans-serif";
   ctx.fillStyle=h.color;
-  ctx.fillText(`${h.emoji} ${h.name} · ${r.handle}`, W/2, 900);
+  ctx.fillText(`${h.emoji} ${h.name}${isStu?"":roleOf(r)==="head"?" · COACH":" · TA"} · Lv${lv} ${lvTitle}`, W/2, 782);
 
-  ctx.font="700 190px 'PxSeven','Pixelify Sans', monospace";
+  ctx.font="700 170px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle=s.style==="flame"?"#ffc24d":s.style==="red"?"#ff6b85":"#ffcc4d";
   ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=40;
-  ctx.fillText(String(s.contents), W/2, 1075);
+  ctx.fillText(String(s.contents), W/2, 935);
   ctx.shadowBlur=0;
-  ctx.font="700 40px 'PxSeven','Pixelify Sans', monospace";
+  ctx.font="700 36px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle="#e6e1ff";
-  ctx.fillText(s.contents>=FINISH ? `🏆 ครบ ${FINISH} ชิ้นแล้ว` : `CONTENTS · เป้า ${FINISH} ชิ้น`, W/2, 1125);
+  ctx.fillText(s.contents>=FINISH ? `🏆 ครบ ${FINISH} ชิ้นแล้ว` : `CONTENTS · เป้า ${FINISH} ชิ้น`, W/2, 982);
 
-  const boxes=[
-    ["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
-    ["STREAK · สัปดาห์ติดกัน", String(s.weekStreak)],
-    ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]
+  const rows=[
+    [["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
+     ["STREAK วัน", `${s.dayStreak||0}🔥`],
+     ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]],
+    [["อันดับในบ้าน", isStu?`#${rankHouse}/${houseList.length}`:"TA"],
+     ["อันดับรุ่น", isStu?`#${rankAll}/${stuList.length}`:"TA"],
+     ["เชียร์ที่ได้รับ", String((S.cheers||[]).filter(c=>c.to_id===r.id).length)]]
   ];
   const bw=300, gap=20, x0=(W-(bw*3+gap*2))/2;
-  boxes.forEach(([l,v],i)=>{
-    const x=x0+i*(bw+gap), y=1170;
-    ctx.fillStyle="rgba(13,10,34,.72)"; ctx.fillRect(x,y,bw,110);
-    ctx.strokeStyle=h.color+"88"; ctx.lineWidth=3; ctx.strokeRect(x,y,bw,110);
-    /* ตัวเลขใช้ฟอนต์พิกเซล (ไม่มีอักษรไทย) — ถ้ามีไทยหรือยาวเกินกล่อง ย่อฟอนต์ให้พอดี */
-    let fs=52; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`;
-    while(ctx.measureText(String(v)).width > bw-24 && fs>24){ fs-=4; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`; }
-    ctx.fillStyle="#fff"; ctx.fillText(String(v), x+bw/2, y+62);
-    let ls=24; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`;
-    while(ctx.measureText(l).width > bw-16 && ls>16){ ls-=2; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`; }
-    ctx.fillStyle="#a49ce0"; ctx.fillText(l, x+bw/2, y+95);
-  });
+  rows.forEach((boxes,ri)=> boxes.forEach(([l,v],i)=>{
+    const x=x0+i*(bw+gap), y=1010+ri*112, bh=100;
+    ctx.fillStyle="rgba(13,10,34,.72)"; ctx.fillRect(x,y,bw,bh);
+    ctx.strokeStyle=h.color+"88"; ctx.lineWidth=3; ctx.strokeRect(x,y,bw,bh);
+    let fs=46; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`;
+    while(ctx.measureText(String(v)).width > bw-24 && fs>22){ fs-=4; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`; }
+    ctx.fillStyle="#fff"; ctx.fillText(String(v), x+bw/2, y+56);
+    let ls=22; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`;
+    while(ctx.measureText(l).width > bw-16 && ls>14){ ls-=2; ctx.font=`500 ${ls}px 'IBM Plex Sans Thai', sans-serif`; }
+    ctx.fillStyle="#a49ce0"; ctx.fillText(l, x+bw/2, y+86);
+  }));
 
   if(s.style!=="normal"){
     const o=optOf(s.weekTarget);
@@ -1463,11 +1475,14 @@ function drawCard(){
     ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":"#39e5ff";
     ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":"🔵"} ${o.name} MODE`, W/2, 178);
   }
-  /* ป้ายรางวัลที่ได้แล้ว */
-  const bl = S.myDet ? earnedBadges(r,S.myDet) : [];
+  /* ป้ายรางวัลที่ได้แล้ว: อีโมจิ + ชื่อป้าย (สูงสุด 4 ชื่อ) */
+  const bl = S.myDet ? earnedBadges(r,S.myDet) : earnedBadges(r,null);
   if(bl.length){
-    ctx.font="36px sans-serif"; ctx.fillStyle="#fff";
-    ctx.fillText(bl.map(b=>b.e).join("  "), W/2, 1312);
+    ctx.font="40px sans-serif"; ctx.fillStyle="#fff";
+    ctx.fillText(bl.slice(0,10).map(b=>b.e).join(" "), W/2, 1268);
+    ctx.font="700 20px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#ffcc4d";
+    const names=bl.slice(0,4).map(b=>b.n).join(" · ") + (bl.length>4?` +${bl.length-4}`:"");
+    ctx.fillText(names, W/2, 1300);
   }
   /* บรรทัดล่างสุด: แฮชแท็กซ้าย เครดิตขวา */
   ctx.textAlign="left";
@@ -1602,8 +1617,12 @@ function shareTextOf(){
   const r=meR(), s=stats(r), h=houseOf(r.house);
   const o=s.weekTarget?optOf(s.weekTarget):null;
   const fin = s.contents>=FINISH ? " 🏆 ครบเป้าแล้ว!" : ` จากเป้า ${FINISH}`;
+  const stu=ranked().filter(x=>roleOf(x)==="student"), rk=stu.findIndex(x=>x.id===r.id)+1, hl=stu.filter(x=>x.house===r.house), rh=hl.findIndex(x=>x.id===r.id)+1;
+  const bl=S.myDet?earnedBadges(r,S.myDet):[];
   return `ปล่อยไปแล้ว ${s.contents} คอนเทนต์${fin} ใน ${C.TITLE} 🏁\n`
    + `${h.emoji} บ้าน ${h.name} · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`
+   + (rk?`อันดับ ${rh} ของบ้าน · ${rk} ของรุ่น · Lv${levelOf(xpOf(r))} ${titleOf(levelOf(xpOf(r)))}\n`:"")
+   + (bl.length?`ป้าย: ${bl.slice(0,5).map(b=>b.e+" "+b.n).join(", ")}\n`:"")
    + (o?`สัปดาห์นี้รับเป้า ${o.name} ${o.target} ชิ้น — ทำไปแล้ว ${s.weekDone}\n`:"")
    + rivalText(r)
    + `streak ${s.weekStreak} สัปดาห์ 🔥\n${TAG}` + (CREDIT ? "\n"+CREDIT : "");
@@ -2607,7 +2626,7 @@ function duelHatOf(r){
   return d ? d.prize_hat : null;
 }
 function duelBtnHTML(r){
-  if(!r || S.spectator || !meR() || r.id===meId() || roleOf(r)!=="student" || roleOf(meR())!=="student") return "";
+  if(!r || S.spectator || !meR() || r.id===meId()) return "";          // ทุกคนท้าได้ รวม TA และโค้ช (อีกฝ่ายต้องกดรับ)
   const d=duelOf(r.id), mine=myDuel();
   if(d) return `<div class="duelBox"><b>⚔️ กำลังดวลอยู่</b> ${d.challenger_name} vs ${d.opponent_name} · ${d.status==="pending"?"รอรับคำท้า":`${d.challenger_score}-${d.opponent_score} · เหลือ ${Math.max(0,d.end_day-S.today+1)} วัน`}</div>`;
   if(mine) return `<div class="duelBox" style="color:var(--dim)">⚔️ คุณมีดวลค้างอยู่ ต้องจบก่อนถึงท้าคนใหม่ได้</div>`;

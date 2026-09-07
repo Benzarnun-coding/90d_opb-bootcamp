@@ -322,10 +322,14 @@
           <button class="btn" id="dcSave">บันทึก</button>
           <button class="btn" id="dcTest">ส่งข้อความทดสอบ</button>
           <button class="btn" id="dcDigest">ส่งสรุปวันนี้เดี๋ยวนี้</button>
+          <button class="btn" id="dcAwardsPreview">🏆 ดูตัวอย่าง Weekly Awards</button>
+          <button class="btn" id="dcAwardsSend">🏆 ส่ง Weekly Awards เดี๋ยวนี้</button>
+          <select id="dcAwardsWeek" style="width:auto"></select>
         </div>
+        <pre id="dcAwardsText" hidden style="white-space:pre-wrap;font-size:13px;background:#0b0316;border:2px solid var(--line);padding:10px;margin-top:10px;color:#e6e1ff"></pre>
         <div class="hint" id="dcNote">
           สร้าง webhook: เปิด Discord → ตั้งค่าช่อง (⚙️) → Integrations → Webhooks → New Webhook → Copy Webhook URL แล้ววางที่นี่<br>
-          ระบบส่งเองทุกวัน 20:00 น. (สรุปใครยังไม่ส่ง + ตารางบ้าน) และ 09:00 น. ของวันแรกของสัปดาห์ (เตือนเลือกเป้า)
+          ระบบส่งเองทุกวัน 20:00 น. (สรุปใครยังไม่ส่ง + ตารางบ้าน) · 09:00 น. ของวันแรกของสัปดาห์ (เตือนเลือกเป้า) · ทุกพุธ 19:45 น. Weekly Awards (King / ถ้วยบ้าน / Popular Vote / นักเรียนดีเด่น / ไต่อันดับ / ครบเป้า)
         </div>
       </div>
     </section>

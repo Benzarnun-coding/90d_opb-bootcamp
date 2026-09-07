@@ -306,6 +306,7 @@ renderSkins();
 async function loadBosses(){
   $("bsHouse").innerHTML = '<option value="">🌏 ทั้งรุ่นช่วยกัน</option>' + HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
   try{ const {data:cs} = await sb.rpc("cohort_status"); const row = Array.isArray(cs) ? cs[0] : cs;
+    if(row && row.week_no && $("dcAwardsWeek")) $("dcAwardsWeek").value = String(Math.max(1, Number(row.week_no)-1));
     if(row && row.day_index){ curWeekNo = Math.max(1, Math.ceil(Number(row.day_index)/7)); if(!$("bsWeek").dataset.touched) $("bsWeek").value = curWeekNo; } }catch(e){}
   const {data, error} = await sb.from("v_boss_progress").select("*").order("week_no").order("house_id");
   if(error){ toast("อ่านบอสไม่ได้: "+error.message); return; }
@@ -357,6 +358,24 @@ $("dcTest").onclick = async ()=>{
   $("dcTest").disabled = false;
   if(error) return toast(error.message);
   toast("ส่งแล้ว ดูในช่อง Discord");
+};
+(function(){ const sel=$("dcAwardsWeek"); for(let w=1; w<=12; w++){ const o=document.createElement("option"); o.value=w; o.textContent="สัปดาห์ "+w; sel.appendChild(o); } })();
+$("dcAwardsPreview").onclick = async ()=>{
+  const w = +$("dcAwardsWeek").value || null;
+  const {data, error} = await sb.rpc("weekly_awards_text", {w});
+  if(error) return toast(error.message);
+  $("dcAwardsText").hidden = false; $("dcAwardsText").textContent = data || "ยังไม่มีข้อมูลสัปดาห์นี้";
+};
+$("dcAwardsSend").onclick = async ()=>{
+  const w = +$("dcAwardsWeek").value || null;
+  if(!confirm("ส่ง Weekly Awards สัปดาห์ "+(w||"ล่าสุด")+" เข้า Discord เดี๋ยวนี้?")) return;
+  $("dcAwardsSend").disabled = true;
+  const {data, error} = await sb.rpc("weekly_awards_text", {w});
+  if(error || !data){ $("dcAwardsSend").disabled = false; return toast(error ? error.message : "ยังไม่มีข้อมูล"); }
+  const r2 = await sb.rpc("notify_discord", {msg: data});
+  $("dcAwardsSend").disabled = false;
+  if(r2.error) return toast(r2.error.message);
+  toast("ส่ง Weekly Awards แล้ว 🏆");
 };
 $("dcDigest").onclick = async ()=>{
   $("dcDigest").disabled = true;
