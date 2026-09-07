@@ -1671,7 +1671,7 @@ function renderHud(){
   $("hudDay").textContent=S.today;
   $("hudTotal").textContent=TOTAL;
   $("hudClock").textContent=cutoffLeft();
-  renderTodayBar(); renderBell(); updateSky();
+  renderTodayBar(); renderBell(); updateSky(); renderWeekCut();
   $("submitPanel").style.display = S.spectator ? "none" : "";
   $("navSubmit").style.display = S.spectator ? "none" : "";
   $("pledgeBtn2").style.display = S.spectator ? "none" : "";
@@ -1959,6 +1959,29 @@ function questsOf(){
 }
 function renderQuests(){ /* รวมอยู่ในการ์ดวันนี้แล้ว */ }
 
+/* ---- นับถอยหลังตัดรับงานประจำสัปดาห์ (ค่าเริ่มต้น พุธ 19:30 เวลาไทย ตั้งใน config.js) ---- */
+const DOW_TH=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์"];
+function nextWeekCut(){
+  const dow = C.WEEK_CUTOFF_DOW==null ? 3 : +C.WEEK_CUTOFF_DOW;
+  const [hh,mm] = String(C.WEEK_CUTOFF_TIME||"19:30").split(":").map(Number);
+  /* คิดเป็นเวลาไทยเสมอ: แปลงเวลาเครื่องเป็น UTC+7 ก่อน */
+  const now=new Date(); const th=new Date(now.getTime()+ (now.getTimezoneOffset()+420)*60000);
+  const d=new Date(th); d.setHours(hh,mm,0,0);
+  let diff=(dow - d.getDay()+7)%7; if(diff===0 && d<=th) diff=7; d.setDate(d.getDate()+diff);
+  return d.getTime()-th.getTime();
+}
+function renderWeekCut(){
+  const box=$("weekCut"); if(!box) return;
+  if(!$("scArena").classList.contains("on") || !S.started || (typeof finished==="function" && finished())){ box.hidden=true; return; }
+  box.hidden=false;
+  let ms=nextWeekCut(); if(ms<0) ms=0;
+  const s=Math.floor(ms/1000), dd=Math.floor(s/86400), hh=Math.floor(s%86400/3600), mi=Math.floor(s%3600/60), ss=s%60;
+  const pad=n=>String(n).padStart(2,"0");
+  $("dlLabel").textContent=`⏳ ${C.WEEK_CUTOFF_LABEL||"ตัดรับงานสัปดาห์นี้"}`;
+  $("dlClock").innerHTML=(dd>0?`${dd}<small>วัน</small>`:"")+`${pad(hh)}:${pad(mi)}:${pad(ss)}`;
+  $("dlSub").textContent=`${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${C.WEEK_CUTOFF_TIME||"19:30"} น. · งานที่ส่งหลังเวลานี้นับเป็นสัปดาห์ถัดไป`;
+  box.classList.toggle("soon", ms<24*3600e3);
+}
 /* ---- ท้องฟ้าเปลี่ยนตามเวลาที่เหลือก่อนปิดรอบ (ส่งแล้วฟ้าสงบ) ---- */
 function updateSky(){
   const sky=$("sky"); if(!sky) return;
@@ -2808,7 +2831,7 @@ if(LIVE && C.GOOGLE_AUTH){
   $("googleBtn").style.display="";
   $("googleBtn").onclick=async()=>{ try{ await DB.signInGoogle(); }catch(e){ toast(e.message); } };
 }
-setInterval(()=>{ if($("scArena").classList.contains("on")){ $("hudClock").textContent=cutoffLeft(); const c=$("tbClock"); if(c) c.textContent=cutoffLeft(); } },1000);
+setInterval(()=>{ if($("scArena").classList.contains("on")){ $("hudClock").textContent=cutoffLeft(); const c=$("tbClock"); if(c) c.textContent=cutoffLeft(); renderWeekCut(); } },1000);
 setInterval(updateSky, 60000);
 setInterval(()=>{ if($("pgRace").classList.contains("on")) renderFeed(); },60000);
 
