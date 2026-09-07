@@ -609,6 +609,7 @@ const LiveDB = (()=>{
   };
   return {
     mode:"live", canSim:false,
+    _sb(){ return sb; },
     async init(){
       sb=window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
       const {data:{session:s}}=await sb.auth.getSession(); session=s;
@@ -2817,6 +2818,7 @@ async function enterSpectator(){
   try{ await refresh(); }catch(e){ toast("โหลดสนามไม่ได้: "+e.message); S.spectator=false; return; }
   if(!S._subbed){ DB.subscribe(()=>refresh()); S._subbed=true; }
   show("scArena"); showPage("pgRace");
+  if(!S._pulse){ trackVisit("watch"); startPulse("watch"); }
 }
 /* กลับหน้าแรก (PRESS START) — ใช้ได้ทั้งคนดูและคนที่ล็อกอิน */
 window.goHome=()=>{
@@ -2833,10 +2835,28 @@ window.leaveSpectator=()=>{
   location.reload();
 };
 $("watchBtn").onclick=enterSpectator;
+/* ---- engagement: บันทึกการเข้าใช้ (เปิดแอป 1 ครั้ง + pulse ทุก 5 นาทีตอนเปิดหน้าค้างอยู่) ---- */
+const VKEY=(()=>{ try{ let k=localStorage.getItem("opb_vk"); if(!k){ k=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem("opb_vk",k); } return k; }catch(e){ return "nols"; } })();
+const isPWA=()=>{ try{ return matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }catch(e){ return false; } };
+async function trackVisit(page, kind="open"){
+  if(!LIVE || !window.supabase) return;
+  try{
+    const cli = DB._sb ? DB._sb() : null; if(!cli) return;
+    await cli.rpc("track_visit",{p_page:page, p_kind:kind, p_vkey:VKEY,
+      p_device:/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?"mobile":"desktop",
+      p_pwa:isPWA(), p_ref:(document.referrer||"").slice(0,120)});
+  }catch(e){ /* เงียบ ไม่กระทบเกม */ }
+}
+function startPulse(page){
+  if(S._pulse) return;
+  S._pulse=setInterval(()=>{ if(document.visibilityState==="visible") trackVisit(page,"pulse"); }, 5*60e3);
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") trackVisit(page,"open"); });
+}
 async function boot(){
   const st=BOOTSTATE=await DB.init();
-  if(location.hash==="#watch"){ drawSelect(); await enterSpectator(); return; }   // ลิงก์ฉายจอ — ดูอย่างเดียวเสมอ
+  if(location.hash==="#watch"){ drawSelect(); await enterSpectator(); trackVisit("watch"); startPulse("watch"); return; }   // ลิงก์ฉายจอ — ดูอย่างเดียวเสมอ
   if(st.needsAuth||st.needsProfile){
+    trackVisit("title");
     drawSelect();
     if(st.email){ $("authWho").textContent=st.email; }
     show("scTitle");
@@ -2845,6 +2865,7 @@ async function boot(){
   await refresh();
   DB.subscribe(()=>refresh()); S._subbed=true;
   show("scArena");
+  trackVisit("app"); startPulse("app");
   renderPushBtn();
   await maybeOnboard();                                  // เข้าครั้งแรก: 3 หน้าสั้น ๆ ก่อนเริ่ม
   const recap = await maybeShowRecap();               // ขึ้นสัปดาห์ใหม่ → สรุปสัปดาห์ที่แล้วก่อน แล้วค่อยเลือกเป้า

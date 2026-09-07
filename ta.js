@@ -46,6 +46,7 @@ async function boot(){
   $("headPick").style.display = IS_HEAD ? "" : "none";
   if(IS_HEAD){ $("headHouse").innerHTML = HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join(""); $("headHouse").value = HOUSE; }
   show("scTA");
+  try{ sb.rpc("track_visit",{p_page:"ta",p_kind:"open",p_vkey:(localStorage.getItem("opb_vk")||"ta"),p_device:/Mobi|Android|iPhone/i.test(navigator.userAgent)?"mobile":"desktop",p_pwa:false,p_ref:null}); }catch(e){}
   await load();
 }
 $("lgBtn").onclick = async ()=>{

@@ -41,12 +41,13 @@ async function boot(){
   if(!head){ $("deniedWho").textContent = session.user.email; show("scDenied"); return; }
   $("who").textContent = session.user.email;
   show("scAdmin");
+  try{ sb.rpc("track_visit",{p_page:"admin",p_kind:"open",p_vkey:(localStorage.getItem("opb_vk")||"admin"),p_device:"desktop",p_pwa:false,p_ref:null}); }catch(e){}
   await load();
   const {data:co} = await sb.from("cohort").select("discord_webhook").eq("id",1).maybeSingle();
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
-  loadRisk(); loadSessions(); loadRetention(); loadAudit();
+  loadRisk(); loadSessions(); loadRetention(); loadAudit(); loadEngagement();
 }
 /* ---- กลุ่มเสี่ยง ---- */
 const RISK_TH = {never:["🆕 ยังไม่เคยส่ง","no"], silent3:["⛔ หายไป 3 วัน+","no"], silent2:["⚠️ ไม่ส่ง 2 วัน","no"], burnout:["💀 กระโหลก","no"], weak:["😵 หมดแรง","no"], nopledge:["🎯 ยังไม่เลือกเป้า","no"], ok:["✅ ปกติ","ok"]};
@@ -98,6 +99,72 @@ $("lsRows").onclick = async e=>{
     const {data:ps}= ids.length ? await sb.from("profiles").select("id,name,house_id").in("id",ids) : {data:[]};
     $("att-"+a.dataset.att).textContent = (ps||[]).map(p=>houseOf(p.house_id).emoji+" "+p.name).sort().join(", ") || "ยังไม่มีใครเช็คอิน"; }
 };
+
+/* ---- engagement / analytics ---- */
+let EG=null;
+const agoTH = ts => { if(!ts) return "—"; const m=Math.round((Date.now()-new Date(ts).getTime())/60000);
+  if(m<1) return "เมื่อกี้"; if(m<60) return m+" นาทีที่แล้ว"; const hh=Math.round(m/60); if(hh<24) return hh+" ชม.ที่แล้ว"; const d=Math.round(hh/24); return d+" วันที่แล้ว"; };
+const dTH = ts => ts ? new Date(ts).toLocaleDateString("th-TH",{day:"numeric",month:"short"}) : "—";
+async function loadEngagement(){
+  const days = +($("egDays").value||30);
+  $("egSum").textContent = "กำลังโหลด…";
+  const {data, error} = await sb.rpc("admin_engagement", {days});
+  if(error){ $("egSum").textContent = error.message; return; }
+  EG = data; const t = data.totals || {};
+  const kpi = (v,l,s) => `<div class="kpi"><b>${v==null?"—":v}</b><span>${l}</span>${s?`<small>${s}</small>`:""}</div>`;
+  $("egKpis").innerHTML =
+    kpi(t.users_today, "คนเข้าวันนี้", `เปิด ${t.opens_today||0} ครั้ง · ${t.devices_today||0} เครื่อง`) +
+    kpi(t.users_7d, "คนเข้าใน 7 วัน", `จากสมัครแล้ว ${data.registered} คน (${data.registered?Math.round((t.users_7d||0)/data.registered*100):0}%)`) +
+    kpi(t.users_range, `คนเข้าใน ${days} วัน`, `${t.opens_range||0} ครั้ง · ${Math.round((t.minutes_range||0)/60)} ชม.รวม`) +
+    kpi(t.outside_7d, "คนดูข้างนอก 7 วัน", `ไม่ล็อกอิน · ${days} วัน = ${t.outside_range||0} เครื่อง · จอ #watch ${t.watch_range||0} ครั้ง`) +
+    kpi(data.never_visited, "สมัครแล้วไม่เคยเปิดแอป", `ตั้งแต่เริ่มเก็บข้อมูล`) +
+    kpi((data.absent||[]).length, "หายไป 7 วัน+", "สมัครแล้วแต่ไม่ได้เปิด");
+  $("egSum").textContent = `เก็บตั้งแต่ ${dTH(data.since)} · มีชื่อ ${data.roster} · สมัคร ${data.registered}`;
+  /* daily */
+  const daily = data.daily||[]; const mx = Math.max(1, ...daily.map(d=>Math.max(d.users, d.outside)));
+  $("egDaily").innerHTML = daily.length ? daily.map(d=>`<div class="bar" data-t="${dTH(d.d)} · ล็อกอิน ${d.users} คน · ข้างนอก ${d.outside} · เปิด ${d.opens} ครั้ง">
+      <i class="o" style="height:${Math.round(d.outside/mx*100)}%"></i><i style="height:${Math.round(d.users/mx*100)}%;margin-top:-1px"></i><em>${new Date(d.d).getDate()}</em></div>`).join("")
+    : '<span style="color:var(--dim);align-self:center;margin:auto">ยังไม่มีข้อมูล — เริ่มเก็บหลัง deploy หน้าเว็บรอบถัดไป</span>';
+  /* hours */
+  const hrs = Array.from({length:24},(_,i)=>({h:i,n:0})); (data.hours||[]).forEach(x=>{ hrs[x.h].n=x.n; });
+  const hm = Math.max(1, ...hrs.map(x=>x.n));
+  $("egHours").innerHTML = hrs.map(x=>`<div class="bar" data-t="${x.h}:00 · ${x.n} ครั้ง"><i style="height:${Math.round(x.n/hm*100)}%"></i>${x.h%3===0?`<em>${x.h}</em>`:""}</div>`).join("");
+  /* pages + device */
+  const pages=data.pages||[], pm=Math.max(1,...pages.map(p=>p.n));
+  const PAGE_TH={app:"🏁 สนามแข่ง (ล็อกอิน)", title:"🚪 หน้าแรก (ยังไม่ล็อกอิน)", watch:"📺 จอฉาย / คนดู", ta:"🟢 หน้า TA", admin:"⚙️ แอดมิน", install:"📲 คู่มือติดตั้ง"};
+  $("egPages").innerHTML = pages.length ? pages.map(p=>`<div class="egBarRow"><span>${PAGE_TH[p.page]||p.page}</span><div><i style="width:${Math.round(p.n/pm*100)}%"></i></div><span>${p.n}</span></div>`).join("") : '<span style="color:var(--dim)">—</span>';
+  const dv=[["📱 มือถือ",t.mobile_users||0],["💻 คอม",t.desktop_users||0],["📲 เปิดจากแอปที่ติดตั้ง (PWA)",t.pwa_users||0]], dm=Math.max(1,...dv.map(x=>x[1]));
+  $("egDevice").innerHTML = dv.map(([l,v])=>`<div class="egBarRow"><span>${l}</span><div><i style="width:${Math.round(v/dm*100)}%"></i></div><span>${v} คน</span></div>`).join("");
+  renderEgRows(); renderEgAbsent();
+}
+function renderEgRows(){
+  if(!EG) return;
+  const hid = +($("egHouse").value||0), q=($("egFind").value||"").trim().toLowerCase();
+  const list=(EG.users||[]).filter(u=>(!hid||u.house_id===hid) && (!q||String(u.name||"").toLowerCase().includes(q)));
+  $("egRows").innerHTML = list.length ? list.map((u,i)=>{ const h=houseOf(u.house_id);
+    return `<tr><td>${i+1}</td><td><b style="color:${u.role==="coach"?"#5ef08c":"#fff"}">${esc(u.name)}</b>${u.role==="coach"?' <span class="tag">TA</span>':""}</td>
+      <td style="color:${h.color}">${h.emoji} ${h.name}</td><td><b>${u.days}</b> วัน</td><td>${u.opens}</td><td>${u.minutes}</td>
+      <td title="${new Date(u.last_at).toLocaleString("th-TH")}">${agoTH(u.last_at)}</td><td>${dTH(u.first_at)}</td><td>${u.mobile?"📱":"💻"}${u.pwa?" 📲":""}</td></tr>`; }).join("")
+    : '<tr><td colspan="9" style="color:var(--dim)">ยังไม่มีข้อมูล</td></tr>';
+}
+function renderEgAbsent(){
+  if(!EG) return;
+  const ab=EG.absent||[]; $("egAbsN").textContent = ab.length+" คน";
+  const by={}; ab.forEach(u=>{ (by[u.house_id]=by[u.house_id]||[]).push(u); });
+  $("egAbsent").innerHTML = ab.length ? HOUSES.map(h=>{ const l=by[h.id]||[]; if(!l.length) return "";
+    return `<div><b style="color:${h.color}">${h.emoji} ${h.name}</b> (${l.length}): ${l.map(u=>`<span title="เปิดล่าสุด ${u.last_at?agoTH(u.last_at):"ไม่เคย"} · ส่งงาน ${u.contents} ชิ้น">${esc(u.name)}${u.last_at?"":" <em style='color:var(--dim)'>(ไม่เคยเปิด)</em>"}</span>`).join(" · ")}</div>`; }).join("")
+    : '<span style="color:var(--dim)">ทุกคนเข้าแอปในช่วง 7 วัน 🎉</span>';
+}
+function egCsv(){
+  if(!EG) return;
+  const rows=[["name","house","role","days_active","opens","minutes","last_at","first_at","mobile","pwa"]]
+    .concat((EG.users||[]).map(u=>[u.name, houseOf(u.house_id).name, u.role, u.days, u.opens, u.minutes, u.last_at, u.first_at, u.mobile?1:0, u.pwa?1:0]));
+  const csv="\ufeff"+rows.map(r=>r.map(v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="engagement.csv"; a.click();
+}
+$("egReload").onclick=loadEngagement; $("egDays").onchange=loadEngagement; $("egCsv").onclick=egCsv;
+$("egHouse").onchange=renderEgRows; $("egFind").oninput=renderEgRows;
+HOUSES.forEach(h=>{ const o=document.createElement("option"); o.value=h.id; o.textContent=h.emoji+" "+h.name; $("egHouse").appendChild(o); });
 
 /* ---- retention ---- */
 async function loadRetention(){

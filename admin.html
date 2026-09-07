@@ -90,6 +90,20 @@
   .top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
   .top a{color:var(--cyan); font-size:13px}
   .scroll{overflow-x:auto}
+  /* ---- engagement ---- */
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px}
+  .kpi{border:2px solid var(--line); padding:10px 12px; background:rgba(0,0,0,.25)}
+  .kpi b{display:block; font-family:var(--f-px); font-size:26px; color:var(--gold); line-height:1.1}
+  .kpi span{display:block; font-size:12px; color:#cdc7ff; margin-top:4px} .kpi small{display:block; font-size:11px; color:var(--dim); margin-top:2px}
+  .egGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:6px}
+  #engPanel h3{font-family:var(--f-px); font-size:13px; color:#cdc7ff; margin:8px 0 6px} #engPanel h3 small{font-family:inherit; font-size:11px; color:var(--dim); font-weight:400; margin-left:6px}
+  .egChart{display:flex; align-items:flex-end; gap:3px; height:120px; padding:6px 4px 18px; border:2px solid var(--line); background:#0b0316; position:relative}
+  .egChart .bar{flex:1; min-width:6px; position:relative; display:flex; flex-direction:column; justify-content:flex-end; height:100%}
+  .egChart .bar i{display:block; background:linear-gradient(180deg,#8dff9d,#20c060)} .egChart .bar i.o{background:rgba(78,225,255,.35); border:1px solid rgba(78,225,255,.6); border-bottom:0}
+  .egChart .bar em{position:absolute; bottom:-16px; left:0; right:0; text-align:center; font-style:normal; font-size:9px; color:var(--dim); white-space:nowrap; overflow:hidden}
+  .egChart .bar:hover::after{content:attr(data-t); position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:#000; color:#fff; font-size:11px; padding:3px 6px; white-space:nowrap; z-index:5; border:1px solid var(--line)}
+  .egBarRow{display:grid; grid-template-columns:110px 1fr 60px; gap:8px; align-items:center; padding:2px 0}
+  .egBarRow div{height:10px; background:#0b0316; border:1px solid var(--line)} .egBarRow div i{display:block; height:100%; background:linear-gradient(90deg,#4ee1ff,#8dff9d)}
   @media(max-width:700px){ .row{grid-template-columns:1fr} .hideSm{display:none} }
 </style>
 </head>
@@ -209,6 +223,35 @@
           <thead><tr><th>คาบ</th><th>เวลา</th><th>เช็คอิน</th><th></th></tr></thead>
           <tbody id="lsRows"><tr><td colspan="4" style="color:var(--dim);padding:16px">ยังไม่มีคาบเรียน</td></tr></tbody>
         </table></div>
+      </div>
+    </section>
+
+    <section class="panel bevel" id="engPanel">
+      <div class="titlebar"><h2>📊 Engagement · ใครเข้าแอปบ้าง</h2><span>นับจากการเปิดแอปจริง (ไม่ใช่การส่งงาน) · pulse ทุก 5 นาทีตอนเปิดหน้าค้าง = เวลาใช้งาน</span></div>
+      <div class="body">
+        <div class="filters">
+          <select id="egDays" style="width:auto"><option value="7">7 วันล่าสุด</option><option value="14">14 วัน</option><option value="30" selected>30 วัน</option><option value="90">ทั้งรุ่น (90 วัน)</option></select>
+          <button class="btn" id="egReload">↻ โหลดใหม่</button>
+          <button class="btn" id="egCsv">⬇ CSV รายคน</button>
+          <span id="egSum" style="color:var(--dim);font-size:13px"></span>
+        </div>
+        <div class="kpis" id="egKpis"></div>
+        <div class="egGrid">
+          <div><h3>เข้าแอปรายวัน <small>คนล็อกอิน (ทึบ) · คนดูข้างนอก (โปร่ง)</small></h3><div class="egChart" id="egDaily"></div></div>
+          <div><h3>ช่วงเวลาที่เปิดแอป <small>ตามชั่วโมง เวลาไทย</small></h3><div class="egChart" id="egHours"></div></div>
+        </div>
+        <div class="egGrid">
+          <div><h3>หน้าที่เปิด</h3><div id="egPages" style="font-size:13px"></div></div>
+          <div><h3>อุปกรณ์</h3><div id="egDevice" style="font-size:13px"></div></div>
+        </div>
+        <h3 style="margin-top:14px">ใครเข้าบ่อย <small>เรียงตามจำนวนวันที่เข้า</small></h3>
+        <div class="filters"><select id="egHouse" style="width:auto"><option value="">🌏 ทั้งรุ่น</option></select><input id="egFind" placeholder="ค้นหาชื่อ" style="width:180px"></div>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>ชื่อ</th><th>บ้าน</th><th>วันที่เข้า</th><th>ครั้ง</th><th>เวลาใช้ (นาที)</th><th>ล่าสุด</th><th>ครั้งแรก</th><th>อุปกรณ์</th></tr></thead>
+          <tbody id="egRows"></tbody>
+        </table></div>
+        <h3 style="margin-top:14px">หายไป 7 วัน+ <small>สมัครแล้วแต่ไม่ได้เปิดแอปเลยใน 7 วัน</small> <span id="egAbsN" class="tag"></span></h3>
+        <div id="egAbsent" style="font-size:13px;line-height:1.9"></div>
       </div>
     </section>
 
