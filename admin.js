@@ -306,7 +306,7 @@ renderSkins();
 async function loadBosses(){
   $("bsHouse").innerHTML = '<option value="">🌏 ทั้งรุ่นช่วยกัน</option>' + HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
   try{ const {data:cs} = await sb.rpc("cohort_status"); const row = Array.isArray(cs) ? cs[0] : cs;
-    if(row && row.week_no && $("dcAwardsWeek")) $("dcAwardsWeek").value = String(Math.max(1, Number(row.week_no)-1));
+    if(row && row.week_no && $("dcAwardsWeek")) $("dcAwardsWeek").value = String(Number(row.week_no));
     if(row && row.day_index){ curWeekNo = Math.max(1, Math.ceil(Number(row.day_index)/7)); if(!$("bsWeek").dataset.touched) $("bsWeek").value = curWeekNo; } }catch(e){}
   const {data, error} = await sb.from("v_boss_progress").select("*").order("week_no").order("house_id");
   if(error){ toast("อ่านบอสไม่ได้: "+error.message); return; }
