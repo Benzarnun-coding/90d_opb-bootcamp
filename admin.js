@@ -646,7 +646,7 @@ $("rows").onclick = async e => {
 };
 
 /* ================= งานที่ส่ง — แก้แพลตฟอร์มให้นักเรียน ================= */
-const PLATS = C.PLATFORMS || ["TikTok","YouTube","Instagram","Facebook","X","Blog"];
+const PLATS = C.PLATFORMS || ["TikTok","YouTube","Instagram","Threads","Facebook","X","Blog"];
 async function findSubs(){
   const qq = $("sbQ").value.trim().toLowerCase();
   if(!qq) return toast("พิมพ์ชื่อหรืออีเมลก่อน");

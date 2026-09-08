@@ -84,7 +84,7 @@ window.CFG = {
   MAX_PER_DAY: 4,
 
   /* ---- 7. แพลตฟอร์มที่ให้ส่งได้ ------------------------------ */
-  PLATFORMS: ["TikTok","YouTube","Instagram","Facebook","X","Blog"],
+  PLATFORMS: ["TikTok","YouTube","Instagram","Threads","Facebook","X","Blog"],
 
   /* ---- 8. โหมดแสดงผลเริ่มต้น --------------------------------
      "near" = เห็นเฉพาะคนที่อันดับใกล้ตัว (แนะนำ — คนท้ายแถวไม่ถูกประจาน)

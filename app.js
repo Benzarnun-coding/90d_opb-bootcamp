@@ -2199,7 +2199,7 @@ $("navSubmit").onclick=goSubmit;
 /* ---- เดาแพลตฟอร์มจากลิงก์ ---- */
 function detectPlat(url){
   const u=url.toLowerCase();
-  const map=[[/tiktok\.com|vt\.tiktok/,"TikTok"],[/youtube\.com|youtu\.be/,"YouTube"],[/instagram\.com|instagr\.am/,"Instagram"],
+  const map=[[/tiktok\.com|vt\.tiktok/,"TikTok"],[/youtube\.com|youtu\.be/,"YouTube"],[/threads\.(net|com)/,"Threads"],[/instagram\.com|instagr\.am/,"Instagram"],
              [/facebook\.com|fb\.watch|fb\.com|fb\.me/,"Facebook"],[/(^|\/\/)(www\.)?(x\.com|twitter\.com)|t\.co\//,"X"]];
   const hit=map.find(([re])=>re.test(u)); return hit ? hit[1] : null;
 }

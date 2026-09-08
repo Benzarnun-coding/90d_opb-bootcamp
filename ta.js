@@ -14,7 +14,7 @@ const HOUSES = [
 ];
 const houseOf = id => HOUSES.find(h=>h.id===id) || HOUSES[0];
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const PLATS = C.PLATFORMS || ["TikTok","YouTube","Instagram","Facebook","X","Blog"];
+const PLATS = C.PLATFORMS || ["TikTok","YouTube","Instagram","Threads","Facebook","X","Blog"];
 
 let toastT;
 function toast(msg){ const t=$("toast"); t.innerHTML=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),3400); }
