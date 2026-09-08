@@ -674,7 +674,7 @@ const LiveDB = (()=>{
     async fetchAll(){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
       const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows},
-             {data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},
+             {data:taKingRows},{data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},
              {data:reachRows},{data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows}]=await Promise.all([
         sb.from("cohort").select("*").eq("id",1).single(),
         sb.from("v_leaderboard").select("*"),
@@ -684,6 +684,7 @@ const LiveDB = (()=>{
         sb.from("v_house_cup").select("*"),
         sb.from("v_weak").select("profile_id"),
         sb.from("v_week_kings").select("*"),
+        sb.from("v_week_ta_kings").select("*"),
         sb.from("cheers").select("from_id,to_id,emoji,day_index"),
         sb.from("v_cheers_week").select("*"),
         sb.from("v_duels").select("*"),
@@ -762,7 +763,7 @@ const LiveDB = (()=>{
         todayCount, todaySubs,
         started, daysUntil, startDate: co.start_date,
         cups: cups||[],
-        kings: kingRows||[],
+        kings: (kingRows||[]).concat(taKingRows||[]),          // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[], bosses: bossRows||[], bossKills: killRows||[],
         reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[], sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id),
         runners,
@@ -2826,6 +2827,10 @@ async function refresh(){
       .sort((a,b)=>stats(b).weekDone-stats(a).weekDone || stats(b).contents-stats(a).contents)[0];
     if(best) S.kingsNow.add(best.id);
   });
+  /* King of TA (สด): TA ที่ทำชิ้นสัปดาห์นี้มากสุดทั้งรุ่น — TA ไม่ไปแย่งมงกุฎของนักเรียน */
+  const bestTa = S.runners.filter(r=>roleOf(r)==="ta" && stats(r).weekDone>0)
+    .sort((a,b)=>stats(b).weekDone-stats(a).weekDone || stats(b).contents-stats(a).contents)[0];
+  if(bestTa) S.kingsNow.add(bestTa.id);
   if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
   S.lastPass=trackOvertakes();
   renderAll();
