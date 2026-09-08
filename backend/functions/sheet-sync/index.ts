@@ -3,6 +3,7 @@
 //
 // ดึงฟอร์มสมัคร (ชีทหลัก) + ฟอร์ม TA จาก Google Sheets เป็น CSV แล้วซิงก์เข้า roster
 //   กติกา: เพิ่มคนที่ยังไม่มี · ย้ายบ้านตามชีท (แถวล่าสุดของอีเมลนั้นชนะ) · ไม่ลบใคร
+//           ข้ามคนที่ house_locked = true (หัวหน้าโค้ชย้ายเอง) และ TA
 //           อีเมลในฟอร์ม TA → role = ta (โปรไฟล์ที่สมัครแล้วเป็น coach ประจำบ้าน)
 //   เรียกจาก pg_cron ทุกชั่วโมง ด้วย header x-cron-key (ใช้ PUSH_CRON_KEY เดิม)
 //   body {"dry": true} = แค่รายงาน ไม่เขียน
@@ -75,7 +76,7 @@ Deno.serve(async (req) => {
   const taRows   = await fetchCsv(TA_CSV);
   if (!mainRows && !taRows) return Response.json({ error: "no sheet readable — share the sheets (anyone with link, viewer) or publish as CSV", main: !!MAIN_CSV, ta: !!TA_CSV }, { status: 424 });
 
-  const { data: roster, error } = await db.from("roster").select("email,house_id,role,claimed_by");
+  const { data: roster, error } = await db.from("roster").select("email,house_id,role,claimed_by,house_locked");
   if (error) return Response.json({ error: error.message }, { status: 500 });
   const cur = new Map((roster ?? []).map(r => [String(r.email).toLowerCase(), r]));
 
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
       if (!r) {
         added.push(`${em},${hid}`);
         if (!dry) { const { error: e } = await db.from("roster").insert({ email: em, house_id: hid }); if (e) console.error("insert", em, e.message); }
-      } else if (r.house_id !== hid && r.role !== "ta") {
+      } else if (r.house_id !== hid && r.role !== "ta" && !r.house_locked) {   // ล็อกไว้ = ย้ายด้วยมือ ห้ามเขียนทับ
         moved.push(`${em},${r.house_id}->${hid}`);
         if (!dry) {
           await db.from("roster").update({ house_id: hid }).eq("email", em);
