@@ -1406,16 +1406,16 @@ function drawSpriteCanvas(ctx, x, y, px, av, style){
 /* อันดับของใครก็ได้ ทั้งในบ้านและทั้งรุ่น — กลุ่มเดียวกับสกอร์บอร์ด (หัวหน้าโค้ชอยู่ในทุกบ้านเหมือนในเกม) */
 function rankPair(r){
   const all = ranked();
-  const hid = r.house || houseOf(r.house).id;
-  const inHouse = x => x.house===hid || roleOf(x)==="head";
-  const hl = all.filter(inHouse);
+  if(!r.house) return { all: all.findIndex(x=>x.id===r.id)+1, allN: all.length, house: 0, houseN: 0 };
+  const hl = all.filter(x => x.house===r.house);
   return { all: all.findIndex(x=>x.id===r.id)+1, allN: all.length,
            house: hl.findIndex(x=>x.id===r.id)+1, houseN: hl.length };
 }
 function drawCard(){
   const cv=$("shareCanvas"), ctx=cv.getContext("2d");
   const r=meR(); if(!r) return;
-  const s=stats(r), h=houseOf(r.house);
+  const s=stats(r), h=houseOf(r.house), noHouse=!r.house;      // หัวหน้าโค้ชไม่สังกัดบ้าน
+  const accent = noHouse ? "#ffcc4d" : h.color;
   const W=cv.width, H=cv.height;
   ctx.imageSmoothingEnabled=false;
 
@@ -1425,7 +1425,7 @@ function drawCard(){
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
   const glow=ctx.createRadialGradient(W/2,H*.42,40,W/2,H*.42,W*.62);
-  glow.addColorStop(0,h.color+"55"); glow.addColorStop(1,"transparent");
+  glow.addColorStop(0,accent+"55"); glow.addColorStop(1,"transparent");
   ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
 
   ctx.globalAlpha=.14; ctx.fillStyle="#000";
@@ -1454,8 +1454,9 @@ function drawCard(){
   ctx.fillText(marks+r.name, W/2, 735);
   ctx.shadowOffsetY=0;
   ctx.font="500 30px 'IBM Plex Sans Thai', sans-serif";
-  ctx.fillStyle=h.color;
-  ctx.fillText(`${h.emoji} ${h.name}${isStu?"":roleOf(r)==="head"?" · COACH":" · TA"} · Lv${lv} ${lvTitle}`, W/2, 782);
+  ctx.fillStyle=accent;
+  ctx.fillText(noHouse ? `🎓 หัวหน้าโค้ช · Lv${lv} ${lvTitle}`
+                       : `${h.emoji} ${h.name}${isStu?"":" · TA"} · Lv${lv} ${lvTitle}`, W/2, 782);
 
   ctx.font="700 170px 'PxSeven','Pixelify Sans', monospace";
   ctx.fillStyle=s.style==="flame"?"#ffc24d":s.style==="red"?"#ff6b85":"#ffcc4d";
@@ -1470,15 +1471,15 @@ function drawCard(){
     [["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
      ["STREAK วัน", `${s.dayStreak||0}🔥`],
      ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]],
-    [["อันดับในบ้าน", `#${rk.house}/${rk.houseN}`],
-     ["อันดับรุ่น", `#${rk.all}/${rk.allN}`],
+    [["อันดับในบ้าน", noHouse ? "—" : `#${rk.house}`],
+     ["อันดับรุ่น", `#${rk.all}`],          // ไม่บอกจำนวนคนทั้งหมด — การ์ดเอาไปโพสต์ข้างนอก
      ["เชียร์ที่ได้รับ", String((S.cheers||[]).filter(c=>c.to_id===r.id).length)]]
   ];
   const bw=300, gap=20, x0=(W-(bw*3+gap*2))/2;
   rows.forEach((boxes,ri)=> boxes.forEach(([l,v],i)=>{
     const x=x0+i*(bw+gap), y=1010+ri*112, bh=100;
     ctx.fillStyle="rgba(13,10,34,.72)"; ctx.fillRect(x,y,bw,bh);
-    ctx.strokeStyle=h.color+"88"; ctx.lineWidth=3; ctx.strokeRect(x,y,bw,bh);
+    ctx.strokeStyle=accent+"88"; ctx.lineWidth=3; ctx.strokeRect(x,y,bw,bh);
     let fs=46; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`;
     while(ctx.measureText(String(v)).width > bw-24 && fs>22){ fs-=4; ctx.font=`700 ${fs}px 'PxSeven','Pixelify Sans', monospace`; }
     ctx.fillStyle="#fff"; ctx.fillText(String(v), x+bw/2, y+56);
@@ -1638,8 +1639,10 @@ function shareTextOf(){
   const rk=rankPair(r);
   const bl=S.myDet?earnedBadges(r,S.myDet):[];
   return `ปล่อยไปแล้ว ${s.contents} คอนเทนต์${fin} ใน ${C.TITLE} 🏁\n`
-   + `${h.emoji} บ้าน ${h.name} · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`
-   + `อันดับ ${rk.house} ของบ้าน · ${rk.all} ของรุ่น · Lv${levelOf(xpOf(r))} ${titleOf(levelOf(xpOf(r)))}\n`
+   + (r.house ? `${h.emoji} บ้าน ${h.name} · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`
+              : `🎓 หัวหน้าโค้ช · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`)
+   + (r.house ? `อันดับ ${rk.house} ของบ้าน · ${rk.all} ของรุ่น` : `อันดับ ${rk.all} ของรุ่น`)
+   + ` · Lv${levelOf(xpOf(r))} ${titleOf(levelOf(xpOf(r)))}\n`
    + (bl.length?`ป้าย: ${bl.slice(0,5).map(b=>b.e+" "+b.n).join(", ")}\n`:"")
    + (o?`สัปดาห์นี้รับเป้า ${o.name} ${o.target} ชิ้น — ทำไปแล้ว ${s.weekDone}\n`:"")
    + rivalText(r)
