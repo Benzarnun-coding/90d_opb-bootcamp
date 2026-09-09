@@ -1,6 +1,9 @@
 /* Service worker — รับ Web Push + ให้ติดตั้งเป็นแอปได้
-   แคชแบบ network-first: ออนไลน์ได้ของใหม่เสมอ ออฟไลน์ค่อยใช้ของที่เคยโหลด */
-const CACHE = "opb-v1";
+   แคชแบบ network-first แต่มีเพดานเวลา: ออนไลน์ได้ของใหม่เสมอ
+   ถ้าเน็ตอืดเกิน 4 วินาที (เน็ตมือถือสัญญาณอ่อน) ให้หยิบของเก่าจากแคชมาใช้ก่อน
+   ของเดิมไม่มีเพดานเวลา จึงค้างรอเน็ตไปเรื่อย ๆ ทั้งที่มีของในแคชพร้อมใช้อยู่แล้ว */
+const CACHE = "opb-v2";
+const NET_TIMEOUT = 4000;
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil((async () => {
   const keys = await caches.keys(); await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
@@ -10,15 +13,30 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith((async () => {
-    try {
-      const res = await fetch(req);
-      if (res.ok) { const c = await caches.open(CACHE); c.put(req, res.clone()); }
+    /* ยิงเน็ตไปตามปกติ และเก็บลงแคชทุกครั้งที่สำเร็จ ไม่ว่าจะทันเพดานเวลาหรือไม่ */
+    const net = fetch(req).then(res => {
+      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone())).catch(() => {});
       return res;
+    });
+    net.catch(() => {});                       // กัน unhandled rejection ตอนเราไม่ได้รอมัน
+
+    const cached = await caches.match(req);
+    if (!cached) {                             // ไม่มีของเก่าให้ใช้ ก็ต้องรอเน็ตอย่างเดียว
+      try { return await net; }
+      catch (err) {
+        if (req.mode === "navigate") { const idx = await caches.match("/"); if (idx) return idx; }
+        throw err;
+      }
+    }
+
+    /* มีของเก่าอยู่: รอเน็ตแค่ 4 วินาที เกินกว่านั้นเสิร์ฟของเก่าไปก่อน
+       แคชจะถูกอัปเดตอยู่ดีเมื่อ net วิ่งจบ รอบหน้าจึงได้ของใหม่ */
+    const timeout = new Promise(r => setTimeout(() => r(null), NET_TIMEOUT));
+    try {
+      const res = await Promise.race([net, timeout]);
+      return res || cached;
     } catch (_) {
-      const hit = await caches.match(req);
-      if (hit) return hit;
-      if (req.mode === "navigate") { const idx = await caches.match("/"); if (idx) return idx; }
-      throw _;
+      return cached;
     }
   })());
 });

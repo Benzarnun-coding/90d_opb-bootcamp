@@ -608,7 +608,49 @@ const DemoDB = (()=>{
 
 const LiveDB = (()=>{
   let sb=null, session=null, cohort=null, onChange=()=>{}, timer=null;
-  const bump=()=>{ clearTimeout(timer); timer=setTimeout(()=>onChange(), 400); };
+  /* ตอนไลฟ์มีคนส่งงานรัว ๆ ทุกครั้งที่ตารางขยับจะสั่งโหลดใหม่ทั้งชุด
+     หน่วง 400ms เดิมสั้นเกินไป รอบโหลดเลยซ้อนกันจนหน้าเว็บหนืด — ขยับเป็น 2 วินาที */
+  const bump=()=>{ clearTimeout(timer); timer=setTimeout(()=>onChange(), 2000); };
+
+  /* ---- เกราะกันฐานข้อมูลเย็น -------------------------------------------
+     วัดจริง 2026-09-09: ยิงครั้งแรกตอนแคชเย็น v_feed ใช้ 22.7 วินาที
+     ส่วน v_leaderboard คืน error 500 เพราะชน statement timeout
+     แต่พอแคชอุ่นแล้ว view เดียวกันเหลือ 88–334 ms ทุกตัว
+     แปลว่า "ครั้งที่ล้มเหลว" คือตัวที่อุ่นแคชให้เอง ลองใหม่อีกทีจึงมักผ่านและเร็ว
+     must = ขาดไม่ได้ ลองซ้ำจนได้ · soft = ขาดได้ ล้มแล้วคืนค่าว่างไปก่อน       */
+  const withTimeout = (p, ms, label) => Promise.race([
+    Promise.resolve(p),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+" ช้าเกิน "+Math.round(ms/1000)+" วิ")), ms))
+  ]);
+  async function must(fn, label, tries=3){
+    let last;
+    for(let i=0;i<tries;i++){
+      try{
+        const r = await withTimeout(fn(), i===0 ? 25000 : 35000, label);
+        if(r && r.error) throw new Error(r.error.message);
+        return r;
+      }catch(e){
+        last=e;
+        console.warn("โหลด "+label+" รอบ "+(i+1)+" ไม่ผ่าน:", e.message||e);
+        if(i<tries-1) await new Promise(r=>setTimeout(r, 500*(i+1)));
+      }
+    }
+    throw new Error(label+" โหลดไม่ได้ — "+((last&&last.message)||last));
+  }
+  const soft = (fn, label) => must(fn, label, 2).catch(()=>({data:[]}));
+
+  /* ทยอยยิงทีละไม่กี่ตัว ห้ามยิงรวดเดียวทั้งหมด
+     วัดจริง 2026-09-09: ยิง 19 query พร้อมกันแล้ว "ทุกตัว" หมดเวลาที่ 12 วินาที
+     รวมทั้ง query ตารางเปล่า ๆ อย่าง cheers ที่ปกติใช้ 99 ms
+     เพราะ Supabase ฟรีมี connection pool จำกัด ยิงพรวดเดียวคือทุกตัวเข้าคิวรอกันเอง
+     ทยอยยิงทีละ 3 จบเร็วกว่ายิงพร้อมกันหมดมาก */
+  async function pool(tasks, n){
+    const out=new Array(tasks.length); let i=0;
+    await Promise.all(Array.from({length:Math.min(n,tasks.length)}, async ()=>{
+      while(i<tasks.length){ const k=i++; out[k]=await tasks[k](); }
+    }));
+    return out;
+  }
   const todayFrom = sd => {
     const shifted=new Date(Date.now()-C.CUTOFF_HOUR*3600e3);
     return Math.max(1, Math.floor((shifted-new Date(sd+"T00:00:00"))/864e5)+1);
@@ -677,33 +719,22 @@ const LiveDB = (()=>{
       const {error}=await sb.from("profiles").update({avatar:av, color}).eq("id",session.user.id);
       if(error) throw new Error(error.message);
     },
-    async fetchAll(){
+    /* onExtras = ฟังก์ชันที่จะถูกเรียกทีหลังเมื่อของประดับสนามโหลดเสร็จ
+       เดิมยิง 20 query พร้อมกันแล้วรอ "ครบทุกตัว" ก่อนจะโชว์อะไรสักอย่าง
+       เวลารอของทุกคนจึงเท่ากับตัวที่ช้าที่สุด และถ้ามีตัวใดพังก็จอว่างทั้งหน้า
+       ตอนนี้แยกเป็นสองชุด: ชุดหลักมาถึงก็เปิดสนามเล่นได้เลย ที่เหลือค่อยตามมาเติม */
+    async fetchAll(onExtras){
       const uidNow = session ? session.user.id : null;      // null = โหมดคนดู
-      const [{data:co},{data:board,error:be},{data:feed},{data:pls},{data:burn},{data:cups},{data:weakRows},{data:kingRows},
-             {data:taKingRows},{data:cheerRows},{data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},
-             {data:reachRows},{data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows}]=await Promise.all([
-        sb.from("cohort").select("*").eq("id",1).single(),
-        sb.from("v_leaderboard").select("*"),
-        sb.from("v_feed").select("*").limit(50),
-        uidNow ? sb.from("pledges").select("week_no,target").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
-        sb.from("v_burnout").select("profile_id"),
-        sb.from("v_house_cup").select("*"),
-        sb.from("v_weak").select("profile_id"),
-        sb.from("v_week_kings").select("*"),
-        sb.from("v_week_ta_kings").select("*"),
-        sb.from("cheers").select("from_id,to_id,emoji,day_index"),
-        sb.from("v_cheers_week").select("*"),
-        sb.from("v_duels").select("*"),
-        sb.from("v_boss_progress").select("*"),
-        sb.from("v_boss_kills").select("boss_id,week_no,name,profile_id"),
-        sb.from("v_reach").select("profile_id,total_views,total_likes,best_views,pieces"),
-        sb.from("v_kudos").select("profile_id,n"),
-        sb.from("live_sessions").select("id,title,starts_at,ends_at").gte("ends_at", new Date(Date.now()-2*3600e3).toISOString()).order("starts_at"),
-        uidNow ? sb.from("checkins").select("session_id").eq("profile_id",uidNow) : Promise.resolve({data:[]}),
-        sb.from("v_holiday_grinders").select("profile_id,n")
-      ]);
-      if(be) throw new Error("อ่าน v_leaderboard ไม่ได้ — รัน migration 002-005 ครบหรือยัง? ("+be.message+")");
+
+      /* ---- ชุดที่ 1: ขาดไม่ได้ ต้องได้ครบถึงจะเปิดสนาม แค่ 4 ตัว ---- */
+      const [{data:co},{data:board},{data:feed},{data:pls}]=await pool([
+        ()=>must(()=>sb.from("cohort").select("*").eq("id",1).single(), "cohort"),
+        ()=>must(()=>sb.from("v_leaderboard").select("*"), "กระดานคะแนน"),
+        ()=>soft(()=>sb.from("v_feed").select("*").limit(50), "v_feed"),
+        ()=>uidNow ? soft(()=>sb.from("pledges").select("week_no,target").eq("profile_id",uidNow), "pledges") : Promise.resolve({data:[]})
+      ], 4);
       cohort=co;
+
       const runners=(board||[]).map(b=>({
         id:b.id, name:b.name, handle:b.handle, color:b.color, avatar:b.avatar||{},
         house:b.house_id||0, role:b.role,          // 0 = หัวหน้าโค้ช ไม่ประจำบ้าน
@@ -725,12 +756,7 @@ const LiveDB = (()=>{
           style:      b.pledge_style||"normal"
         }
       }));
-      const burntIds = new Set((burn||[]).map(b=>b.profile_id));
-      const weakIds  = new Set((weakRows||[]).map(b=>b.profile_id));
-      runners.forEach(r=>{
-        if(burntIds.has(r.id)){ r.burnout = true; r.st.burnout = true; r.st.style = "burnout"; }
-        else if(weakIds.has(r.id)){ r.weak = true; r.st.weak = true; r.st.style = "weak"; }
-      });
+      /* ป้าย burnout/weak ย้ายไปติดตอนของประดับมาถึง (markStyles) เพราะมาจาก v_burnout/v_weak */
       const me=runners.find(r=>r.id===uidNow);
       if(me) (pls||[]).forEach(x=>{ me.pledges[x.week_no]=x.target; });
       /* สถานะรุ่นต้องเอาจากเซิร์ฟเวอร์ เพราะมันคิดตามเวลาไทยและตัดรอบตี 4
@@ -738,7 +764,9 @@ const LiveDB = (()=>{
          และต้องรู้ด้วยว่ารุ่นเริ่มหรือยัง ไม่งั้นช่วงก่อนเปิดจะโชว์ว่าเป็นวันที่ 1 */
       let todayIdx, started = true, daysUntil = 0;
       try{
-        const {data:cs,error:e0}=await sb.rpc("cohort_status");
+        /* ต้องมีเพดานเวลา ไม่งั้นตอนฐานข้อมูลเย็น RPC ตัวนี้ค้างได้ไม่จำกัด
+           แล้วหน้าเว็บจะค้างตามทั้งที่มีทางถอยคือคำนวณวันจากเครื่องแทนอยู่แล้ว */
+        const {data:cs,error:e0}=await withTimeout(sb.rpc("cohort_status"), 15000, "cohort_status");
         if(e0) throw e0;
         const row = Array.isArray(cs) ? cs[0] : cs;
         todayIdx  = Number(row.day_index);
@@ -757,21 +785,49 @@ const LiveDB = (()=>{
       if(!todayIdx || !isFinite(todayIdx)) todayIdx=todayFrom(co.start_date);
       let todayCount=0, todaySubs=[];
       if(uidNow){
-        const q=await sb.from("submissions").select("created_at")
-          .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved");
+        const q=await soft(()=>sb.from("submissions").select("created_at")
+          .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved"), "งานที่ส่งวันนี้");
         todaySubs=(q.data||[]).map(s=>new Date(s.created_at).getTime());
         todayCount=todaySubs.length;
       }
+      /* ---- ชุดที่ 2: ของประดับสนาม เริ่มยิงหลังชุดหลักมาถึงแล้วเท่านั้น
+             และทยอยทีละ 3 ตัว เพื่อไม่ไปแย่ง connection กับชุดหลัก ---- */
+      const extrasReady = pool([
+        ()=>soft(()=>sb.from("v_burnout").select("profile_id"), "v_burnout"),
+        ()=>soft(()=>sb.from("v_weak").select("profile_id"), "v_weak"),
+        ()=>soft(()=>sb.from("v_house_cup").select("*"), "v_house_cup"),
+        ()=>soft(()=>sb.from("v_week_kings").select("*"), "v_week_kings"),
+        ()=>soft(()=>sb.from("v_week_ta_kings").select("*"), "v_week_ta_kings"),
+        ()=>soft(()=>sb.from("cheers").select("from_id,to_id,emoji,day_index"), "cheers"),
+        ()=>soft(()=>sb.from("v_cheers_week").select("*"), "v_cheers_week"),
+        ()=>soft(()=>sb.from("v_duels").select("*"), "v_duels"),
+        ()=>soft(()=>sb.from("v_boss_progress").select("*"), "v_boss_progress"),
+        ()=>soft(()=>sb.from("v_boss_kills").select("boss_id,week_no,name,profile_id"), "v_boss_kills"),
+        ()=>soft(()=>sb.from("v_reach").select("profile_id,total_views,total_likes,best_views,pieces"), "v_reach"),
+        ()=>soft(()=>sb.from("v_kudos").select("profile_id,n"), "v_kudos"),
+        ()=>soft(()=>sb.from("live_sessions").select("id,title,starts_at,ends_at").gte("ends_at", new Date(Date.now()-2*3600e3).toISOString()).order("starts_at"), "live_sessions"),
+        ()=>uidNow ? soft(()=>sb.from("checkins").select("session_id").eq("profile_id",uidNow), "checkins") : Promise.resolve({data:[]}),
+        ()=>soft(()=>sb.from("v_holiday_grinders").select("profile_id,n"), "v_holiday_grinders")
+      ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
+                   {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows}])=>({
+        burnIds: (burn||[]).map(b=>b.profile_id),
+        weakIds: (weakRows||[]).map(b=>b.profile_id),
+        cups: cups||[],
+        kings: (kingRows||[]).concat(taKingRows||[]),      // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
+        cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[],
+        bosses: bossRows||[], bossKills: killRows||[],
+        reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[],
+        sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id)
+      }));
+      if(typeof onExtras === "function") extrasReady.then(onExtras).catch(e=>console.warn("ของประดับสนามโหลดไม่ครบ", e));
       return {
         today: todayIdx,
         me: me ? me.name : null,
         postedToday: (todayCount||0) > 0,
         todayCount, todaySubs,
         started, daysUntil, startDate: co.start_date,
-        cups: cups||[],
-        kings: (kingRows||[]).concat(taKingRows||[]),          // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
-        cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[], bosses: bossRows||[], bossKills: killRows||[],
-        reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[], sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id),
+        extrasReady,                 // ของประดับสนามตามมาทีหลัง คนเรียกจะ await เองหรือไม่ก็ได้
         runners,
         subs:(feed||[]).map(f=>({
           id:f.id, who:f.name, day:f.day_index, sp:f.sprint_idx,
@@ -914,7 +970,11 @@ const LiveDB = (()=>{
 const DB = LIVE ? LiveDB : DemoDB;
 
 /* ================= STATE ================= */
-let S = {today:1, me:null, runners:[], subs:[], raceFilter:"near", boardFilter:"all", spectator:false};
+/* ส่วนประดับสนามต้องมีค่าตั้งต้นเป็นค่าว่าง เพราะตอนนี้หน้าจอวาดรอบแรกได้
+   ตั้งแต่ชุดข้อมูลหลักมาถึง โดยยังไม่รอถ้วยบ้าน/คิง/บอส/ยอดวิว ที่ตามมาทีหลัง */
+let S = {today:1, me:null, runners:[], subs:[], raceFilter:"near", boardFilter:"all", spectator:false,
+         cups:[], kings:[], kingsNow:new Set(), cheers:[], cheerWeeks:[], duels:[], bosses:[], bossKills:[],
+         reach:{}, kudos:{}, holiday:{}, sessions:[], myCheckins:new Set()};
 let BOOTSTATE = null;
 
 /* ================= UI HELPERS ================= */
@@ -923,8 +983,34 @@ function toast(msg){
   const t=$("toast"); t.innerHTML=msg; t.classList.add("on");
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),3200);
 }
+/* ---- ข้อความบนหน้าโหลด ----------------------------------------------
+   ฐานข้อมูลที่ยังไม่ถูกแตะมาสักพักจะตอบช้ามากในครั้งแรก (วัดได้ถึง 22 วินาที)
+   ถ้าปล่อยให้จอค้างเงียบ ๆ คนจะคิดว่าเว็บพัง แล้วรีเฟรชซ้ำจนยิ่งช้าเข้าไปอีก
+   จึงบอกไปตรง ๆ ว่ากำลังปลุกเซิร์ฟเวอร์ และถ้าพลาดจริงก็ให้ปุ่มลองใหม่ ไม่ต้องรีโหลดเอง */
+let _ldTimer=null;
+function loaderStart(){
+  const ld=$("loader"), box=ld&&ld.querySelector(".ldBox"); if(!ld||!box) return;
+  ld.hidden=false;
+  const t0=Date.now();
+  box.innerHTML='<div class="ldDots"><i></i><i></i><i></i></div><span id="ldMsg">กำลังโหลดสนาม…</span>';
+  clearInterval(_ldTimer);
+  _ldTimer=setInterval(()=>{
+    const s=Math.round((Date.now()-t0)/1000), m=$("ldMsg"); if(!m) return;
+    if(s>=8)  m.textContent="กำลังปลุกเซิร์ฟเวอร์… ("+s+" วิ)";
+    if(s>=20) m.textContent="เซิร์ฟเวอร์เพิ่งตื่น รอบแรกช้าหน่อย… ("+s+" วิ)";
+  }, 1000);
+}
+function loaderFail(msg, retry){
+  const ld=$("loader"), box=ld&&ld.querySelector(".ldBox"); if(!ld||!box) return;
+  clearInterval(_ldTimer); ld.hidden=false;
+  box.innerHTML='<div style="margin-bottom:10px">โหลดสนามไม่สำเร็จ<br><small style="opacity:.7">'+
+                String(msg||"").replace(/[<>]/g,"")+'</small></div>'+
+                '<button class="btn" id="ldRetry">ลองใหม่อีกครั้ง</button>';
+  const b=$("ldRetry"); if(b) b.onclick=()=>{ loaderStart(); retry(); };
+}
 function show(id){
   const ld=$("loader"); if(ld) ld.hidden=true;
+  clearInterval(_ldTimer);
   if(id==="scArena") setTimeout(renderTodayBar, 0);
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id));
   $("sky").style.opacity = id==="scArena" ? ".28" : "1";
@@ -2841,19 +2927,18 @@ async function renderPushBtn(){
 
 
 /* ================= BOOT ================= */
-async function refresh(){
-  const d=await DB.fetchAll();
-  S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
-  S.todayCount=d.todayCount||0; S.todaySubs=d.todaySubs||[];
-  S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
-  S.cups = d.cups||[];
-  S.kings = d.kings||[];                       // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
-  S.cheers=d.cheers||[]; S.cheerWeeks=d.cheerWeeks||[]; S.duels=d.duels||[]; S.bosses=d.bosses||[]; S.bossKills=d.bossKills||[];
-  S.reach={}; (d.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
-  S.kudos={}; (d.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
-  S.holiday={}; (d.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });
-  S.sessions=d.sessions||[]; S.myCheckins=new Set(d.myCheckins||[]);
-  /* King ของสัปดาห์นี้ (สด): นักเรียนที่ทำชิ้นสัปดาห์นี้มากสุดของแต่ละบ้าน (ต้องรับเป้าไว้และมีอย่างน้อย 1 ชิ้น) */
+/* ป้าย burnout / weak — มาจาก v_burnout กับ v_weak ซึ่งอยู่ในชุดที่โหลดตามมาทีหลัง */
+function markStyles(burnIds, weakIds){
+  const burnt=new Set(burnIds||[]), weak=new Set(weakIds||[]);
+  S.runners.forEach(r=>{
+    delete r.burnout; delete r.weak; delete r.st.burnout; delete r.st.weak;
+    if(r.st.style==="burnout"||r.st.style==="weak") r.st.style="normal";
+    if(burnt.has(r.id)){ r.burnout=true; r.st.burnout=true; r.st.style="burnout"; }
+    else if(weak.has(r.id)){ r.weak=true; r.st.weak=true; r.st.style="weak"; }
+  });
+}
+/* King ของสัปดาห์นี้ (สด): นักเรียนที่ทำชิ้นสัปดาห์นี้มากสุดของแต่ละบ้าน (ต้องมีอย่างน้อย 1 ชิ้น) */
+function computeKingsNow(){
   S.kingsNow = new Set();
   HOUSES.forEach(h=>{
     const best = S.runners.filter(r=>roleOf(r)==="student" && r.house===h.id && stats(r).weekDone>0)
@@ -2864,9 +2949,42 @@ async function refresh(){
   const bestTa = S.runners.filter(r=>roleOf(r)==="ta" && stats(r).weekDone>0)
     .sort((a,b)=>stats(b).weekDone-stats(a).weekDone || stats(b).contents-stats(a).contents)[0];
   if(bestTa) S.kingsNow.add(bestTa.id);
-  if(DB.mode==="demo") S.runners.forEach(r=>{ r.st=computeStats(r); });
-  S.lastPass=trackOvertakes();
+}
+/* เติมของประดับสนามที่ตามมาทีหลัง แล้ววาดใหม่อีกรอบ */
+function applyExtras(e){
+  if(!e) return;
+  /* โหมดทดลองคิด burnout/weak เองใน computeStats ไม่มีสองก้อนนี้มา จึงต้องไม่ไปล้างของเขา */
+  if(Array.isArray(e.burnIds) || Array.isArray(e.weakIds)) markStyles(e.burnIds, e.weakIds);
+  S.cups=e.cups||[];
+  S.kings=e.kings||[];                        // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
+  S.cheers=e.cheers||[]; S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
+  S.bosses=e.bosses||[]; S.bossKills=e.bossKills||[];
+  S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
+  S.kudos={};   (e.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
+  S.holiday={}; (e.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });
+  S.sessions=e.sessions||[]; S.myCheckins=new Set(e.myCheckins||[]);
+  computeKingsNow();
   renderAll();
+}
+
+/* โหลดใหม่ทั้งสนาม — กันโหลดซ้อน เพราะ realtime สั่งมารัว ๆ ตอนไลฟ์
+   ถ้ามีคำสั่งเข้ามาระหว่างกำลังโหลด จะจำไว้แล้วโหลดอีกรอบเดียวตอนจบ */
+async function refresh(){
+  if(refresh._busy){ refresh._again=true; return; }
+  refresh._busy=true;
+  try{
+    const d=await DB.fetchAll(applyExtras);        // ของประดับตามมาทีหลัง วาดซ้ำเองตอนถึง
+    S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
+    S.todayCount=d.todayCount||0; S.todaySubs=d.todaySubs||[];
+    S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
+    if(DB.mode==="demo"){ S.runners.forEach(r=>{ r.st=computeStats(r); }); applyExtras(d); }  // โหมดทดลองคำนวณในเครื่อง ได้ครบมาพร้อมกันอยู่แล้ว
+    computeKingsNow();
+    S.lastPass=trackOvertakes();
+    renderAll();
+  } finally {
+    refresh._busy=false;
+    if(refresh._again){ refresh._again=false; setTimeout(()=>refresh().catch(e=>console.warn("โหลดรอบตามไม่ผ่าน", e)), 300); }
+  }
 }
 /* โหมดคนดู — ไม่ต้องล็อกอิน เห็นสนามแบบเรียลไทม์ แต่ส่งงานไม่ได้ (ฐานข้อมูลกันอยู่แล้ว)
    เปิดลิงก์ #watch ไปฉายบนจอในห้องเรียนได้เลย */
@@ -2955,4 +3073,13 @@ setInterval(()=>{ if($("scArena").classList.contains("on")){ $("hudClock").textC
 setInterval(updateSky, 60000);
 setInterval(()=>{ if($("pgRace").classList.contains("on")) renderFeed(); },60000);
 
-boot().catch(err=>{ console.error(err); show("scTitle"); toast("เชื่อมต่อไม่ได้<br>"+err.message); });
+/* เริ่มเกม — ถ้าล้มก็ให้ปุ่มลองใหม่ตรงหน้าโหลด ไม่ต้องให้คนไปกดรีเฟรชเอง
+   เพราะเคสที่ล้มบ่อยที่สุดคือฐานข้อมูลยังไม่ตื่น ซึ่งกดครั้งที่สองมักผ่านทันที */
+function bootWithRetry(){
+  loaderStart();
+  boot().catch(err=>{
+    console.error(err);
+    loaderFail(err && err.message, bootWithRetry);
+  });
+}
+bootWithRetry();
