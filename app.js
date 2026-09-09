@@ -552,6 +552,12 @@ const DemoDB = (()=>{
       if(patch.views!=null) s.views=+patch.views||0; if(patch.likes!=null) s.likes=+patch.likes||0;
       save(); onChange();
     },
+    async fixUrl(id, url){
+      const s=db.subs.find(x=>x.id===id && x.who===db.me); if(!s) throw new Error("ไม่พบงานชิ้นนี้");
+      if(!/^https?:\/\/.+\..+/.test(url)) throw new Error("ลิงก์ต้องขึ้นต้นด้วย http:// หรือ https://");
+      if(db.subs.some(x=>x.id!==id && x.url===url)) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว ใช้ซ้ำไม่ได้");
+      s.url=url; save(); onChange();
+    },
     async checkin(){ throw new Error("โหมดทดลองไม่มีเรียนสด"); },
     async rename(name){
       if(db.runners.some(r=>r.name.toUpperCase()===name.toUpperCase() && r.name!==db.me)) throw new Error("ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น");
@@ -830,6 +836,11 @@ const LiveDB = (()=>{
       const p={}; if(patch.platform!=null) p.platform=patch.platform; if(patch.kind!==undefined) p.kind=patch.kind||null;
       if(patch.note!==undefined) p.note=patch.note||null; if(patch.views!=null) p.views=Math.max(0,+patch.views||0); if(patch.likes!=null) p.likes=Math.max(0,+patch.likes||0);
       const {error}=await sb.from("submissions").update(p).eq("id",id).eq("profile_id",session.user.id);
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
+    },
+    /* แก้ลิงก์งานตัวเอง (โพสต์ผิดแอคเคาท์ / ลบโพสต์เดิมแล้วลงใหม่) — วันที่กับยอดไม่ขยับ */
+    async fixUrl(id, url){
+      const {error}=await sb.rpc("fix_submission_url", {sid:id, new_url:url});
       if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
     },
     async checkin(sessionId){
@@ -2537,6 +2548,7 @@ function renderMyFeed(list){
       <select class="kindSel" data-kind="${f.id}" title="ประเภท">${kindOpts(f.kind)}</select>
       <span class="sp">วันที่ ${f.day}</span>
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
+      <button class="btn xs" data-editurl="${f.id}" title="แก้ลิงก์ เช่น โพสต์ผิดแอคเคาท์ แล้วลงใหม่">🔗 แก้ลิงก์</button>
       ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏅 นักเรียนดีเด่น</span>':""}
       <span class="when">${ago(f.ts)}</span>
       ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}
@@ -2547,6 +2559,18 @@ function renderMyFeed(list){
     : `<li style="color:var(--dim)">ยังไม่มีงานที่ส่ง</li>`;
 }
 $("myFeed").onclick=async e=>{
+  const eb=e.target.closest("button[data-editurl]");
+  if(eb){
+    const id = isNaN(+eb.dataset.editurl) ? eb.dataset.editurl : +eb.dataset.editurl;
+    const cur = (S.myDet && (S.myDet.recent||[]).find(x=>String(x.id)===String(id))) || {};
+    const v = prompt("วางลิงก์ใหม่ของงานชิ้นนี้\n(วันที่ส่งและยอดสัปดาห์ไม่เปลี่ยน)", cur.url || "");
+    if(v===null) return;
+    const url=v.trim(); if(!url) return;
+    eb.disabled=true;
+    try{ await DB.fixUrl(id, url); toast("แก้ลิงก์แล้ว 🔗"); await refresh(); renderStatus(); }
+    catch(err){ toast(err.message); eb.disabled=false; }
+    return;
+  }
   const b=e.target.closest("button[data-delsub]"); if(!b) return;
   if(!confirm("ลบงานชิ้นนี้? (ส่งใหม่ได้ทีหลัง)")) return;
   b.disabled=true;

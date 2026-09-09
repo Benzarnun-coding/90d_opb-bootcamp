@@ -232,8 +232,9 @@ async function loadSubs(pid){
       <td><input type="number" min="0" data-views="${s.id}" value="${s.views||""}" style="width:80px;padding:4px 6px;font-size:12px"></td>
       <td><input type="number" min="0" data-likes="${s.id}" value="${s.likes||""}" style="width:80px;padding:4px 6px;font-size:12px"></td>
       <td><button class="btn xs" data-kudo="${s.id}" data-on="${k?1:0}" style="${k?"background:linear-gradient(180deg,#ffd96b,#e0a018 60%,#a86f06);color:#3a2600;text-shadow:none":""}">${k?"👍 งานดี":"👍"}</button></td>
-      <td><button class="btn xs danger" data-del="${s.id}">ลบ</button></td></tr>`; }).join("") + `</tbody></table>
-    <div class="hint">👍 = งานดี (นักเรียนได้ป้าย QUALITY เมื่อครบ 3) · ใส่ยอดวิว/ไลก์แทนนักเรียนได้ · ลบ = งานหายจากคะแนนทันที</div>`
+      <td><button class="btn xs" data-editurl="${s.id}" data-url="${esc(s.url)}" title="แก้ลิงก์ให้นักเรียน">🔗</button>
+          <button class="btn xs danger" data-del="${s.id}">ลบ</button></td></tr>`; }).join("") + `</tbody></table>
+    <div class="hint">👍 = งานดี (นักเรียนได้ป้าย QUALITY เมื่อครบ 3) · ใส่ยอดวิว/ไลก์แทนนักเรียนได้ · 🔗 = แก้ลิงก์ (วันที่ส่งไม่เปลี่ยน) · ลบ = งานหายจากคะแนนทันที</div>`
     : `<div style="color:var(--dim)">ยังไม่มีงาน</div>`;
 }
 $("rows").onclick = async e=>{
@@ -249,6 +250,17 @@ $("rows").onclick = async e=>{
   }
   const mv = e.target.closest("button[data-move]");
   if(mv) openMove(mv.dataset.move, mv.dataset.nm || "");
+  const eu = e.target.closest("button[data-editurl]");
+  if(eu){
+    const v = prompt("วางลิงก์ใหม่ของงานชิ้นนี้ (วันที่ส่งไม่เปลี่ยน)", eu.dataset.url || "");
+    if(v===null) return;
+    const url=v.trim(); if(!url) return;
+    eu.disabled=true;
+    const {error} = await sb.rpc("fix_submission_url", {sid:+eu.dataset.editurl, new_url:url});
+    eu.disabled=false;
+    if(error) return toast(error.message);
+    toast("แก้ลิงก์แล้ว 🔗"); if(openPid) loadSubs(openPid); return;
+  }
   const kd = e.target.closest("button[data-kudo]");
   if(kd){ kd.disabled=true; const give = kd.dataset.on!=="1";
     const {error} = await sb.rpc("ta_kudos", {sid:+kd.dataset.kudo, give});
