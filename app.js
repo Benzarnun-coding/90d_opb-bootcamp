@@ -1403,6 +1403,15 @@ function drawSpriteCanvas(ctx, x, y, px, av, style){
     ctx.fillStyle=c; ctx.fillRect(x+cx*px, y+ry*px, px, px);
   }
 }
+/* อันดับของใครก็ได้ ทั้งในบ้านและทั้งรุ่น — กลุ่มเดียวกับสกอร์บอร์ด (หัวหน้าโค้ชอยู่ในทุกบ้านเหมือนในเกม) */
+function rankPair(r){
+  const all = ranked();
+  const hid = r.house || houseOf(r.house).id;
+  const inHouse = x => x.house===hid || roleOf(x)==="head";
+  const hl = all.filter(inHouse);
+  return { all: all.findIndex(x=>x.id===r.id)+1, allN: all.length,
+           house: hl.findIndex(x=>x.id===r.id)+1, houseN: hl.length };
+}
 function drawCard(){
   const cv=$("shareCanvas"), ctx=cv.getContext("2d");
   const r=meR(); if(!r) return;
@@ -1435,10 +1444,7 @@ function drawCard(){
 
   /* อันดับ · เลเวล · เหรียญ */
   const isStu = roleOf(r)==="student";
-  const stuList = ranked().filter(x=>roleOf(x)==="student");
-  const rankAll = isStu ? stuList.findIndex(x=>x.id===r.id)+1 : 0;
-  const houseList = stuList.filter(x=>x.house===r.house);
-  const rankHouse = isStu ? houseList.findIndex(x=>x.id===r.id)+1 : 0;
+  const rk = rankPair(r);
   const lv = levelOf(xpOf(r)), lvTitle = titleOf(lv);
   const marks = (isKingNow(r)?"👑 ":"") + (starN(r)?"🏅 ":"");
 
@@ -1464,8 +1470,8 @@ function drawCard(){
     [["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
      ["STREAK วัน", `${s.dayStreak||0}🔥`],
      ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]],
-    [["อันดับในบ้าน", isStu?`#${rankHouse}/${houseList.length}`:"TA"],
-     ["อันดับรุ่น", isStu?`#${rankAll}/${stuList.length}`:"TA"],
+    [["อันดับในบ้าน", `#${rk.house}/${rk.houseN}`],
+     ["อันดับรุ่น", `#${rk.all}/${rk.allN}`],
      ["เชียร์ที่ได้รับ", String((S.cheers||[]).filter(c=>c.to_id===r.id).length)]]
   ];
   const bw=300, gap=20, x0=(W-(bw*3+gap*2))/2;
@@ -1629,11 +1635,11 @@ function shareTextOf(){
   const r=meR(), s=stats(r), h=houseOf(r.house);
   const o=s.weekTarget?optOf(s.weekTarget):null;
   const fin = s.contents>=FINISH ? " 🏆 ครบเป้าแล้ว!" : ` จากเป้า ${FINISH}`;
-  const stu=ranked().filter(x=>roleOf(x)==="student"), rk=stu.findIndex(x=>x.id===r.id)+1, hl=stu.filter(x=>x.house===r.house), rh=hl.findIndex(x=>x.id===r.id)+1;
+  const rk=rankPair(r);
   const bl=S.myDet?earnedBadges(r,S.myDet):[];
   return `ปล่อยไปแล้ว ${s.contents} คอนเทนต์${fin} ใน ${C.TITLE} 🏁\n`
    + `${h.emoji} บ้าน ${h.name} · สัปดาห์ที่ ${curWeek()}/${WEEKS}\n`
-   + (rk?`อันดับ ${rh} ของบ้าน · ${rk} ของรุ่น · Lv${levelOf(xpOf(r))} ${titleOf(levelOf(xpOf(r)))}\n`:"")
+   + `อันดับ ${rk.house} ของบ้าน · ${rk.all} ของรุ่น · Lv${levelOf(xpOf(r))} ${titleOf(levelOf(xpOf(r)))}\n`
    + (bl.length?`ป้าย: ${bl.slice(0,5).map(b=>b.e+" "+b.n).join(", ")}\n`:"")
    + (o?`สัปดาห์นี้รับเป้า ${o.name} ${o.target} ชิ้น — ทำไปแล้ว ${s.weekDone}\n`:"")
    + rivalText(r)
