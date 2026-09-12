@@ -289,6 +289,8 @@ function openMove(email, name){
   setTimeout(()=>$("mvCode").focus(), 100);
 }
 $("mvCancel").onclick = ()=>$("mvModal").classList.remove("on");
+$("mvModal").onclick = e=>{ if(e.target===$("mvModal")) $("mvModal").classList.remove("on"); };
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") $("mvModal").classList.remove("on"); });
 $("mvGo").onclick = async ()=>{
   const em = $("mvEmail").value, hid = +$("mvHouse").value, code = $("mvCode").value;
   if(!code) return toast("ใส่รหัสยืนยันก่อน");

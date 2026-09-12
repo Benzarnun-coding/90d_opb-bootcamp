@@ -307,7 +307,7 @@ async function loadBosses(){
   $("bsHouse").innerHTML = '<option value="">🌏 ทั้งรุ่นช่วยกัน</option>' + HOUSES.map(h=>`<option value="${h.id}">${h.emoji} ${h.name}</option>`).join("");
   try{ const {data:cs} = await sb.rpc("cohort_status"); const row = Array.isArray(cs) ? cs[0] : cs;
     if(row && row.week_no && $("dcAwardsWeek")) $("dcAwardsWeek").value = String(Number(row.week_no));
-    if(row && row.day_index){ curWeekNo = Math.max(1, Math.ceil(Number(row.day_index)/7)); if(!$("bsWeek").dataset.touched) $("bsWeek").value = curWeekNo; } }catch(e){}
+    if(row && (row.week_no || row.day_index)){ curWeekNo = Number(row.week_no) || Math.max(1, Math.ceil(Number(row.day_index)/7)); if(!$("bsWeek").dataset.touched) $("bsWeek").value = curWeekNo; } }catch(e){}
   const {data, error} = await sb.from("v_boss_progress").select("*").order("week_no").order("house_id");
   if(error){ toast("อ่านบอสไม่ได้: "+error.message); return; }
   const list = data || [];
@@ -507,7 +507,7 @@ function render(){
       <td style="color:var(--dim)">${i+1}</td>
       <td>${esc(x.email)}</td>
       <td class="hideSm" style="color:var(--dim)">${esc(x.full_name||"—")}</td>
-      <td>${sel(x)}</td>
+      <td>${curRole==="head" ? '<span style="color:var(--dim)">— ทุกบ้าน</span>' : sel(x)}</td>
       <td>${st}</td>
       <td style="text-align:right">${act}</td></tr>`;
   }).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:26px">ไม่มีรายชื่อในกลุ่มนี้</td></tr>`;
@@ -525,7 +525,8 @@ $("houses").onclick = e => {
   $("adHouse").value = String(houseFilter || $("adHouse").value);
   render();
 };
-document.querySelector(".filters").onclick = e => {
+/* ต้องผูกกับแถบกรองของ "รายชื่อ" ไม่ใช่ .filters ตัวแรกในหน้า (แถบภาพรวมรุ่น) ไม่งั้นปุ่ม ทั้งหมด/ยังไม่สมัคร/สมัครแล้ว กดไม่ติด */
+([...document.querySelectorAll(".filters")].find(f=>f.querySelector(".fBtn[data-f]")) || document.querySelector(".filters")).onclick = e => {
   const b = e.target.closest(".fBtn"); if(!b) return;
   filter = b.dataset.f;
   document.querySelectorAll(".fBtn").forEach(x=>x.classList.toggle("on", x===b));
