@@ -14,11 +14,20 @@ comment on column public.pledges.platforms is 'แพลตฟอร์มที
 
 update public.houses set platform_limit = case name when 'WISDOM' then 1 when 'COURAGE' then 2 else null end;
 
--- ลิมิตของคนนี้ (null = ไม่จำกัด · TA กับหัวหน้าโค้ชไม่จำกัดเสมอ)
+-- เริ่มบังคับตั้งแต่สัปดาห์ไหน (null = ทันที) · ตั้ง 3 = หลังตัดรอบพุธ 16 ก.ย. 19:30 สัปดาห์ที่ 2 ยังส่งได้ทุกแพลตฟอร์ม
+alter table public.cohort add column if not exists platform_from_week int;
+comment on column public.cohort.platform_from_week is 'สัปดาห์แรกที่บังคับจำกัดแพลตฟอร์ม · null = ทันที';
+update public.cohort set platform_from_week = 3 where id = 1;
+
+-- ลิมิตของคนนี้ (null = ไม่จำกัด · TA กับหัวหน้าโค้ชไม่จำกัดเสมอ · ก่อนสัปดาห์เริ่มบังคับไม่จำกัดทุกคน)
 create or replace function public.platform_limit_of(pid uuid)
 returns smallint language sql stable as $fn$
-  select case when p.role <> 'student' then null else h.platform_limit end
-  from public.profiles p left join public.houses h on h.id = p.house_id
+  select case when p.role <> 'student' then null
+              when c.platform_from_week is not null and public.current_week() < c.platform_from_week then null
+              else h.platform_limit end
+  from public.profiles p
+  left join public.houses h on h.id = p.house_id
+  cross join (select platform_from_week from public.cohort where id = 1) c
   where p.id = pid;
 $fn$;
 grant execute on function public.platform_limit_of(uuid) to anon, authenticated;

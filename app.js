@@ -802,6 +802,8 @@ const LiveDB = (()=>{
         const row = Array.isArray(cs) ? cs[0] : cs;
         todayIdx  = Number(row.day_index);
         S.week = Number(row.week_no)||null; S.weekEndsAt = row.week_ends_at ? new Date(row.week_ends_at).getTime() : null;
+        /* โฟกัสแพลตฟอร์ม (037): จำกัดกี่แพลตฟอร์ม + ที่เลือกไว้ล่าสุด · ไม่มีคอลัมน์ = ยังไม่เปิดใช้ */
+        S.platLimit = row.plat_limit==null ? null : Number(row.plat_limit); S.platPick = Array.isArray(row.plat_pick) && row.plat_pick.length ? row.plat_pick : null;
         S.vacationWeek = row.vacation_week==null ? null : Number(row.vacation_week); S.weekCut = row.week_cut_time || null;
         S.vacFrom = row.vacation_from_day==null ? null : Number(row.vacation_from_day); S.vacTo = row.vacation_to_day==null ? null : Number(row.vacation_to_day);
         started   = !!row.started;
@@ -971,9 +973,11 @@ const LiveDB = (()=>{
       const {error}=await sb.from("submissions").update({platform}).eq("id",id).eq("profile_id",session.user.id);
       if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
     },
-    async setPledge(week,target){
+    async setPledge(week,target,plats){
+      const row={profile_id:session.user.id, week_no:week, target};
+      if(Array.isArray(plats) && plats.length) row.platforms=plats;        // ไม่ส่ง = เซิร์ฟเวอร์ใช้ของสัปดาห์ก่อน
       const {error}=await sb.from("pledges")
-        .upsert({profile_id:session.user.id, week_no:week, target}, {onConflict:"profile_id,week_no"});
+        .upsert(row, {onConflict:"profile_id,week_no"});
       if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
     },
     async setSprints(list){
@@ -1891,6 +1895,7 @@ function renderHud(){
   const roleLbl = roleOf(r)==="head" ? '🎓 <span style="color:#ff4d6d">หัวหน้าโค้ช</span>' : `${h.emoji} <span style="color:${h.color}">${h.name}</span>${roleOf(r)==="ta"?' · <span style="color:#5ef08c">TA</span>':""}`;
   $("meLine").innerHTML=`${r.name} · ${roleLbl} · <b style="color:${r.color}">${s.contents}</b> ชิ้น`;
   $("who").textContent=r.name;
+  applyPlatFocus();
   /* ปิดปุ่มส่งงานเมื่อรุ่นยังไม่เปิด จบแล้ว หรือไม่ได้ลงสปรินต์ปัจจุบัน
      เซิร์ฟเวอร์กันอยู่แล้ว แต่บอกล่วงหน้าดีกว่าปล่อยให้กดแล้วเด้ง error */
   const joinedNow = inOvertime() ? r.joined.length > 0 : joinedIn(r, curSp());
@@ -1969,9 +1974,41 @@ function openPledge(){
     ? `ตอนนี้รับไว้ที่ <b style="color:var(--gold)">${cur} ชิ้น</b> — เพิ่มได้ ลดไม่ได้`
     : `สัปดาห์นี้จะปล่อยกี่ชิ้น เลือกเองได้ตามความพร้อม ไม่มีถูกผิด แต่เลือกแล้วต้องทำ`;
   drawPledgePick();
+  pickPlats = (S.platLimit && S.platPick) ? S.platPick.slice(0, S.platLimit) : [];
+  drawPlatPick();
   $("pledgeModal").classList.add("on");
 }
 window.openPledge=openPledge;
+/* ---- โฟกัสแพลตฟอร์ม (037): WISDOM เลือก 1 · COURAGE เลือก 2 · บ้านอื่นไม่จำกัด ---- */
+let pickPlats=[];
+function drawPlatPick(){
+  const box=$("plPlat"); if(!box) return;
+  const lim=S.platLimit;
+  if(!lim){ box.hidden=true; box.innerHTML=""; return; }
+  box.hidden=false;
+  box.innerHTML=`<div class="platHead">🎯 สัปดาห์นี้บ้านคุณโฟกัสได้ <b>${lim}</b> แพลตฟอร์ม — ส่งงานได้เฉพาะที่เลือก <small>(${pickPlats.length}/${lim})</small></div>
+    <div class="platPick">${PLATS.map(p=>`<button type="button" class="platChip ${pickPlats.includes(p)?"on":""}" data-p="${p}">${p}</button>`).join("")}</div>`;
+}
+$("plPlat").onclick=e=>{
+  const b=e.target.closest(".platChip"); if(!b) return;
+  const p=b.dataset.p, lim=S.platLimit||99;
+  if(pickPlats.includes(p)) pickPlats=pickPlats.filter(x=>x!==p);
+  else if(pickPlats.length>=lim){ if(lim===1) pickPlats=[p]; else return toast(`เลือกได้แค่ ${lim} แพลตฟอร์ม — เอาอันเดิมออกก่อน`); }
+  else pickPlats=[...pickPlats,p];
+  drawPlatPick();
+};
+/* ช่องเลือกแพลตฟอร์มตอนส่งงาน: ถ้าถูกจำกัดและเลือกไว้แล้ว ให้เหลือเฉพาะที่เลือก */
+function applyPlatFocus(){
+  const sel=$("plat"); if(!sel) return;
+  const focus = S.platLimit && S.platPick ? PLATS.filter(p=>S.platPick.includes(p)) : null;
+  const list = focus && focus.length ? focus : PLATS;
+  const cur=sel.value;
+  sel.innerHTML=list.map(p=>`<option>${p}</option>`).join("");
+  if(list.includes(cur)) sel.value=cur;
+  const hint=$("platHint");
+  if(hint && focus && focus.length) hint.textContent=`🎯 สัปดาห์นี้โฟกัส ${focus.join(" · ")} — เปลี่ยนได้ตอนรับเป้าสัปดาห์หน้า`;
+  else if(hint && S.platLimit && !S.platPick) hint.textContent=`🎯 บ้านคุณต้องเลือกแพลตฟอร์มโฟกัส ${S.platLimit} อัน ตอนรับเป้าสัปดาห์นี้`;
+}
 
 /* ================= EVENTS ================= */
 $("swatches").onclick=e=>{ const b=e.target.closest(".sw"); if(b){ pickColor=b.dataset.c; drawSelect(); } };
@@ -2110,9 +2147,13 @@ $("pushBtn").onclick=async()=>{
 };
 $("pledgeBtn").onclick=openPledge;
 $("plSave").onclick=async()=>{
+  if(S.platLimit){
+    if(!pickPlats.length) return toast(`เลือกแพลตฟอร์มโฟกัสก่อน (${S.platLimit} อัน)`);
+    if(pickPlats.length>S.platLimit) return toast(`เลือกได้แค่ ${S.platLimit} แพลตฟอร์ม`);
+  }
   $("plSave").disabled=true;
   try{
-    await DB.setPledge(curWeek(), pickPledge);
+    await DB.setPledge(curWeek(), pickPledge, S.platLimit ? pickPlats : null);
     await refresh();
     $("pledgeModal").classList.remove("on");
     const o=optOf(pickPledge);
@@ -2394,7 +2435,8 @@ function detectPlat(url){
 }
 $("url").addEventListener("input", ()=>{
   const p=detectPlat($("url").value.trim());
-  if(p && PLATS.includes(p)){ $("plat").value=p; $("platHint").textContent=`✓ เลือก ${p} ให้แล้ว`; }
+  if(p && PLATS.includes(p) && [...$("plat").options].some(o=>o.value===p)){ $("plat").value=p; $("platHint").textContent=`✓ เลือก ${p} ให้แล้ว`; }
+  else if(p && PLATS.includes(p) && S.platPick){ $("platHint").textContent=`⚠️ ลิงก์นี้เป็น ${p} แต่สัปดาห์นี้คุณโฟกัส ${S.platPick.join(" · ")}`; }
   else $("platHint").textContent = $("url").value.trim() ? "เลือกแพลตฟอร์มด้านบนให้ตรง" : "";
 });
 /* ---- แถบวันนี้ (ติดขอบบน) ---- */
@@ -3254,7 +3296,7 @@ $("bcTitle").textContent=C.TITLE;
 $("wm").textContent = C.TITLE + (CREDIT ? " · " + CREDIT : "");
 $("bcTitle2").textContent=C.TITLE;
 document.title=C.TITLE;
-$("plat").innerHTML=PLATS.map(p=>`<option>${p}</option>`).join("");
+applyPlatFocus();
 $("titleSub").innerHTML=`${TOTAL} วัน · ${NSP} สปรินต์ · เลือกเป้าเองทุกสัปดาห์<br>
   4 / 7 / 10 ชิ้นต่อสัปดาห์ ตามที่ไหว<br>
   เป้ารวม ${FINISH} คอนเทนต์ — ส่งเกินได้ ไม่มีเพดาน<br>

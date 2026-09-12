@@ -515,6 +515,14 @@
     font-family:var(--f-th); font-size:11px; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
   .drOpt svg{display:block; margin:0 auto 5px}
   .drOpt .tileSw{display:block; width:40px; height:40px; margin:0 auto 6px; border:3px solid; border-color:#ffffff55 #00000099 #00000099 #ffffff55}
+  /* โฟกัสแพลตฟอร์มในหน้ารับเป้า */
+  #plPlat{margin-top:14px; padding:12px; background:#120d30; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a}
+  #plPlat[hidden]{display:none}
+  .platHead{font-size:13px; color:#ffe9a8; margin-bottom:8px}
+  .platHead small{color:var(--dim)}
+  .platPick{display:flex; flex-wrap:wrap; gap:8px}
+  .platChip{cursor:pointer; padding:9px 14px; min-height:36px; font-family:var(--f-px); font-weight:700; font-size:12px; color:var(--dim); background:#1a1440; border:3px solid; border-color:#4b41a8 #150f3a #150f3a #4b41a8}
+  .platChip.on{color:#0d0a22; background:linear-gradient(180deg,#ffe08a,#ffcc4d 60%,#c98a12); border-color:#fff3c0 #7a5000 #7a5000 #fff3c0}
   .drOpt.on{border-color:var(--gold) var(--goldLo) var(--goldLo) var(--gold); color:#fff; background:#2a2360}
   .press.watch{font-size:15px; padding:11px 22px; margin-top:16px; animation:none;
     background:linear-gradient(180deg,#5b51c4,#332a80 60%,#221c50); border-color:#9d97ff #1a1450 #1a1450 #9d97ff; text-shadow:0 2px 0 #000}
@@ -1282,6 +1290,7 @@
   <div class="body">
     <p class="lede" id="plLede"></p>
     <div class="optGrid" id="plPick"></div>
+    <div id="plPlat" hidden></div>
     <div class="tally" id="plNote"></div>
     <button class="btn go" id="plSave" style="margin-top:16px">▶ รับเป้านี้</button>
   </div>
