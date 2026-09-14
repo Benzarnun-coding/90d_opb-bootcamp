@@ -2186,15 +2186,20 @@ function xpOf(r){
   const kills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
   const wins=(S.duels||[]).filter(d=>d.status==="done"&&d.winner===r.id).length;
   const kingW=(S.kings||[]).filter(k=>k.profile_id===r.id).length;
-  let questDays=0; if(r.name===S.me){ try{ questDays=+localStorage.getItem("questDays."+r.id)||0; }catch(e){} }
+  /* วันภารกิจ = วันที่ส่ง ≥1 ชิ้น และเชียร์ ≥3 ครั้ง — คิดจากข้อมูลเซิร์ฟเวอร์ให้ทุกคนเท่ากัน
+     (เดิมนับใน localStorage ของเครื่องตัวเอง → เปลี่ยนเครื่องแล้ว XP ตก คนอื่นได้ 0 ตลอด) */
+  const byDay=s.byDay||{}; const cheerDays={};
+  (S.cheers||[]).forEach(c=>{ if(c.from_id===r.id) cheerDays[c.day_index]=(cheerDays[c.day_index]||0)+1; });
+  const questDays=Object.keys(byDay).filter(d=>byDay[d]>=1 && (cheerDays[d]||0)>=3).length;
   return s.contents*10 + cheersGiven*2 + s.weeksHit*30 + kills*50 + wins*40 + kingW*60 + questDays*30 + Math.min(s.dayStreak,30)*3;
 }
+const XP_RULES="ส่งงาน 1 ชิ้น +10 · เชียร์เพื่อน +2/ครั้ง · ส่ง 1 + เชียร์ 3 ในวันเดียว +30 · ครบเป้าสัปดาห์ +30 · streak +3/วัน (สูงสุด 30 วัน) · ชนะดวล +40 · ล้มบอส +50 · King of the Week +60";
 const levelOf = xp => Math.floor(Math.sqrt(xp/40))+1;
 const xpForLevel = lv => (lv-1)*(lv-1)*40;
 const titleOf = lv => { let t=LV_TITLES[0][1]; LV_TITLES.forEach(([l,n])=>{ if(lv>=l) t=n; }); return t; };
 function levelHTML(r){
   const xp=xpOf(r), lv=levelOf(xp), lo=xpForLevel(lv), hi=xpForLevel(lv+1), pct=Math.round((xp-lo)/(hi-lo)*100);
-  return `<div class="lvBox"><span class="lvTag">LV ${lv}</span><span class="lvTitle">${titleOf(lv)}</span>
+  return `<div class="lvBox" title="${XP_RULES}"><span class="lvTag">LV ${lv}</span><span class="lvTitle">${titleOf(lv)}</span>
     <span class="lvBar"><i style="width:${pct}%"></i></span><span class="lvXp">${xp} / ${hi} XP</span></div>`;
 }
 /* ---- ภารกิจวันนี้ 3 ข้อ ---- */
@@ -2453,9 +2458,9 @@ function renderToday(){
   const stCls = n ? "ok" : (isFinite(hrs)&&hrs<3 ? "late" : "wait");
   const q=questsOf(), done=q.filter(x=>x.done).length;
   try{ const k="questDone."+me.id, kd="questDays."+me.id; const last=localStorage.getItem(k);
-    if(done===3 && last!==String(S.today)){ localStorage.setItem(k,String(S.today)); localStorage.setItem(kd, String((+localStorage.getItem(kd)||0)+1)); bigPop("ภารกิจครบ 3 ข้อ!","+30 XP · เก่งมาก","pass"); SFX.unlock(); } }catch(e){}
+    if(done===3 && last!==String(S.today)){ localStorage.setItem(k,String(S.today)); bigPop("ภารกิจครบ 3 ข้อ!","+30 XP · เก่งมาก","pass"); SFX.unlock(); } }catch(e){}
   const roleLbl = role==="head" ? '<span style="color:#ff4d6d">🎓 หัวหน้าโค้ช</span>' : `${h.emoji} <span style="color:${h.color}">${h.name}</span>${role==="ta"?' · <span style="color:#5ef08c">TA</span>':""}`;
-  box.innerHTML=`<div class="titlebar"><h2>วันนี้ของฉัน · ภารกิจ ${done}/3</h2><span>${done===3?"ครบแล้ว +30 XP":"ครบ 3 ข้อ +30 XP"}</span></div>
+  box.innerHTML=`<div class="titlebar"><h2>วันนี้ของฉัน · ภารกิจ ${done}/3</h2><span title="${XP_RULES}">${done===3?"ครบแล้ว 🎉":"ส่ง 1 + เชียร์ 3 = +30 XP"}</span></div>
     <div class="body qBody">
       <div class="tdTop">
         <div class="tdMe">${sprite(avOf(me),2,s.style)}</div>
