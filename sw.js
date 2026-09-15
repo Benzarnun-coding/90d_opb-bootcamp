@@ -15,7 +15,8 @@ self.addEventListener("fetch", e => {
   e.respondWith((async () => {
     /* ยิงเน็ตไปตามปกติ และเก็บลงแคชทุกครั้งที่สำเร็จ ไม่ว่าจะทันเพดานเวลาหรือไม่ */
     const net = fetch(req).then(res => {
-      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone())).catch(() => {});
+      /* ไม่แคชไฟล์เพลง/คำตอบบางส่วน (206) — เบราว์เซอร์ขอเพลงเป็นช่วง ๆ ถ้าเก็บช่วงเดียวไว้จะเล่นต่อไม่ได้ */
+      if (res.ok && res.status !== 206 && !/\.(mp3|ogg|m4a|wav)(\?|$)/i.test(req.url)) caches.open(CACHE).then(c => c.put(req, res.clone())).catch(() => {});
       return res;
     });
     net.catch(() => {});                       // กัน unhandled rejection ตอนเราไม่ได้รอมัน

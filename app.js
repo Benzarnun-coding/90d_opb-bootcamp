@@ -2826,6 +2826,54 @@ const SFX={
   unlock: ()=>{ [784,988,1175,1568].forEach((f,i)=>beep(f,.13,"triangle",.16,i*.08)); },
   revive: ()=>{ beep(196,.3,"sawtooth",.12); beep(392,.2,"square",.12,.3); beep(784,.45,"square",.14,.5); }
 };
+/* ---- เพลงประกอบ (BGM): เล่นวนเบา ๆ เปิด/ปิด/ปรับความดังได้ตลอด จำค่าไว้ในเครื่อง
+   เบราว์เซอร์ห้ามเล่นเสียงเองก่อนผู้ใช้แตะจอ → ปุ่มลำโพงกะพริบชวนแตะ แล้วเริ่มเล่นตอนแตะครั้งแรก ---- */
+const BGM={ a:null, on:true, vol:.35, started:false, missing:false };
+try{ BGM.on = localStorage.getItem("bgm.on")!=="0"; const v=+localStorage.getItem("bgm.vol"); if(v>=0 && v<=1 && localStorage.getItem("bgm.vol")!=null) BGM.vol=v; }catch(e){}
+function bgmAudio(){
+  if(BGM.a) return BGM.a;
+  const a=new Audio(); a.loop=true; a.preload="none"; a.volume=BGM.vol;
+  a.src = C.BGM_URL || "bgm.mp3";                                   // ไฟล์วางไว้ที่รากเว็บ (deploy แบบ flat)
+  a.onerror=()=>{ BGM.missing=true; bgmRender(); };
+  a.onplaying=()=>{ BGM.started=true; bgmRender(); };
+  a.onpause=bgmRender;
+  BGM.a=a; return a;
+}
+async function bgmPlay(){
+  const a=bgmAudio(); if(BGM.missing) return;
+  try{ a.volume=BGM.vol; await a.play(); BGM.on=true; }catch(e){ /* ยังไม่มี gesture หรือโหลดไม่ได้ */ }
+  bgmSave(); bgmRender();
+}
+function bgmStop(){ if(BGM.a) BGM.a.pause(); BGM.on=false; bgmSave(); bgmRender(); }
+function bgmSave(){ try{ localStorage.setItem("bgm.on", BGM.on?"1":"0"); localStorage.setItem("bgm.vol", String(BGM.vol)); }catch(e){} }
+function bgmRender(){
+  const b=$("bgmBtn"); if(!b) return;
+  const playing = !!(BGM.a && !BGM.a.paused);
+  b.textContent = BGM.missing ? "🔇" : playing ? (BGM.vol===0 ? "🔈" : "🔊") : "🔇";
+  b.classList.toggle("playing", playing);
+  b.classList.toggle("nudge", !BGM.missing && BGM.on && !playing && !BGM.started);   // ยังไม่ได้แตะ → ชวนแตะ
+  b.title = BGM.missing ? "ยังไม่มีไฟล์เพลง" : playing ? "เพลงเล่นอยู่ · แตะเพื่อตั้งค่า" : "แตะเพื่อเปิดเพลง";
+  const p=$("bgmPlay"), m=$("bgmMute"), v=$("bgmVol"), meta=$("bgmMeta");
+  if(p) p.textContent = playing ? "⏸ หยุดเพลง" : "▶ เปิดเพลง";
+  if(m) m.textContent = BGM.vol===0 ? "🔈 เปิดเสียง" : "🔇 ปิดเสียง";
+  if(v) v.value = Math.round(BGM.vol*100);
+  if(meta) meta.textContent = BGM.missing ? "ยังไม่มีไฟล์เพลง (bgm.mp3)" : `🎵 ${C.BGM_TITLE||"เพลงประกอบ"} · เล่นวนไปเรื่อย ๆ · ${C.BGM_CREDIT||""}`.replace(/ · $/,"");
+}
+$("bgmBtn").onclick=()=>{
+  const pop=$("bgmPop"); $("moreMenu").hidden=true; $("bellMenu").hidden=true;
+  if(!BGM.started && BGM.on && !BGM.missing){ bgmPlay(); }          // แตะครั้งแรก = เริ่มเล่นเลย ไม่ต้องเปิดเมนู
+  else pop.hidden=!pop.hidden;
+  bgmRender();
+};
+$("bgmPlay").onclick=()=>{ (BGM.a && !BGM.a.paused) ? bgmStop() : bgmPlay(); };
+$("bgmMute").onclick=()=>{ if(BGM.vol===0){ BGM.vol=BGM._lastVol||.35; } else { BGM._lastVol=BGM.vol; BGM.vol=0; } if(BGM.a) BGM.a.volume=BGM.vol; bgmSave(); bgmRender(); };
+$("bgmVol").oninput=e=>{ BGM.vol=(+e.target.value)/100; if(BGM.a) BGM.a.volume=BGM.vol; bgmSave(); bgmRender(); };
+document.addEventListener("click", e=>{ if(!e.target.closest("#bgmPop") && !e.target.closest("#bgmBtn")) $("bgmPop").hidden=true; });
+/* แตะจอครั้งแรกที่ไหนก็ได้ → ถ้าเคยเปิดเพลงไว้ (หรือค่าเริ่มต้น) เริ่มเล่นให้เอง */
+document.addEventListener("pointerdown", function firstTap(){ if(BGM.on && !BGM.started) bgmPlay(); if(BGM.started||BGM.missing) document.removeEventListener("pointerdown", firstTap); }, {passive:true});
+/* สลับแท็บ/พับจอ → หยุดชั่วคราว กลับมาแล้วเล่นต่อ ไม่กินแบตตอนไม่ได้ดู */
+document.addEventListener("visibilitychange", ()=>{ if(!BGM.a) return; if(document.hidden){ BGM._wasPlaying=!BGM.a.paused; BGM.a.pause(); } else if(BGM._wasPlaying && BGM.on){ BGM.a.play().catch(()=>{}); } });
+bgmRender();
 function confetti(n=48){
   const box=document.createElement("div"); box.className="confetti";
   for(let i=0;i<n;i++){

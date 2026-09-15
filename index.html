@@ -515,6 +515,15 @@
     font-family:var(--f-th); font-size:11px; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
   .drOpt svg{display:block; margin:0 auto 5px}
   .drOpt .tileSw{display:block; width:40px; height:40px; margin:0 auto 6px; border:3px solid; border-color:#ffffff55 #00000099 #00000099 #ffffff55}
+  /* เพลงประกอบ: ปุ่มลำโพงบน HUD + ป๊อปอัพเล่น/หยุด/ความดัง */
+  .chip.bgm.playing{color:#5ef08c; border-color:#5ef08c}
+  .chip.bgm.nudge{animation:bgmNudge 1.2s ease-in-out infinite}
+  @keyframes bgmNudge{ 50%{transform:scale(1.15); box-shadow:0 0 12px rgba(94,240,140,.7)} }
+  .bgmPop{right:56px; min-width:240px; padding:10px}
+  .bgmRow{display:flex; gap:8px; align-items:center; margin-bottom:8px}
+  .bgmRow .btn{flex:1; min-height:36px}
+  .bgmRow input[type=range]{flex:1; accent-color:#ffcc4d}
+  .bgmMeta{font-size:11px; color:var(--dim); line-height:1.4}
   /* กล่องขอฟีเจอร์ / แจ้งบั๊ก */
   .fbForm{padding:12px; background:#120d30; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a; margin-bottom:14px}
   .fbKinds{display:flex; gap:8px; margin-bottom:8px}
@@ -1076,6 +1085,7 @@
       <div class="chip">DAY <b id="hudDay">--</b><span class="hideSm">/<span id="hudTotal">84</span></span></div>
       <div class="chip live" id="modeTag">DEMO</div>
       <button class="chip btnChip" id="homeBtn" title="กลับหน้าแรก">← หน้าแรก</button>
+      <button class="chip btnChip bgm" id="bgmBtn" title="เพลงประกอบ">🔇</button>
       <button class="chip btnChip bell" id="bellBtn" hidden>🔔<b class="bellN" id="bellN" hidden>0</b></button>
       <button class="chip btnChip" id="moreBtn" title="เมนู">⋯</button>
       <span hidden><b id="hudSprint"></b><span id="hudSprints"></span><b id="hudClock"></b></span>
@@ -1091,6 +1101,11 @@
     <div class="it" id="outBtn2"><i>⏏</i><div>SIGN OUT</div></div>
   </div>
   <div class="bellMenu bevel" id="bellMenu" hidden></div>
+  <div class="bellMenu bevel bgmPop" id="bgmPop" hidden>
+    <div class="bgmRow"><button class="btn sm" id="bgmPlay">▶ เปิดเพลง</button><button class="btn sm" id="bgmMute">🔇 ปิดเสียง</button></div>
+    <div class="bgmRow"><span>🔈</span><input type="range" id="bgmVol" min="0" max="100" step="5" value="35"><span>🔊</span></div>
+    <div class="bgmMeta" id="bgmMeta">🎵 เพลงประกอบ · เล่นวนไปเรื่อย ๆ</div>
+  </div>
 
   <nav class="nav">
     <button class="navBtn on" data-page="pgRace"><span class="dL">🏁 RACE<small>สนามแข่ง</small></span><span class="mL">🏁<small>สนาม</small></span></button>
