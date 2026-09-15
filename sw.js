@@ -2,7 +2,7 @@
    แคชแบบ network-first แต่มีเพดานเวลา: ออนไลน์ได้ของใหม่เสมอ
    ถ้าเน็ตอืดเกิน 4 วินาที (เน็ตมือถือสัญญาณอ่อน) ให้หยิบของเก่าจากแคชมาใช้ก่อน
    ของเดิมไม่มีเพดานเวลา จึงค้างรอเน็ตไปเรื่อย ๆ ทั้งที่มีของในแคชพร้อมใช้อยู่แล้ว */
-const CACHE = "opb-v4";
+const CACHE = "opb-v5";
 const NET_TIMEOUT = 4000;
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil((async () => {
