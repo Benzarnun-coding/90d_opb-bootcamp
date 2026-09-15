@@ -526,6 +526,8 @@
   .bgmRow .btn{flex:1; min-height:36px}
   .bgmRow input[type=range]{flex:1; accent-color:#ffcc4d}
   .bgmMeta{font-size:11px; color:var(--dim); line-height:1.4}
+  .bgmHint{margin-top:6px; padding-top:6px; border-top:1px dashed #3a2f7a; color:#8f86e6}
+  @media(prefers-reduced-motion:reduce){ .chip.bgm.nudge,.bgmFab.nudge{animation:none; box-shadow:0 0 0 2px #5ef08c} }
   /* ลำโพงลอย: โผล่เมื่อเลื่อนจน HUD หลุดจอ กดแล้วหยุด/เล่นได้ทันที */
   .bgmFab{position:fixed; right:14px; bottom:96px; z-index:40; width:44px; height:44px; font-size:20px; cursor:pointer; color:#fff;
     background:linear-gradient(180deg,#4b41a8,#2e2678 60%,#1e1856); border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6; box-shadow:0 4px 0 rgba(0,0,0,.5)}
@@ -1094,7 +1096,7 @@
       <div class="chip">DAY <b id="hudDay">--</b><span class="hideSm">/<span id="hudTotal">84</span></span></div>
       <div class="chip live" id="modeTag">DEMO</div>
       <button class="chip btnChip" id="homeBtn" title="กลับหน้าแรก">← หน้าแรก</button>
-      <button class="chip btnChip bgm" id="bgmBtn" title="เพลงประกอบ">🔇</button>
+      <button class="chip btnChip bgm" id="bgmBtn" title="เพลงประกอบ" aria-label="เพลงประกอบ เปิด/ปิด (กดค้างเพื่อปรับความดัง)">🔇</button>
       <button class="chip btnChip bell" id="bellBtn" hidden>🔔<b class="bellN" id="bellN" hidden>0</b></button>
       <button class="chip btnChip" id="moreBtn" title="เมนู">⋯</button>
       <span hidden><b id="hudSprint"></b><span id="hudSprints"></span><b id="hudClock"></b></span>
@@ -1106,14 +1108,16 @@
     <div class="it" id="installBtn" hidden><i>📲</i><div>ติดตั้งเป็นแอป<small>เปิดจากหน้าจอโฮม รับแจ้งเตือนได้</small></div></div>
     <div class="it" id="pledgeBtn2"><i>🎯</i><div>เปลี่ยนเป้าสัปดาห์นี้</div></div>
     <div class="it" id="taLink" hidden><i>🛡️</i><div>หน้า TA<small>ดูแลบ้านของฉัน · ลบงาน · ย้ายบ้าน</small></div></div>
+    <div class="it" id="bgmMenuBtn"><i>🎵</i><div>เพลงประกอบ<small>เปิด/ปิด · ปรับความดัง</small></div></div>
     <div class="it" id="fbBtn"><i>💡</i><div>ขอฟีเจอร์ / แจ้งบั๊ก<small>ส่งไอเดีย แล้วโหวตอันที่อยากได้</small></div></div>
     <div class="it" id="outBtn2"><i>⏏</i><div>SIGN OUT</div></div>
   </div>
   <div class="bellMenu bevel" id="bellMenu" hidden></div>
-  <div class="bellMenu bevel bgmPop" id="bgmPop" hidden>
-    <div class="bgmRow"><button class="btn sm" id="bgmPlay">▶ เปิดเพลง</button><button class="btn sm" id="bgmMute">🔇 ปิดเสียง</button></div>
-    <div class="bgmRow"><span>🔈</span><input type="range" id="bgmVol" min="0" max="100" step="5" value="35"><span>🔊</span></div>
+  <div class="bellMenu bevel bgmPop" id="bgmPop" hidden role="dialog" aria-label="เพลงประกอบ">
+    <div class="bgmRow"><button class="btn sm" id="bgmPlay" aria-pressed="false">🔊 เพลง: เปิด</button></div>
+    <div class="bgmRow"><span aria-hidden="true">🔈</span><input type="range" id="bgmVol" min="0" max="100" step="5" value="20" aria-label="ความดังเพลง"><span aria-hidden="true">🔊</span></div>
     <div class="bgmMeta" id="bgmMeta">🎵 เพลงประกอบ · เล่นวนไปเรื่อย ๆ</div>
+    <div class="bgmMeta bgmHint">แตะลำโพง = เปิด/ปิด · กดค้าง = เมนูนี้</div>
   </div>
 
   <nav class="nav">
@@ -1497,7 +1501,7 @@
 </div></div>
 <button id="toTop" class="toTop" hidden title="กลับขึ้นบน">⬆</button>
 <button id="fab" class="fab" hidden>＋ ส่งงาน</button>
-<button id="bgmFab" class="bgmFab" hidden title="เพลงประกอบ">🔊</button>
+<button id="bgmFab" class="bgmFab" hidden title="เพลงประกอบ" aria-label="เพลงประกอบ เปิด/ปิด (กดค้างเพื่อปรับความดัง)">🔊</button>
 
 <div id="toast"></div>
 <div id="wm" class="wm"></div>
