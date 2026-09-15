@@ -87,9 +87,12 @@ window.CFG = {
   PLATFORMS: ["TikTok","YouTube","Instagram","Threads","Facebook","X","Blog"],
 
   /* ---- 7b. เพลงประกอบ (ไฟล์ bgm.mp3 ที่รากเว็บ · เปิด/ปิดได้จากปุ่มลำโพงบน HUD) ---- */
-  BGM_URL:    "bgm.mp3",
-  BGM_TITLE:  "เพลงประกอบ",
-  BGM_CREDIT: "",
+  BGM_URL:    "bgm.mp3",                       // เพลงปกติ เล่นวนทั้งวัน
+  BGM_TITLE:  "Chillhop Jazz Sunny Cafe · alex-morgan",
+  BGM_BATTLE_URL:   "bgm-battle.mp3",          // เพลงสู้: ตอนกำลังดวล หรือบอสประจำสัปดาห์เหลือเลือดต่ำกว่า BGM_BOSS_HP
+  BGM_BATTLE_TITLE: "Friendly Town · Cyberwave-Orchestra",
+  BGM_BOSS_HP: 200,
+  BGM_CREDIT: "Pixabay Content License",
 
   /* ---- 8. โหมดแสดงผลเริ่มต้น --------------------------------
      "near" = เห็นเฉพาะคนที่อันดับใกล้ตัว (แนะนำ — คนท้ายแถวไม่ถูกประจาน)
