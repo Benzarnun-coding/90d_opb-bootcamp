@@ -831,7 +831,8 @@ const LiveDB = (()=>{
         ()=>soft(()=>sb.from("v_house_cup").select("*"), "v_house_cup"),
         ()=>soft(()=>sb.from("v_week_kings").select("*"), "v_week_kings"),
         ()=>soft(()=>sb.from("v_week_ta_kings").select("*"), "v_week_ta_kings"),
-        ()=>soft(()=>sb.from("cheers").select("from_id,to_id,emoji,day_index"), "cheers"),
+        /* PostgREST ตัดที่ 1,000 แถว — ดึงแค่ 2 วันล่าสุด (ใช้กับเควส/ปุ่มเชียร์วันนี้) ส่วนยอดรวมมาจาก v_cheer_stats */
+        ()=>soft(()=>sb.from("cheers").select("from_id,to_id,emoji,day_index").gte("day_index",(todayIdx||1)-1).order("id",{ascending:false}).limit(5000), "cheers"),
         ()=>soft(()=>sb.from("v_cheers_week").select("*"), "v_cheers_week"),
         ()=>soft(()=>sb.from("v_duels").select("*"), "v_duels"),
         ()=>soft(()=>sb.from("v_boss_progress").select("*"), "v_boss_progress"),
@@ -840,10 +841,12 @@ const LiveDB = (()=>{
         ()=>soft(()=>sb.from("v_kudos").select("profile_id,n"), "v_kudos"),
         ()=>soft(()=>sb.from("live_sessions").select("id,title,starts_at,ends_at").gte("ends_at", new Date(Date.now()-2*3600e3).toISOString()).order("starts_at"), "live_sessions"),
         ()=>uidNow ? soft(()=>sb.from("checkins").select("session_id").eq("profile_id",uidNow), "checkins") : Promise.resolve({data:[]}),
-        ()=>soft(()=>sb.from("v_holiday_grinders").select("profile_id,n"), "v_holiday_grinders")
+        ()=>soft(()=>sb.from("v_holiday_grinders").select("profile_id,n"), "v_holiday_grinders"),
+        ()=>soft(()=>sb.from("v_cheer_stats").select("profile_id,given,received,quest_days"), "v_cheer_stats")
       ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
                    {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
-                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows}])=>({
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows}])=>({
+        cheerStats: cheerStatRows||[],
         burnIds: (burn||[]).map(b=>b.profile_id),
         weakIds: (weakRows||[]).map(b=>b.profile_id),
         cups: cups||[],
@@ -1610,7 +1613,7 @@ function drawCard(){
      ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]],
     [["อันดับในบ้าน", noHouse ? "—" : `#${rk.house}`],
      ["อันดับรุ่น", `#${rk.all}`],          // ไม่บอกจำนวนคนทั้งหมด — การ์ดเอาไปโพสต์ข้างนอก
-     ["เชียร์ที่ได้รับ", String((S.cheers||[]).filter(c=>c.to_id===r.id).length)]]
+     ["เชียร์ที่ได้รับ", String((S.cheerStats&&S.cheerStats[r.id]) ? S.cheerStats[r.id].received : (S.cheers||[]).filter(c=>c.to_id===r.id).length)]]
   ];
   const bw=300, gap=20, x0=(W-(bw*3+gap*2))/2;
   rows.forEach((boxes,ri)=> boxes.forEach(([l,v],i)=>{
@@ -2182,7 +2185,8 @@ const LV_TITLES=[[1,"มือใหม่"],[3,"นักลอง"],[5,"นั
 function xpOf(r){
   if(!r) return 0;
   const s=stats(r);
-  const cheersGiven=(S.cheers||[]).filter(c=>c.from_id===r.id).length;
+  const cst=(S.cheerStats||{})[r.id];                       // ยอดรวมจากเซิร์ฟเวอร์ (043) · โหมดทดลองไม่มี → นับจากก้อนที่โหลดมา
+  const cheersGiven= cst ? +cst.given : (S.cheers||[]).filter(c=>c.from_id===r.id).length;
   const kills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
   const wins=(S.duels||[]).filter(d=>d.status==="done"&&d.winner===r.id).length;
   const kingW=(S.kings||[]).filter(k=>k.profile_id===r.id).length;
@@ -2190,7 +2194,7 @@ function xpOf(r){
      (เดิมนับใน localStorage ของเครื่องตัวเอง → เปลี่ยนเครื่องแล้ว XP ตก คนอื่นได้ 0 ตลอด) */
   const byDay=s.byDay||{}; const cheerDays={};
   (S.cheers||[]).forEach(c=>{ if(c.from_id===r.id) cheerDays[c.day_index]=(cheerDays[c.day_index]||0)+1; });
-  const questDays=Object.keys(byDay).filter(d=>byDay[d]>=1 && (cheerDays[d]||0)>=3).length;
+  const questDays= cst ? +cst.quest_days : Object.keys(byDay).filter(d=>byDay[d]>=1 && (cheerDays[d]||0)>=3).length;
   return s.contents*10 + cheersGiven*2 + s.weeksHit*30 + kills*50 + wins*40 + kingW*60 + questDays*30 + Math.min(s.dayStreak,30)*3;
 }
 const XP_RULES="ส่งงาน 1 ชิ้น +10 · เชียร์เพื่อน +2/ครั้ง · ส่ง 1 + เชียร์ 3 ในวันเดียว +30 · ครบเป้าสัปดาห์ +30 · streak +3/วัน (สูงสุด 30 วัน) · ชนะดวล +40 · ล้มบอส +50 · King of the Week +60";
@@ -3194,6 +3198,7 @@ function applyExtras(e){
   S.cups=e.cups||[];
   S.kings=e.kings||[];                        // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
   S.cheers=e.cheers||[]; S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
+  S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
   S.bosses=e.bosses||[]; S.bossKills=e.bossKills||[];
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
   S.kudos={};   (e.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
