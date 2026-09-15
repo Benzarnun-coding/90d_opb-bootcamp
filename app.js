@@ -2830,23 +2830,23 @@ const SFX={
 /* ---- เพลงประกอบ (BGM): เล่นวนเบา ๆ เปิด/ปิด/ปรับความดังได้ตลอด จำค่าไว้ในเครื่อง
    เบราว์เซอร์ห้ามเล่นเสียงเองก่อนผู้ใช้แตะจอ → ปุ่มลำโพงกะพริบชวนแตะ แล้วเริ่มเล่นตอนแตะครั้งแรก ---- */
 const BGM={ a:null, on:true, vol:.35, started:false, missing:false, mode:"calm" };
-const BGM_TRACKS={ calm:  {url:()=>C.BGM_URL||"bgm.mp3",           title:()=>C.BGM_TITLE||"เพลงประกอบ"},
-                   battle:{url:()=>C.BGM_BATTLE_URL||"bgm-battle.mp3", title:()=>C.BGM_BATTLE_TITLE||"เพลงสู้"} };
-/* โหมดเพลง: กำลังดวลอยู่ หรือมีบอสสัปดาห์นี้เลือดใกล้หมด (ต่ำกว่า BGM_BOSS_HP) → เพลงสู้ ไม่งั้นเพลงชิล */
+const BGM_TRACKS={ calm:  {url:()=>C.BGM_URL||"bgm.mp3",             title:()=>C.BGM_TITLE||"เพลงประกอบ",      icon:"🎵", label:"เล่นวนไปเรื่อย ๆ"},
+                   battle:{url:()=>C.BGM_BATTLE_URL||"bgm-battle.mp3", title:()=>C.BGM_BATTLE_TITLE||"เพลงดวล",  icon:"⚔️", label:"เพลงดวล (คุณกำลังดวลอยู่)"},
+                   boss:  {url:()=>C.BGM_BOSS_URL||"bgm-boss.mp3",     title:()=>C.BGM_BOSS_TITLE||"เพลงบอส",    icon:"👹", label:"เพลงบอส (บอสใกล้ล้ม ทุกคนได้ยิน)"} };
+/* โหมดเพลง: บอสสัปดาห์นี้ใกล้ล้ม → เพลงบอส (ทุกคน) · กำลังดวล → เพลงดวล · ไม่งั้นเพลงชิล */
 function bgmMode(){
-  if(!C.BGM_BATTLE_URL && !BGM_TRACKS.battle.url()) return "calm";
+  const cw=curWeek(), lim=+C.BGM_BOSS_HP||200;
+  /* "ใกล้ล้ม" = เหลือต่ำกว่า BGM_BOSS_HP และไม่เกิน 30% ของเลือดเต็ม (บอสตัวเล็กในโหมดทดลองจะได้ไม่ติดเพลงบอสตลอด) */
+  if((S.bosses||[]).some(b=>b.week_no===cw && b.damage<b.hp && (b.hp-b.damage)<lim && (b.hp-b.damage)<=b.hp*.3)) return "boss";
   const me=meId && meId(); const d=me ? duelOf(me) : null;
   if(d && d.status==="active") return "battle";
-  const cw=curWeek(), lim=+C.BGM_BOSS_HP||200;
-  /* "ใกล้ล้ม" = เหลือต่ำกว่า BGM_BOSS_HP และไม่เกิน 30% ของเลือดเต็ม (บอสตัวเล็กในโหมดทดลองจะได้ไม่ติดเพลงสู้ตลอด) */
-  if((S.bosses||[]).some(b=>b.week_no===cw && b.damage<b.hp && (b.hp-b.damage)<lim && (b.hp-b.damage)<=b.hp*.3)) return "battle";
   return "calm";
 }
 function bgmSync(){
   const mode=bgmMode(); if(mode===BGM.mode) return;
   BGM.mode=mode;
   if(BGM.a){ const wasPlaying=!BGM.a.paused; BGM.a.src=BGM_TRACKS[mode].url(); if(wasPlaying) BGM.a.play().catch(()=>{}); }
-  if(BGM.a && !BGM.a.paused) toast(mode==="battle" ? "⚔️ เพลงสู้! ดวล/บอสใกล้ล้ม" : "☕ กลับมาเพลงชิล");
+  if(BGM.a && !BGM.a.paused) toast(mode==="boss" ? "👹 บอสใกล้ล้ม! เพลงบอสมาแล้ว" : mode==="battle" ? "⚔️ เพลงดวล! สู้เขา" : "☕ กลับมาเพลงชิล");
   bgmRender();
 }
 try{ BGM.on = localStorage.getItem("bgm.on")!=="0"; const v=+localStorage.getItem("bgm.vol"); if(v>=0 && v<=1 && localStorage.getItem("bgm.vol")!=null) BGM.vol=v; }catch(e){}
@@ -2854,7 +2854,12 @@ function bgmAudio(){
   if(BGM.a) return BGM.a;
   const a=new Audio(); a.loop=true; a.preload="none"; a.volume=BGM.vol;
   BGM.mode=bgmMode(); a.src = BGM_TRACKS[BGM.mode].url();            // ไฟล์วางไว้ที่รากเว็บ (deploy แบบ flat)
-  a.onerror=()=>{ BGM.missing=true; bgmRender(); };
+  a.onerror=()=>{
+    /* ไฟล์เพลงบอส/ดวลยังไม่มี → ถอยไปใช้เพลงดวล แล้วเพลงชิล ก่อนจะยอมแพ้ */
+    const fb = BGM.mode==="boss" ? "battle" : BGM.mode==="battle" ? "calm" : null;
+    if(fb){ BGM._fellBack=BGM.mode; BGM.mode=fb; a.src=BGM_TRACKS[fb].url(); if(BGM.on) a.play().catch(()=>{}); bgmRender(); return; }
+    BGM.missing=true; bgmRender();
+  };
   a.onplaying=()=>{ BGM.started=true; bgmRender(); };
   a.onpause=bgmRender;
   BGM.a=a; return a;
@@ -2879,7 +2884,7 @@ function bgmRender(){
   if(p) p.textContent = playing ? "⏸ หยุดเพลง" : "▶ เปิดเพลง";
   if(m) m.textContent = BGM.vol===0 ? "🔈 เปิดเสียง" : "🔇 ปิดเสียง";
   if(v) v.value = Math.round(BGM.vol*100);
-  if(meta) meta.textContent = BGM.missing ? "ยังไม่มีไฟล์เพลง (bgm.mp3)" : `${BGM.mode==="battle"?"⚔️":"🎵"} ${BGM_TRACKS[BGM.mode].title()} · ${BGM.mode==="battle"?"เพลงสู้ (ดวล/บอสใกล้ล้ม)":"เล่นวนไปเรื่อย ๆ"} · ${C.BGM_CREDIT||""}`.replace(/ · $/,"");
+  if(meta){ const t=BGM_TRACKS[BGM.mode]; meta.textContent = BGM.missing ? "ยังไม่มีไฟล์เพลง (bgm.mp3)" : `${t.icon} ${t.title()} · ${t.label} · ${C.BGM_CREDIT||""}`.replace(/ · $/,""); }
 }
 $("bgmBtn").onclick=()=>{
   const pop=$("bgmPop"); $("moreMenu").hidden=true; $("bellMenu").hidden=true;

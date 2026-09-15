@@ -89,8 +89,10 @@ window.CFG = {
   /* ---- 7b. เพลงประกอบ (ไฟล์ bgm.mp3 ที่รากเว็บ · เปิด/ปิดได้จากปุ่มลำโพงบน HUD) ---- */
   BGM_URL:    "bgm.mp3",                       // เพลงปกติ เล่นวนทั้งวัน
   BGM_TITLE:  "Chillhop Jazz Sunny Cafe · alex-morgan",
-  BGM_BATTLE_URL:   "bgm-battle.mp3",          // เพลงสู้: ตอนกำลังดวล หรือบอสประจำสัปดาห์เหลือเลือดต่ำกว่า BGM_BOSS_HP
+  BGM_BATTLE_URL:   "bgm-battle.mp3",          // เพลงดวล: เล่นให้คนที่กำลังดวลอยู่
   BGM_BATTLE_TITLE: "Friendly Town · Cyberwave-Orchestra",
+  BGM_BOSS_URL:     "bgm-boss.mp3",            // เพลงบอส: ทุกคนได้ยิน เมื่อบอสสัปดาห์นี้เหลือเลือดต่ำกว่า BGM_BOSS_HP (ยังไม่มีไฟล์ = ใช้เพลงดวลแทน)
+  BGM_BOSS_TITLE:   "Boss Battle",
   BGM_BOSS_HP: 200,
   BGM_CREDIT: "Pixabay Content License",
 
