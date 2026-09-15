@@ -520,6 +520,8 @@
   .chip.bgm.nudge{animation:bgmNudge 1.2s ease-in-out infinite}
   @keyframes bgmNudge{ 50%{transform:scale(1.15); box-shadow:0 0 12px rgba(94,240,140,.7)} }
   .bgmPop{right:56px; min-width:240px; padding:10px}
+  .bgmPop.fromFab{position:fixed; right:14px; bottom:148px; top:auto; margin:0}
+  @media(max-width:700px){ .bgmPop.fromFab{bottom:calc(200px + env(safe-area-inset-bottom))} }
   .bgmRow{display:flex; gap:8px; align-items:center; margin-bottom:8px}
   .bgmRow .btn{flex:1; min-height:36px}
   .bgmRow input[type=range]{flex:1; accent-color:#ffcc4d}

@@ -92,8 +92,9 @@ window.CFG = {
   BGM_BATTLE_URL:   "bgm-battle.mp3",          // เพลงดวล: เล่นให้คนที่กำลังดวลอยู่
   BGM_BATTLE_TITLE: "Friendly Town · Cyberwave-Orchestra",
   BGM_BOSS_URL:     "bgm-boss.mp3",            // เพลงบอส: ทุกคนได้ยิน เมื่อบอสสัปดาห์นี้เหลือเลือดต่ำกว่า BGM_BOSS_HP (ยังไม่มีไฟล์ = ใช้เพลงดวลแทน)
-  BGM_BOSS_TITLE:   "Boss Battle",
+  BGM_BOSS_TITLE:   "RPG Battle · NickPanek",
   BGM_BOSS_HP: 200,
+  BGM_VOLUME: 0.2,                              // ความดังเริ่มต้น (0–1) เบา ๆ ไม่หนวกหู · เพลงดวล/บอสถูกลดลงอีก 40% ให้เท่ากับเพลงชิล
   BGM_CREDIT: "Pixabay Content License",
 
   /* ---- 8. โหมดแสดงผลเริ่มต้น --------------------------------

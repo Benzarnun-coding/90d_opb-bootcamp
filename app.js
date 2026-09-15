@@ -2829,10 +2829,20 @@ const SFX={
 };
 /* ---- เพลงประกอบ (BGM): เล่นวนเบา ๆ เปิด/ปิด/ปรับความดังได้ตลอด จำค่าไว้ในเครื่อง
    เบราว์เซอร์ห้ามเล่นเสียงเองก่อนผู้ใช้แตะจอ → ปุ่มลำโพงกะพริบชวนแตะ แล้วเริ่มเล่นตอนแตะครั้งแรก ---- */
-const BGM={ a:null, on:true, vol:.35, started:false, missing:false, mode:"calm" };
-const BGM_TRACKS={ calm:  {url:()=>C.BGM_URL||"bgm.mp3",             title:()=>C.BGM_TITLE||"เพลงประกอบ",      icon:"🎵", label:"เล่นวนไปเรื่อย ๆ"},
-                   battle:{url:()=>C.BGM_BATTLE_URL||"bgm-battle.mp3", title:()=>C.BGM_BATTLE_TITLE||"เพลงดวล",  icon:"⚔️", label:"เพลงดวล (คุณกำลังดวลอยู่)"},
-                   boss:  {url:()=>C.BGM_BOSS_URL||"bgm-boss.mp3",     title:()=>C.BGM_BOSS_TITLE||"เพลงบอส",    icon:"👹", label:"เพลงบอส (บอสใกล้ล้ม ทุกคนได้ยิน)"} };
+const BGM={ a:null, on:true, vol:(+C.BGM_VOLUME>0 ? +C.BGM_VOLUME : .2), started:false, missing:false, mode:"calm" };
+/* gain = ตัวคูณต่อเพลง: เพลงดวล/บอสมิกซ์มาดังกว่าเพลงชิล เลยกดลงให้ฟังแล้วดังพอ ๆ กัน */
+const BGM_TRACKS={ calm:  {url:()=>C.BGM_URL||"bgm.mp3",             title:()=>C.BGM_TITLE||"เพลงประกอบ",      icon:"🎵", label:"เล่นวนไปเรื่อย ๆ", gain:1},
+                   battle:{url:()=>C.BGM_BATTLE_URL||"bgm-battle.mp3", title:()=>C.BGM_BATTLE_TITLE||"เพลงดวล",  icon:"⚔️", label:"เพลงดวล (คุณกำลังดวลอยู่)", gain:.6},
+                   boss:  {url:()=>C.BGM_BOSS_URL||"bgm-boss.mp3",     title:()=>C.BGM_BOSS_TITLE||"เพลงบอส",    icon:"👹", label:"เพลงบอส (บอสใกล้ล้ม ทุกคนได้ยิน)", gain:.6} };
+/* ค่อย ๆ ไล่ความดังไปหาเป้า (1.5 วิ) ไม่ให้เพลงโผล่มาดังปุ๊บ */
+function bgmApplyVol(instant){
+  const a=BGM.a; if(!a) return;
+  const target=Math.max(0, Math.min(1, BGM.vol*(BGM_TRACKS[BGM.mode]||BGM_TRACKS.calm).gain));
+  clearInterval(BGM._fade);
+  if(instant || Math.abs(a.volume-target)<.02){ a.volume=target; return; }
+  const from=a.volume, steps=15; let i=0;
+  BGM._fade=setInterval(()=>{ i++; a.volume=from+(target-from)*(i/steps); if(i>=steps){ a.volume=target; clearInterval(BGM._fade); } }, 100);
+}
 /* โหมดเพลง: บอสสัปดาห์นี้ใกล้ล้ม → เพลงบอส (ทุกคน) · กำลังดวล → เพลงดวล · ไม่งั้นเพลงชิล */
 function bgmMode(){
   const cw=curWeek(), lim=+C.BGM_BOSS_HP||200;
@@ -2845,19 +2855,19 @@ function bgmMode(){
 function bgmSync(){
   const mode=bgmMode(); if(mode===BGM.mode) return;
   BGM.mode=mode;
-  if(BGM.a){ const wasPlaying=!BGM.a.paused; BGM.a.src=BGM_TRACKS[mode].url(); if(wasPlaying) BGM.a.play().catch(()=>{}); }
+  if(BGM.a){ const wasPlaying=!BGM.a.paused; BGM.a.src=BGM_TRACKS[mode].url(); BGM.a.volume=0; if(wasPlaying) BGM.a.play().then(()=>bgmApplyVol()).catch(()=>{}); }
   if(BGM.a && !BGM.a.paused) toast(mode==="boss" ? "👹 บอสใกล้ล้ม! เพลงบอสมาแล้ว" : mode==="battle" ? "⚔️ เพลงดวล! สู้เขา" : "☕ กลับมาเพลงชิล");
   bgmRender();
 }
 try{ BGM.on = localStorage.getItem("bgm.on")!=="0"; const v=+localStorage.getItem("bgm.vol"); if(v>=0 && v<=1 && localStorage.getItem("bgm.vol")!=null) BGM.vol=v; }catch(e){}
 function bgmAudio(){
   if(BGM.a) return BGM.a;
-  const a=new Audio(); a.loop=true; a.preload="none"; a.volume=BGM.vol;
+  const a=new Audio(); a.loop=true; a.preload="none"; a.volume=0;              // เริ่มเงียบแล้วเฟดขึ้น
   BGM.mode=bgmMode(); a.src = BGM_TRACKS[BGM.mode].url();            // ไฟล์วางไว้ที่รากเว็บ (deploy แบบ flat)
   a.onerror=()=>{
     /* ไฟล์เพลงบอส/ดวลยังไม่มี → ถอยไปใช้เพลงดวล แล้วเพลงชิล ก่อนจะยอมแพ้ */
     const fb = BGM.mode==="boss" ? "battle" : BGM.mode==="battle" ? "calm" : null;
-    if(fb){ BGM._fellBack=BGM.mode; BGM.mode=fb; a.src=BGM_TRACKS[fb].url(); if(BGM.on) a.play().catch(()=>{}); bgmRender(); return; }
+    if(fb){ BGM._fellBack=BGM.mode; BGM.mode=fb; a.src=BGM_TRACKS[fb].url(); a.volume=0; if(BGM.on) a.play().then(()=>bgmApplyVol()).catch(()=>{}); bgmRender(); return; }
     BGM.missing=true; bgmRender();
   };
   a.onplaying=()=>{ BGM.started=true; bgmRender(); };
@@ -2866,7 +2876,7 @@ function bgmAudio(){
 }
 async function bgmPlay(){
   const a=bgmAudio(); if(BGM.missing) return;
-  try{ a.volume=BGM.vol; await a.play(); BGM.on=true; }catch(e){ /* ยังไม่มี gesture หรือโหลดไม่ได้ */ }
+  try{ a.volume=0; await a.play(); BGM.on=true; bgmApplyVol(); }catch(e){ /* ยังไม่มี gesture หรือโหลดไม่ได้ */ }
   bgmSave(); bgmRender();
 }
 function bgmStop(){ if(BGM.a) BGM.a.pause(); BGM.on=false; bgmSave(); bgmRender(); }
@@ -2886,22 +2896,35 @@ function bgmRender(){
   if(v) v.value = Math.round(BGM.vol*100);
   if(meta){ const t=BGM_TRACKS[BGM.mode]; meta.textContent = BGM.missing ? "ยังไม่มีไฟล์เพลง (bgm.mp3)" : `${t.icon} ${t.title()} · ${t.label} · ${C.BGM_CREDIT||""}`.replace(/ · $/,""); }
 }
+function bgmOpenPop(fromFab){
+  const pop=$("bgmPop"); $("moreMenu").hidden=true; $("bellMenu").hidden=true;
+  pop.classList.toggle("fromFab", !!fromFab); pop.hidden=false; bgmRender();
+}
 $("bgmBtn").onclick=()=>{
+  if($("bgmBtn")._long){ $("bgmBtn")._long=false; return; }        // เพิ่งกดค้าง → เมนูเปิดแล้ว ไม่ต้องทำซ้ำ
   const pop=$("bgmPop"); $("moreMenu").hidden=true; $("bellMenu").hidden=true;
   if(!BGM.started && BGM.on && !BGM.missing){ bgmPlay(); }          // แตะครั้งแรก = เริ่มเล่นเลย ไม่ต้องเปิดเมนู
-  else pop.hidden=!pop.hidden;
+  else { pop.classList.remove("fromFab"); pop.hidden=!pop.hidden; }
   bgmRender();
 };
 $("bgmPlay").onclick=()=>{ (BGM.a && !BGM.a.paused) ? bgmStop() : bgmPlay(); };
-/* ปุ่มลอย: โผล่เมื่อ HUD เลื่อนพ้นจอ (จะได้ปิดเพลงได้ทุกที่) · กด = หยุด/เล่นทันที */
-$("bgmFab").onclick=()=>{ if(BGM.missing) return toast("ยังไม่มีไฟล์เพลง"); (BGM.a && !BGM.a.paused) ? bgmStop() : bgmPlay(); };
+/* ปุ่มลอย: โผล่เมื่อ HUD เลื่อนพ้นจอ (จะได้ปิดเพลงได้ทุกที่) · กดสั้น = หยุด/เล่น · กดค้าง = เมนูปรับความดัง */
+$("bgmFab").onclick=()=>{ if($("bgmFab")._long){ $("bgmFab")._long=false; return; } if(BGM.missing) return toast("ยังไม่มีไฟล์เพลง"); (BGM.a && !BGM.a.paused) ? bgmStop() : bgmPlay(); };
+/* กดค้าง 0.45 วิ ที่ลำโพงตัวไหนก็ได้ → เปิดเมนูความดัง (ปุ่มบน HUD แตะสั้นก็เปิดได้เมื่อเพลงเริ่มแล้ว) */
+[["bgmBtn",false],["bgmFab",true]].forEach(([id,fromFab])=>{
+  const el=$(id); let t=null;
+  const start=e=>{ if(e.pointerType==="mouse" && e.button!==0) return; clearTimeout(t); t=setTimeout(()=>{ el._long=true; bgmOpenPop(fromFab); if(navigator.vibrate) navigator.vibrate(15); }, 450); };
+  const end=()=>clearTimeout(t);
+  el.addEventListener("pointerdown", start); el.addEventListener("pointerup", end); el.addEventListener("pointerleave", end); el.addEventListener("pointercancel", end);
+  el.addEventListener("contextmenu", e=>e.preventDefault());       // กดค้างบนมือถือไม่ให้เด้งเมนูคัดลอก
+});
 if("IntersectionObserver" in window){
   const hud=document.querySelector(".hud");
   if(hud) new IntersectionObserver(es=>{ $("bgmFab").hidden = es[0].isIntersecting || BGM.missing || !$("scArena").classList.contains("on"); }).observe(hud);
 }
-$("bgmMute").onclick=()=>{ if(BGM.vol===0){ BGM.vol=BGM._lastVol||.35; } else { BGM._lastVol=BGM.vol; BGM.vol=0; } if(BGM.a) BGM.a.volume=BGM.vol; bgmSave(); bgmRender(); };
-$("bgmVol").oninput=e=>{ BGM.vol=(+e.target.value)/100; if(BGM.a) BGM.a.volume=BGM.vol; bgmSave(); bgmRender(); };
-document.addEventListener("click", e=>{ if(!e.target.closest("#bgmPop") && !e.target.closest("#bgmBtn")) $("bgmPop").hidden=true; });
+$("bgmMute").onclick=()=>{ if(BGM.vol===0){ BGM.vol=BGM._lastVol||(+C.BGM_VOLUME||.2); } else { BGM._lastVol=BGM.vol; BGM.vol=0; } bgmApplyVol(true); bgmSave(); bgmRender(); };
+$("bgmVol").oninput=e=>{ BGM.vol=(+e.target.value)/100; bgmApplyVol(true); bgmSave(); bgmRender(); };
+document.addEventListener("click", e=>{ if(!e.target.closest("#bgmPop") && !e.target.closest("#bgmBtn") && !e.target.closest("#bgmFab")) $("bgmPop").hidden=true; });
 /* แตะจอครั้งแรกที่ไหนก็ได้ → ถ้าเคยเปิดเพลงไว้ (หรือค่าเริ่มต้น) เริ่มเล่นให้เอง */
 document.addEventListener("pointerdown", function firstTap(){ if(BGM.on && !BGM.started) bgmPlay(); if(BGM.started||BGM.missing) document.removeEventListener("pointerdown", firstTap); }, {passive:true});
 /* สลับแท็บ/พับจอ → หยุดชั่วคราว กลับมาแล้วเล่นต่อ ไม่กินแบตตอนไม่ได้ดู */
