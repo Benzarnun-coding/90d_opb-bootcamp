@@ -2853,6 +2853,8 @@ function bgmRender(){
   b.classList.toggle("playing", playing);
   b.classList.toggle("nudge", !BGM.missing && BGM.on && !playing && !BGM.started);   // ยังไม่ได้แตะ → ชวนแตะ
   b.title = BGM.missing ? "ยังไม่มีไฟล์เพลง" : playing ? "เพลงเล่นอยู่ · แตะเพื่อตั้งค่า" : "แตะเพื่อเปิดเพลง";
+  const f=$("bgmFab");
+  if(f){ f.textContent=b.textContent; f.classList.toggle("playing", playing); f.classList.toggle("nudge", b.classList.contains("nudge")); f.title = playing ? "หยุดเพลง" : "เปิดเพลง"; }
   const p=$("bgmPlay"), m=$("bgmMute"), v=$("bgmVol"), meta=$("bgmMeta");
   if(p) p.textContent = playing ? "⏸ หยุดเพลง" : "▶ เปิดเพลง";
   if(m) m.textContent = BGM.vol===0 ? "🔈 เปิดเสียง" : "🔇 ปิดเสียง";
@@ -2866,6 +2868,12 @@ $("bgmBtn").onclick=()=>{
   bgmRender();
 };
 $("bgmPlay").onclick=()=>{ (BGM.a && !BGM.a.paused) ? bgmStop() : bgmPlay(); };
+/* ปุ่มลอย: โผล่เมื่อ HUD เลื่อนพ้นจอ (จะได้ปิดเพลงได้ทุกที่) · กด = หยุด/เล่นทันที */
+$("bgmFab").onclick=()=>{ if(BGM.missing) return toast("ยังไม่มีไฟล์เพลง"); (BGM.a && !BGM.a.paused) ? bgmStop() : bgmPlay(); };
+if("IntersectionObserver" in window){
+  const hud=document.querySelector(".hud");
+  if(hud) new IntersectionObserver(es=>{ $("bgmFab").hidden = es[0].isIntersecting || BGM.missing || !$("scArena").classList.contains("on"); }).observe(hud);
+}
 $("bgmMute").onclick=()=>{ if(BGM.vol===0){ BGM.vol=BGM._lastVol||.35; } else { BGM._lastVol=BGM.vol; BGM.vol=0; } if(BGM.a) BGM.a.volume=BGM.vol; bgmSave(); bgmRender(); };
 $("bgmVol").oninput=e=>{ BGM.vol=(+e.target.value)/100; if(BGM.a) BGM.a.volume=BGM.vol; bgmSave(); bgmRender(); };
 document.addEventListener("click", e=>{ if(!e.target.closest("#bgmPop") && !e.target.closest("#bgmBtn")) $("bgmPop").hidden=true; });

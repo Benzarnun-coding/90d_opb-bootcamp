@@ -524,6 +524,13 @@
   .bgmRow .btn{flex:1; min-height:36px}
   .bgmRow input[type=range]{flex:1; accent-color:#ffcc4d}
   .bgmMeta{font-size:11px; color:var(--dim); line-height:1.4}
+  /* ลำโพงลอย: โผล่เมื่อเลื่อนจน HUD หลุดจอ กดแล้วหยุด/เล่นได้ทันที */
+  .bgmFab{position:fixed; right:14px; bottom:96px; z-index:40; width:44px; height:44px; font-size:20px; cursor:pointer; color:#fff;
+    background:linear-gradient(180deg,#4b41a8,#2e2678 60%,#1e1856); border:3px solid; border-color:#8f86e6 #150f3a #150f3a #8f86e6; box-shadow:0 4px 0 rgba(0,0,0,.5)}
+  .bgmFab.playing{color:#5ef08c; border-color:#5ef08c #0f4a28 #0f4a28 #5ef08c}
+  .bgmFab.nudge{animation:bgmNudge 1.2s ease-in-out infinite}
+  .bgmFab[hidden]{display:none}
+  @media(max-width:700px){ .bgmFab{bottom:calc(148px + env(safe-area-inset-bottom))} }
   /* กล่องขอฟีเจอร์ / แจ้งบั๊ก */
   .fbForm{padding:12px; background:#120d30; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a; margin-bottom:14px}
   .fbKinds{display:flex; gap:8px; margin-bottom:8px}
@@ -1488,6 +1495,7 @@
 </div></div>
 <button id="toTop" class="toTop" hidden title="กลับขึ้นบน">⬆</button>
 <button id="fab" class="fab" hidden>＋ ส่งงาน</button>
+<button id="bgmFab" class="bgmFab" hidden title="เพลงประกอบ">🔊</button>
 
 <div id="toast"></div>
 <div id="wm" class="wm"></div>
