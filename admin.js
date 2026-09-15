@@ -559,9 +559,9 @@ $("houses").onclick = e => {
 };
 /* ต้องผูกกับแถบกรองของ "รายชื่อ" ไม่ใช่ .filters ตัวแรกในหน้า (แถบภาพรวมรุ่น) ไม่งั้นปุ่ม ทั้งหมด/ยังไม่สมัคร/สมัครแล้ว กดไม่ติด */
 ([...document.querySelectorAll(".filters")].find(f=>f.querySelector(".fBtn[data-f]")) || document.querySelector(".filters")).onclick = e => {
-  const b = e.target.closest(".fBtn"); if(!b) return;
+  const b = e.target.closest(".fBtn"); if(!b || !b.dataset.f) return;
   filter = b.dataset.f;
-  document.querySelectorAll(".fBtn").forEach(x=>x.classList.toggle("on", x===b));
+  b.closest(".filters").querySelectorAll(".fBtn").forEach(x=>x.classList.toggle("on", x===b));   // เฉพาะแถบนี้ ไม่ไปล้างไฮไลต์แถบ feedback
   render();
 };
 $("q").oninput = e => { q = e.target.value.trim(); render(); };

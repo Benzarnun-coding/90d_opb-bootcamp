@@ -2034,9 +2034,13 @@ function applyPlatFocus(){
   const cur=sel.value;
   sel.innerHTML=list.map(p=>`<option>${p}</option>`).join("");
   if(list.includes(cur)) sel.value=cur;
-  const hint=$("platHint");
-  if(hint && focus && focus.length) hint.textContent=`🎯 สัปดาห์นี้โฟกัส ${focus.join(" · ")} — เปลี่ยนได้ตอนรับเป้าสัปดาห์หน้า`;
-  else if(hint && S.platLimit && !S.platPick) hint.textContent=`🎯 บ้านคุณต้องเลือกแพลตฟอร์มโฟกัส ${S.platLimit} อัน ตอนรับเป้าสัปดาห์นี้`;
+  const hint=$("platHint"); if(!hint) return;
+  /* เขียนคำใบ้เฉพาะตอนช่องลิงก์ยังว่าง หรือโฟกัสเปลี่ยน — ไม่งั้น refresh ทุก 2 วิจะลบข้อความ "✓ เลือก TikTok ให้แล้ว" ที่เพิ่งขึ้น */
+  const key=focus ? focus.join(",") : (S.platLimit ? "need" : "");
+  if(hint.dataset.focus===key && ($("url").value||"").trim()) return;
+  hint.dataset.focus=key;
+  if(focus && focus.length) hint.textContent=`🎯 สัปดาห์นี้โฟกัส ${focus.join(" · ")} — เปลี่ยนได้ตอนรับเป้าสัปดาห์หน้า`;
+  else if(S.platLimit && !S.platPick) hint.textContent=`🎯 บ้านคุณต้องเลือกแพลตฟอร์มโฟกัส ${S.platLimit} อัน ตอนรับเป้าสัปดาห์นี้`;
 }
 
 /* ================= EVENTS ================= */
@@ -2184,7 +2188,7 @@ $("plSave").onclick=async()=>{
   try{
     await DB.setPledge(curWeek(), pickPledge, S.platLimit ? pickPlats : null);
     await refresh();
-    $("pledgeModal").classList.remove("on");
+    closeModal($("pledgeModal"));
     const o=optOf(pickPledge);
     toast(o.style==="flame" ? `🔥 ${o.name}<br>ตัวละครติดไฟแล้ว`
         : o.style==="red" ? `🔥 ${o.name}<br>ไฟแดงลุกทั้งตัวสัปดาห์นี้`
@@ -2554,7 +2558,7 @@ $("helpBtn").onclick=()=>{ $("moreMenu").hidden=true; $("helpModal").classList.a
 /* ---- ขอฟีเจอร์ / แจ้งบั๊ก + โหวต ---- */
 let fbKind="idea";
 const FB_ST={new:"ใหม่", planned:"รับแล้ว กำลังทำ", done:"ทำแล้ว ✅", rejected:"ไม่ทำ"};
-function fbPage(){ const p=document.querySelector(".page.on"); return (p&&p.id||"")+(S.subTab?"/"+S.subTab:""); }
+function fbPage(){ const p=document.querySelector(".page.on"), st=document.querySelector("#subTabs button.on"); return (p&&p.id||"")+(st&&st.dataset.st?"/"+st.dataset.st:""); }
 async function renderFeedback(){
   const box=$("fbList"); if(!box) return;
   try{
@@ -2929,10 +2933,11 @@ if("IntersectionObserver" in window){
 $("bgmVol").oninput=e=>{ const v=(+e.target.value)/100; if(BGM.vol>0 && v===0) BGM._lastVol=BGM.vol; BGM.vol=v; bgmApplyVol(true); bgmSave(); bgmRender(); };
 document.addEventListener("click", e=>{ if(!e.target.closest("#bgmPop,#bgmBtn,#bgmFab,#bgmMenuBtn")) $("bgmPop").hidden=true; });
 /* แตะจอครั้งแรกที่ไหนก็ได้ → ถ้าเคยเปิดเพลงไว้ (หรือค่าเริ่มต้น) เริ่มเล่นให้เอง */
-document.addEventListener("pointerdown", function firstTap(e){
+/* ใช้ pointerup ไม่ใช่ pointerdown: บนมือถือ (touch) เบราว์เซอร์นับว่า "ผู้ใช้แตะแล้ว" ตอนปล่อยนิ้ว ถ้าสั่ง play ตอนกดจะโดนปฏิเสธเงียบ ๆ */
+document.addEventListener("pointerup", function firstTap(e){
   if(e.target.closest("#bgmBtn,#bgmFab,#bgmPop")) return;         // แตะที่ลำโพงเอง ให้ปุ่มจัดการ ไม่งั้นเริ่มแล้วโดนปิดทันที
   if(BGM.on && !BGM.started) bgmPlay();
-  if(BGM.started||BGM.missing) document.removeEventListener("pointerdown", firstTap);
+  if(BGM.started||BGM.missing) document.removeEventListener("pointerup", firstTap);
 }, {passive:true});
 /* สลับแท็บ/พับจอ → หยุดชั่วคราว กลับมาแล้วเล่นต่อ ไม่กินแบตตอนไม่ได้ดู */
 document.addEventListener("visibilitychange", ()=>{ if(!BGM.a) return; if(document.hidden){ BGM._wasPlaying=!BGM.a.paused; BGM.a.pause(); } else if(BGM._wasPlaying && BGM.on){ BGM.a.play().catch(()=>{}); } });
@@ -3126,7 +3131,7 @@ document.addEventListener("click", async e=>{
     if(act==="done"){ const d=(S.duels||[]).find(x=>x.id===id); if(d){ const me=meId(); toast(d.winner===me?"🏆 คุณชนะ! เลือกหมวกให้ผู้แพ้ได้เลย":d.winner?"แพ้แล้ว 😵 ต้องใส่หมวกที่เขาเลือก 7 วัน":"เสมอ ไม่มีใครต้องใส่หมวก"); } }
     if(act==="prize"){ toast("ส่งหมวกให้ผู้แพ้แล้ว 😈"); }
     if(act==="declined"){ toast("ปฏิเสธคำท้าแล้ว"); }
-    $("duelModal").classList.remove("on");
+    closeModal($("duelModal"));
   }catch(err){ toast(err.message); b.disabled=false; }
 });
 
@@ -3185,7 +3190,7 @@ function duelWatch(){
     if(d.challenger!==id && d.opponent!==id) return;
     const key=`${d.id}:${d.status}:${d.prize_hat==null?"":"h"}`;
     next[key]=1;
-    if(d.status==="pending" && d.opponent===id){ if(!openDuelPop._dis.has(d.id)) openDuelPop(d); openDuelPop._dis.add(d.id); return; }   // เด้งครั้งเดียวต่อการเปิดหน้า ที่เหลือมีแถบในการ์ดเป้าให้กด
+    if(d.status==="pending" && d.opponent===id){ if(!openDuelPop._dis.has(d.id) && openDuelPop(d)!==false) openDuelPop._dis.add(d.id); return; }   // เด้งครั้งเดียวต่อการเปิดหน้า (นับเฉพาะที่เด้งจริง) ที่เหลือมีแถบในการ์ดเป้าให้กด
     if(seen[key] || fresh) return;
     const other = d.challenger===id ? d.opponent_name : d.challenger_name;
     if(d.challenger===id && d.status==="declined"){ toast(`😔 <b>${other}</b> ปฏิเสธคำท้าดวล<br>ท้าคนอื่นได้เลย`); }
@@ -3195,7 +3200,7 @@ function duelWatch(){
   try{ localStorage.setItem(DUEL_SEEN, JSON.stringify(next)); }catch(e){}
 }
 function openDuelPop(d){
-  if(openDuelPop._dis.has(d.id) || $("duelModal").classList.contains("on")) return;
+  if(openDuelPop._dis.has(d.id) || $("duelModal").classList.contains("on")) return false;   // false = ไม่ได้เด้ง (คนเรียกจะได้ไม่นับว่าเห็นแล้ว)
   const ch=S.runners.find(x=>x.id===d.challenger), me=meR();
   const box=(r,nm)=>`<div>${r?sprite(avOf(r),5,"normal"):""}<div class="nm" style="color:${r?nameColor(r):"#fff"}">${nm}</div></div>`;
   $("duelPopBody").innerHTML=`<div class="duelPop">
@@ -3206,7 +3211,7 @@ function openDuelPop(d){
   $("duelModal").dataset.id=d.id; $("duelModal").classList.add("on"); SFX.unlock();
 }
 openDuelPop._dis=new Set();
-$("duelPopClose").onclick=()=>{ openDuelPop._dis.add(+$("duelModal").dataset.id); $("duelModal").classList.remove("on"); };
+$("duelPopClose").onclick=()=>{ openDuelPop._dis.add(+$("duelModal").dataset.id); closeModal($("duelModal")); };
 
 /* ---- บอสประจำสัปดาห์ (หัวหน้าโค้ชตั้ง) ---- */
 /* 🏅 บอร์ดนักเรียนดีเด่น — ใครส่งงานช่วงปิดเทอมบ้าง */
