@@ -1,6 +1,3 @@
-node_modules/
-.DS_Store
-Thumbs.db
-*.log
-.netlify/
-.claude/
+dist/
+backend/ops/warm.log
+backend/ops/warm-verify.log
