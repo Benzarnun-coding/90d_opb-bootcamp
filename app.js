@@ -531,6 +531,12 @@ const DemoDB = (()=>{
       return {byDay, weeks, early:my.some(s=>new Date(s.ts).getHours()<6),
               recent:[...my].sort((a,b)=>b.ts-a.ts)};
     },
+    /* ---- ขอฟีเจอร์ (จำลองในเครื่อง) ---- */
+    async feedbackList(){ db.feedback=db.feedback||[]; const me=db.runners.find(r=>r.name===db.me);
+      return db.feedback.map(f=>Object.assign({},f,{votes:(f.voters||[]).length, mine:(f.voters||[]).includes(me.id), own:f.profile_id===me.id})).sort((a,b)=>b.votes-a.votes||b.id-a.id); },
+    async feedbackSend(kind,text,page){ db.feedback=db.feedback||[]; const me=db.runners.find(r=>r.name===db.me);
+      db.feedback.push({id:uid++, kind, text, page, status:"new", admin_note:null, created_at:new Date().toISOString(), profile_id:me.id, author:me.name, house_id:me.house, voters:[]}); save(); },
+    async feedbackVote(id,on){ const f=(db.feedback||[]).find(x=>x.id===id); if(!f) return; const me=db.runners.find(r=>r.name===db.me); f.voters=(f.voters||[]).filter(v=>v!==me.id); if(on) f.voters.push(me.id); save(); },
     /* ---- สังคม (จำลองในเครื่อง) ---- */
     async cheer(toId, emoji){
       db.cheers=db.cheers||[]; const me=db.runners.find(x=>x.name===db.me);
@@ -938,6 +944,25 @@ const LiveDB = (()=>{
     async checkin(sessionId){
       const {error}=await sb.from("checkins").insert({session_id:sessionId, profile_id:session.user.id});
       if(error){ if(error.code==="23505") return; throw new Error(/policy/i.test(error.message)?"เช็คอินได้เฉพาะช่วงเวลาเรียนสด":error.message); }
+    },
+    /* ---- ขอฟีเจอร์ / แจ้งบั๊ก (044) ---- */
+    async feedbackList(){
+      const [{data:rows,error},{data:mine}] = await Promise.all([
+        sb.from("v_feedback").select("*").order("votes",{ascending:false}).order("created_at",{ascending:false}).limit(200),
+        session ? sb.from("feedback_votes").select("feedback_id").eq("profile_id",session.user.id) : Promise.resolve({data:[]})
+      ]);
+      if(error) throw new Error(error.message);
+      const my=new Set((mine||[]).map(v=>v.feedback_id));
+      return (rows||[]).map(r=>Object.assign(r,{mine:my.has(r.id), own:session && r.profile_id===session.user.id}));
+    },
+    async feedbackSend(kind, text, page){
+      const {error}=await sb.from("feedback").insert({profile_id:session.user.id, kind, text, page});
+      if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
+    },
+    async feedbackVote(id, on){
+      const q = on ? sb.from("feedback_votes").insert({feedback_id:id, profile_id:session.user.id})
+                   : sb.from("feedback_votes").delete().eq("feedback_id",id).eq("profile_id",session.user.id);
+      const {error}=await q; if(error && error.code!=="23505") throw new Error(error.message);
     },
     /* ---- สังคม: เชียร์ / ดวล / ลบงานล่าสุด / push ---- */
     async cheer(toId, emoji){
@@ -2525,6 +2550,45 @@ function maybeOnboard(){
   });
 }
 $("helpBtn").onclick=()=>{ $("moreMenu").hidden=true; $("helpModal").classList.add("on"); };
+/* ---- ขอฟีเจอร์ / แจ้งบั๊ก + โหวต ---- */
+let fbKind="idea";
+const FB_ST={new:"ใหม่", planned:"รับแล้ว กำลังทำ", done:"ทำแล้ว ✅", rejected:"ไม่ทำ"};
+function fbPage(){ const p=document.querySelector(".page.on"); return (p&&p.id||"")+(S.subTab?"/"+S.subTab:""); }
+async function renderFeedback(){
+  const box=$("fbList"); if(!box) return;
+  try{
+    const rows=await DB.feedbackList();
+    if(!rows.length){ box.innerHTML='<div class="fbEmpty">ยังไม่มีคำขอ — เป็นคนแรกเลย</div>'; return; }
+    box.innerHTML=rows.map(r=>`<div class="fbItem ${r.status}" data-id="${r.id}">
+      <button class="fbVote ${r.mine?"on":""}" data-vote="${r.id}" ${S.spectator?"disabled":""} title="${r.mine?"เอาโหวตออก":"โหวตให้อันนี้"}">👍 ${r.votes}</button>
+      <div class="fbBody"><div class="fbMeta">${r.kind==="bug"?"🐛 บั๊ก":"💡 ฟีเจอร์"} · <b>${r.author||"?"}</b>${r.own?" (คุณ)":""} · ${new Date(r.created_at).toLocaleDateString("th-TH",{day:"numeric",month:"short"})}<span class="fbSt ${r.status}">${FB_ST[r.status]||r.status}</span></div>
+        <p>${String(r.text).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}</p>
+        ${r.admin_note?`<div class="fbNote">💬 ทีมงาน: ${String(r.admin_note).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}</div>`:""}</div></div>`).join("");
+  }catch(err){ box.innerHTML=`<div class="fbEmpty">โหลดไม่ได้: ${err.message}</div>`; }
+}
+function openFeedback(){
+  $("moreMenu").hidden=true;
+  $("fbForm").hidden=!!S.spectator;
+  $("fbText").value=""; $("fbCount").textContent="0 / 400";
+  $("fbModal").classList.add("on"); renderFeedback();
+}
+$("fbBtn").onclick=openFeedback;
+document.querySelector(".fbKinds").onclick=e=>{ const b=e.target.closest(".fbKind"); if(!b) return; fbKind=b.dataset.k; document.querySelectorAll(".fbKind").forEach(x=>x.classList.toggle("on",x===b)); };
+$("fbText").oninput=()=>{ $("fbCount").textContent=`${$("fbText").value.length} / 400`; };
+$("fbSend").onclick=async()=>{
+  const text=$("fbText").value.trim();
+  if(text.length<5) return toast("เล่าอีกนิด อย่างน้อย 5 ตัวอักษร");
+  $("fbSend").disabled=true;
+  try{ await DB.feedbackSend(fbKind, text, fbPage()); $("fbText").value=""; $("fbCount").textContent="0 / 400"; toast("ส่งคำขอแล้ว ขอบคุณ 💡"); await renderFeedback(); }
+  catch(err){ toast(err.message); }
+  $("fbSend").disabled=false;
+};
+$("fbList").onclick=async e=>{
+  const b=e.target.closest("[data-vote]"); if(!b || b.disabled) return;
+  const id=+b.dataset.vote, on=!b.classList.contains("on");
+  b.disabled=true;
+  try{ await DB.feedbackVote(id, on); await renderFeedback(); }catch(err){ toast(err.message); b.disabled=false; }
+};
 $("eyeBtn").onclick=()=>{ const p=$("pass"); p.type = p.type==="password" ? "text" : "password"; $("eyeBtn").textContent = p.type==="password" ? "👁" : "🙈"; p.focus(); };
 window.addEventListener("scroll", ()=>{ $("toTop").hidden = window.scrollY < 600; }, {passive:true});
 $("toTop").onclick=()=>window.scrollTo({top:0, behavior:"smooth"});

@@ -47,6 +47,7 @@ async function boot(){
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
+  loadFeedback();
   loadRisk(); loadSessions(); loadRetention(); loadAudit(); loadEngagement(); loadCohortStats();
 }
 /* ---- กลุ่มเสี่ยง ---- */
@@ -291,6 +292,37 @@ $("lcSave").onclick = async ()=>{
   const {error} = await sb.rpc("admin_set_login_code", {c});
   if(error) return toast(error.message);
   $("lcCode").value = ""; toast("บันทึกรหัสรวมแล้ว"); await loadLoginCode();
+};
+
+/* ---- Feedback / feature request (044) ---- */
+let fbScope="open";
+const FB_ST={new:"ใหม่", planned:"รับแล้ว กำลังทำ", done:"ทำแล้ว", rejected:"ไม่ทำ"};
+async function loadFeedback(){
+  const box=$("fbAdmin"); if(!box) return;
+  let q=sb.from("v_feedback").select("*").order("votes",{ascending:false}).order("created_at",{ascending:false}).limit(300);
+  if(fbScope==="open") q=q.in("status",["new","planned"]);
+  const {data,error}=await q;
+  if(error){ box.innerHTML=`<small class="dim">โหลดไม่ได้: ${esc(error.message)}</small>`; return; }
+  if(!data.length){ box.innerHTML='<small class="dim">ไม่มีคำขอในกลุ่มนี้</small>'; return; }
+  box.innerHTML=`<table><thead><tr><th>👍</th><th>ประเภท</th><th>คำขอ</th><th>จาก</th><th>สถานะ</th><th>ตอบกลับ</th><th></th></tr></thead><tbody>`+
+    data.map(r=>`<tr data-fb="${r.id}">
+      <td><b>${r.votes}</b></td><td>${r.kind==="bug"?"🐛 บั๊ก":"💡 ฟีเจอร์"}</td>
+      <td style="max-width:420px;white-space:pre-wrap">${esc(r.text)}<br><small class="dim">${esc(r.page||"")} · ${new Date(r.created_at).toLocaleString("th-TH")}</small></td>
+      <td>${esc(r.author||"")}<br><small class="dim">${(HOUSES.find(h=>h.id===r.house_id)||{}).name||""}</small></td>
+      <td><select data-fbst="${r.id}">${Object.keys(FB_ST).map(k=>`<option value="${k}" ${k===r.status?"selected":""}>${FB_ST[k]}</option>`).join("")}</select></td>
+      <td><input data-fbnote="${r.id}" value="${esc(r.admin_note||"")}" placeholder="โน้ตถึงนักเรียน (ไม่บังคับ)" style="min-width:200px"></td>
+      <td><button class="btn xs" data-fbsave="${r.id}">บันทึก</button></td></tr>`).join("")+`</tbody></table>`;
+}
+$("fbFilters").onclick=e=>{ const b=e.target.closest(".fBtn"); if(!b) return; fbScope=b.dataset.fs; document.querySelectorAll("#fbFilters .fBtn").forEach(x=>x.classList.toggle("on",x===b)); loadFeedback(); };
+$("fbReload").onclick=loadFeedback;
+$("fbAdmin").onclick=async e=>{
+  const b=e.target.closest("[data-fbsave]"); if(!b) return;
+  const id=+b.dataset.fbsave, st=$("fbAdmin").querySelector(`[data-fbst="${id}"]`).value, note=$("fbAdmin").querySelector(`[data-fbnote="${id}"]`).value;
+  b.disabled=true;
+  const {error}=await sb.rpc("admin_feedback_set",{fid:id, st, note});
+  b.disabled=false;
+  if(error) return toast(error.message);
+  toast("บันทึกแล้ว นักเรียนเห็นสถานะใหม่ทันที"); await loadFeedback();
 };
 /* ---- บอสประจำสัปดาห์ ---- */
 let curWeekNo = 1, curSkin = "ogre";

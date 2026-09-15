@@ -515,6 +515,25 @@
     font-family:var(--f-th); font-size:11px; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo)}
   .drOpt svg{display:block; margin:0 auto 5px}
   .drOpt .tileSw{display:block; width:40px; height:40px; margin:0 auto 6px; border:3px solid; border-color:#ffffff55 #00000099 #00000099 #ffffff55}
+  /* กล่องขอฟีเจอร์ / แจ้งบั๊ก */
+  .fbForm{padding:12px; background:#120d30; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a; margin-bottom:14px}
+  .fbKinds{display:flex; gap:8px; margin-bottom:8px}
+  .fbKind{cursor:pointer; padding:8px 12px; min-height:36px; font-family:var(--f-th); font-weight:600; font-size:13px; color:var(--dim); background:#1a1440; border:3px solid; border-color:#4b41a8 #150f3a #150f3a #4b41a8}
+  .fbKind.on{color:#0d0a22; background:linear-gradient(180deg,#ffe08a,#ffcc4d 60%,#c98a12); border-color:#fff3c0 #7a5000 #7a5000 #fff3c0}
+  #fbText{width:100%; box-sizing:border-box; resize:vertical; font-family:var(--f-th); font-size:14px; padding:10px; color:#fff; background:#0d0a22; border:3px solid; border-color:#150f3a #4b41a8 #4b41a8 #150f3a}
+  .fbRow{display:flex; justify-content:space-between; align-items:center; margin-top:8px; color:var(--dim)}
+  .fbHead{margin:6px 0 8px; color:#ffe9a8} .fbHead small{color:var(--dim); margin-left:6px}
+  .fbList{display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow:auto}
+  .fbItem{display:flex; gap:10px; align-items:flex-start; padding:10px 12px; background:#1a1440; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a}
+  .fbItem.done{opacity:.75} .fbItem.rejected{opacity:.5}
+  .fbVote{flex:none; cursor:pointer; min-width:52px; min-height:44px; font-family:var(--f-px); font-weight:700; font-size:14px; color:#fff; background:#2a2270; border:3px solid; border-color:#4b41a8 #150f3a #150f3a #4b41a8}
+  .fbVote.on{color:#0d0a22; background:linear-gradient(180deg,#7dffa8,#2ecc71 60%,#1f8a4a); border-color:#c8ffd9 #0f4a28 #0f4a28 #c8ffd9}
+  .fbVote:disabled{cursor:default; opacity:.6}
+  .fbBody{flex:1; min-width:0} .fbBody p{margin:2px 0 4px; white-space:pre-wrap; word-break:break-word}
+  .fbMeta{font-size:11px; color:var(--dim)} .fbMeta b{color:#cdc7ff}
+  .fbSt{display:inline-block; font-size:10px; padding:1px 6px; margin-left:6px; border:1px solid; vertical-align:middle}
+  .fbSt.new{color:#9fd8ff; border-color:#5aa8e0} .fbSt.planned{color:#ffcc4d; border-color:#c98a12} .fbSt.done{color:#5ef08c; border-color:#1f8a4a} .fbSt.rejected{color:#ff8a80; border-color:#7d2419}
+  .fbNote{margin-top:4px; font-size:12px; color:#ffe9a8} .fbEmpty{color:var(--dim); padding:10px; text-align:center}
   /* โฟกัสแพลตฟอร์มในหน้ารับเป้า */
   #plPlat{margin-top:14px; padding:12px; background:#120d30; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a}
   #plPlat[hidden]{display:none}
@@ -1068,6 +1087,7 @@
     <div class="it" id="installBtn" hidden><i>📲</i><div>ติดตั้งเป็นแอป<small>เปิดจากหน้าจอโฮม รับแจ้งเตือนได้</small></div></div>
     <div class="it" id="pledgeBtn2"><i>🎯</i><div>เปลี่ยนเป้าสัปดาห์นี้</div></div>
     <div class="it" id="taLink" hidden><i>🛡️</i><div>หน้า TA<small>ดูแลบ้านของฉัน · ลบงาน · ย้ายบ้าน</small></div></div>
+    <div class="it" id="fbBtn"><i>💡</i><div>ขอฟีเจอร์ / แจ้งบั๊ก<small>ส่งไอเดีย แล้วโหวตอันที่อยากได้</small></div></div>
     <div class="it" id="outBtn2"><i>⏏</i><div>SIGN OUT</div></div>
   </div>
   <div class="bellMenu bevel" id="bellMenu" hidden></div>
@@ -1344,6 +1364,20 @@
 </div></div>
 
 <!-- ============ WEEKLY RECAP ============ -->
+<!-- ============ FEEDBACK / FEATURE REQUEST ============ -->
+<div class="modal" id="fbModal"><div class="sheet bevel" style="max-width:640px">
+  <div class="titlebar"><h2>💡 ขอฟีเจอร์ / แจ้งบั๊ก</h2><div class="closeX" data-close>✕ ปิด</div></div>
+  <div class="body">
+    <div class="fbForm" id="fbForm">
+      <div class="fbKinds"><button type="button" class="fbKind on" data-k="idea">💡 อยากได้ฟีเจอร์</button><button type="button" class="fbKind" data-k="bug">🐛 เจอบั๊ก</button></div>
+      <textarea id="fbText" maxlength="400" rows="3" placeholder="เล่าสั้น ๆ ว่าอยากให้เกมมีอะไร หรือเจออะไรพัง ตอนทำอะไรอยู่"></textarea>
+      <div class="fbRow"><small id="fbCount">0 / 400</small><button class="btn gold sm" id="fbSend">ส่งคำขอ ▶</button></div>
+    </div>
+    <div class="fbHead"><b>คำขอทั้งหมด</b> <small>กด 👍 ให้อันที่อยากได้ · ทีมงานจะไล่ทำจากที่โหวตเยอะ</small></div>
+    <div id="fbList" class="fbList"><div class="fbEmpty">กำลังโหลด…</div></div>
+  </div>
+</div></div>
+
 <div class="modal" id="recapModal"><div class="sheet bevel" style="max-width:520px">
   <div class="titlebar"><h2 id="recapTitle">WEEK RECAP</h2></div>
   <div class="body">
