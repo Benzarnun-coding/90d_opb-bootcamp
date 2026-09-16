@@ -2254,7 +2254,7 @@ function renderQuests(){ /* รวมอยู่ในการ์ดวัน�
 const DOW_TH=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์"];
 function nextWeekCut(){
   const dow = C.WEEK_CUTOFF_DOW==null ? 3 : +C.WEEK_CUTOFF_DOW;
-  const [hh,mm] = String(C.WEEK_CUTOFF_TIME||"19:30").split(":").map(Number);
+  const [hh,mm] = String(S.weekCut||C.WEEK_CUTOFF_TIME||"20:30").split(":").map(Number);
   /* คิดเป็นเวลาไทยเสมอ: แปลงเวลาเครื่องเป็น UTC+7 ก่อน */
   const now=new Date(); const th=new Date(now.getTime()+ (now.getTimezoneOffset()+420)*60000);
   const d=new Date(th); d.setHours(hh,mm,0,0);
@@ -2275,8 +2275,8 @@ function renderWeekCut(){
   const preVac = S.vacFrom && S.today<S.vacFrom && S.today>=S.vacFrom-7;
   const postVac = noPledgeWeek() && !isVacation();
   $("dlSub").textContent = preVac ? `ส่งการบ้านให้ครบภายใน ${dayDateTH(S.vacFrom-1)} · ${dayDateTH(S.vacFrom)} – ${dayDateTH(S.vacTo)} ปิดเทอม 🏖`
-    : postVac ? `กลับมาแล้ว! งานวันนี้นับรวมยอด · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${C.WEEK_CUTOFF_TIME||"19:30"} น.`
-    : `${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${C.WEEK_CUTOFF_TIME||"19:30"} น. · งานที่ส่งหลังเวลานี้นับเป็นสัปดาห์ถัดไป`;
+    : postVac ? `กลับมาแล้ว! งานวันนี้นับรวมยอด · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"20:30"} น.`
+    : `${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"20:30"} น. · งานที่ส่งหลังเวลานี้นับเป็นสัปดาห์ถัดไป`;
   if(postVac) $("dlLabel").textContent="📅 สัปดาห์ใหม่เริ่มใน";
   box.classList.toggle("soon", ms<24*3600e3);
   /* มือถือ: เห็นเต็มใบครั้งแรกของวัน หลังจากนั้นย่อเป็นแถบ (แตะสลับได้) · ใกล้ตัดรอบ <24 ชม. ไม่ย่อ */
