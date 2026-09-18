@@ -3245,6 +3245,7 @@ function duelWatch(){
     if(seen[key] || fresh) return;
     const other = d.challenger===id ? d.opponent_name : d.challenger_name;
     if(d.challenger===id && d.status==="declined"){ toast(`😔 <b>${other}</b> ปฏิเสธคำท้าดวล<br>ท้าคนอื่นได้เลย`); }
+    else if(d.status==="expired"){ toast(`⌛ คำท้าดวลกับ <b>${other}</b> หมดอายุ (ไม่มีการตอบรับใน 7 วัน)<br>ท้าคนอื่นได้เลย`); }
     else if(d.challenger===id && d.status==="active"){ SFX.fanfare(); toast(`⚔️ <b>${other}</b> รับคำท้าแล้ว!<br>นับตั้งแต่วันนี้ 7 วัน ใครส่งมากกว่าชนะ`); }
     else if(d.status==="done" && d.winner && d.winner!==id && d.prize_hat!=null){ toast(`😈 แพ้ดวล <b>${other}</b><br>ต้องใส่ "${AV.hat[d.prize_hat]}" 7 วัน`); }
   });
