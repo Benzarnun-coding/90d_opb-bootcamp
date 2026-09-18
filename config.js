@@ -71,7 +71,7 @@ window.CFG = {
 
   PLEDGES: [
     { target: 4,  key:"compromise",  name:"COMPROMISE",
-      th:"สัปดาห์นี้งานยุ่ง เอาแค่ไม่หลุด",   unlockWeek:1, style:"normal" },
+      th:"สัปดาห์นี้งานยุ่ง เอาแค่ไม่หลุด",   unlockWeek:1, style:"green" },
     { target: 7,  key:"recommended", name:"RECOMMENDED",
       th:"วันละชิ้น จังหวะที่โตได้จริง",       unlockWeek:1, style:"boost" },
     { target:10,  key:"laser",       name:"LASER FOCUS",

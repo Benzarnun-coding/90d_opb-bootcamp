@@ -139,6 +139,7 @@
   .opChar svg{position:relative; z-index:2}
   .opChar .aura{left:50%; bottom:-6px; width:84px; height:104px; margin-left:-42px}
   .opChar .aura.red{width:52px; height:64px; margin-left:-26px; bottom:-4px}
+  .opChar .aura.green{width:48px; height:58px; margin-left:-24px; bottom:-4px}
   .optCard.red .opChar{filter:drop-shadow(0 0 6px rgba(255,40,70,.9))}
   .optCard.flame .opChar{filter:drop-shadow(0 0 14px rgba(255,200,60,1))}
   .optCard.locked{opacity:.5; cursor:not-allowed}
@@ -302,6 +303,12 @@
   .aura.red i:nth-child(n+4){display:none}
   @keyframes spark{from{transform:translateY(0) scale(1); opacity:.95}
                    to{transform:translateY(-16px) scale(.3); opacity:0}}
+  /* ไฟเขียวของ COMPROMISE (เป้า 4): เล็ก นุ่ม ไม่แย่งซีนไฟแดง/ทอง */
+  .aura.green{width:56px; height:66px; margin-left:-28px; bottom:-6px; animation-duration:.5s;
+    background:radial-gradient(ellipse at 50% 80%,rgba(190,255,215,.9) 0%,rgba(80,230,140,.65) 32%,rgba(30,170,90,.28) 58%,transparent 74%)}
+  .aura.green i{background:linear-gradient(180deg,#d9ffe6,#2ecc71)}
+  .aura.green i:nth-child(n+4){display:none}
+  .runner.green .body{filter:drop-shadow(0 0 6px rgba(94,240,140,.85))}
   .runner.flame .body{filter:drop-shadow(0 0 16px rgba(255,200,60,1)) drop-shadow(0 0 4px rgba(255,80,0,.9))}
   .aura.red{background:radial-gradient(ellipse at 50% 78%,rgba(255,150,150,.95) 0%,rgba(255,40,70,.75) 30%,
                rgba(200,0,40,.4) 52%,transparent 72%)}
@@ -954,6 +961,7 @@
   .myCheer{flex-basis:100%; margin-top:10px; padding:10px 12px; font-size:13px; line-height:1.6; color:#ffe9a8;
     background:linear-gradient(90deg,#3a2a05,#1a1200); border:2px solid var(--gold)}
   .duelBox{margin-top:10px; font-size:12px; color:#cdc7ff; line-height:1.7}
+  .nudgeBox .btn{margin-right:8px}
   .duelBox small{display:block; color:var(--dim); font-size:10.5px}
   .duelBar{flex-basis:100%; margin-top:10px; padding:10px 12px; font-size:13px; line-height:1.9; color:#fff;
     background:#2a0a1c; border:2px solid var(--orange)}
@@ -1281,7 +1289,7 @@
     <section class="panel bevel">
       <div class="titlebar"><h2>งานที่ส่งทั้งหมด</h2><span id="myFeedCount"></span></div>
       <ul class="feed" id="myFeed" style="max-height:420px"></ul>
-      <div class="hint" style="padding:0 16px 14px">เลือกแพลตฟอร์มผิด? เปลี่ยนที่ dropdown ได้เลย · ส่งผิดลิงก์กด "ลบ" ได้ภายใน 10 นาทีหลังส่ง แล้วส่งใหม่ · เกินนั้นแจ้งทีมงาน</div>
+      <div class="hint" style="padding:0 16px 14px">เลือกแพลตฟอร์มผิด? เปลี่ยนที่ dropdown ได้เลย · ส่งผิดลิงก์กด "ลบ" ได้ภายใน 30 นาทีหลังส่ง แล้วส่งใหม่ · เกินนั้นแจ้งทีมงาน</div>
     </section>
   </div>
 
@@ -1461,7 +1469,7 @@
       <li><b>ส่งงาน</b> = วางลิงก์คอนเทนต์ที่โพสต์แล้ว 1 ลิงก์ = 1 ชิ้น = วิ่งไป 1 ก้าว เส้นชัยอยู่ที่ 90 ชิ้น</li>
       <li><b>ปิดรอบตี 4</b> งานที่ส่งก่อนตี 4 นับเป็นของ "วันนี้" ส่งหลังตี 4 นับเป็นวันถัดไป</li>
       <li><b>เป้าสัปดาห์</b> ทุกต้นสัปดาห์เลือกว่าจะส่งกี่ชิ้น (4 / 7 / 10 / 14) เลือกแล้วเปลี่ยนได้ แต่ลดไม่ได้</li>
-      <li><b>ส่งผิดลิงก์</b> ลบเองได้ภายใน 10 นาทีที่หน้า MY STATUS · เลือกแพลตฟอร์มผิดแก้ได้ตลอด</li>
+      <li><b>ส่งผิดลิงก์</b> ลบเองได้ภายใน 30 นาทีที่หน้า MY STATUS · เลือกแพลตฟอร์มผิดแก้ได้ตลอด</li>
     </ul>
     <h3>🧍 ร่างของตัวละคร</h3>
     <ul>
@@ -1477,6 +1485,7 @@
     <h3>⚔️ ของเล่นในสนาม</h3>
     <ul>
       <li><b>เชียร์</b> คลิกตัวละครเพื่อน ส่ง 👏🔥💪❤️ ได้วันละครั้งต่อคน · ได้เชียร์ 10 ครั้งในสัปดาห์ = ป้าย POPULAR</li>
+      <li><b>👉 สะกิด</b> เพื่อนที่วันนี้ยังไม่ส่งงาน กด "สะกิดให้ส่งงาน" ในโปรไฟล์เขา (วันละครั้งต่อคน สูงสุด 5 คน) เขาจะเห็นในกระดิ่ง</li>
       <li><b>ดวล 7 วัน</b> ท้าเพื่อน ใครส่งมากกว่าชนะ ผู้แพ้ใส่หมวกที่ผู้ชนะเลือก 7 วัน</li>
       <li><b>บอสประจำสัปดาห์</b> โค้ชปล่อยบอสให้บ้าน ทุกชิ้นที่ส่ง = 1 ดาเมจ HP หมด = ทั้งบ้านได้ป้าย BOSS SLAYER</li>
       <li><b>ห้องแต่งตัว</b> เปลี่ยนเพศ ผิว ผม แว่น เสื้อ กางเกง หมวก · ไอเทมพิเศษปลดล็อกที่ 30 / 60 / 90 ชิ้น</li>

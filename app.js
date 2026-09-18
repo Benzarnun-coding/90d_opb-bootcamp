@@ -12,6 +12,7 @@ const NSP     = SPRINTS.length;
 const SPRINT_DAYS_TOTAL = SPD * NSP;       // 84 วันที่มีโครงสร้างสปรินต์
 const TOTAL   = C.COHORT_DAYS || SPD*NSP;  // ความยาวรุ่นทั้งหมด (รวมช่วงต่อเวลา)
 const OT_DAYS = TOTAL - SPRINT_DAYS_TOTAL; // จำนวนวันต่อเวลา
+const DEL_MS  = 30*60e3;                     // ลบงานของตัวเองได้ภายในกี่มิลลิวินาทีหลังส่ง (ต้องตรงกับ policy ใน migration 047)
 const HEAVY   = C.HEAVY_TARGET || 10;      // รับเป้าตั้งแต่เท่านี้ขึ้นไปแล้วทำไม่ถึง = หมดแรงสัปดาห์ถัดไป
 const WEEKS   = Math.round((SPD * NSP) / 7);
 const FINISH  = C.GOAL_TOTAL || 7 * WEEKS; // เส้นชัย = ปล่อยครบกี่ชิ้น (ส่งเกินได้)
@@ -137,7 +138,8 @@ function palette(av, style){
   const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : av.color;
   const p=Object.assign({O:"#140d2e", H:hc[0], h:hc[1], S:skin[0], s:skin[1], E:"#140d2e",
     C:suit, c:shift(suit,-62), l:shift(suit,58), P:pc[0], p:pc[1], B:"#eceaf6", b:"#a8a4c4"}, acc);
-  if(style==="boost"){ p.E="#39e5ff"; }                      // ตาเรืองแสงฟ้า
+  if(style==="boost"){ p.E="#39e5ff"; }
+  if(style==="green"){ p.E="#0f4a28"; }                      // ไฟเขียว Green Go Go: สีชุดเดิม + ออร่าเขียวเล็ก ๆ                      // ตาเรืองแสงฟ้า
   if(style==="red"){ p.E="#fff2f2"; }                        // ตาขาวร้อน ต้นทางเลเซอร์
   if(style==="flame"){ p.H="#ffd23a"; p.h="#fff8c4"; p.l="#fff3a0"; p.P="#c85a10"; p.p="#8a3606"; p.O="#3a1a05"; p.E="#ff1f1f"; }
   return p;
@@ -292,7 +294,7 @@ function spriteTop(av, style){
   return HR;
 }
 /* ไฟรอบตัว: red = ไฟแดง (LASER FOCUS)  flame = ไฟทอง (PRO MAX) */
-const hasAura = style => style==="red" || style==="flame";
+const hasAura = style => style==="red" || style==="flame" || style==="green";
 const aura = (style="flame") => `<span class="aura ${style}">${"<i></i>".repeat(style==="flame"?5:3)}</span>`;
 function runnerBox(av, px, style="normal"){
   return `<div class="runner ${style}" style="position:relative;transform:none;width:auto">
@@ -512,7 +514,7 @@ const DemoDB = (()=>{
       const reach={}; db.subs.forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who); if(!r0) return; const o=reach[r0.id]=reach[r0.id]||{profile_id:r0.id,total_views:0,total_likes:0,best_views:0,pieces:0}; o.total_views+=s.views||0; o.total_likes+=s.likes||0; o.best_views=Math.max(o.best_views,s.views||0); o.pieces++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
               reach:Object.values(reach), kudos:[], sessions:[], myCheckins:[],
-              cheers:db.cheers||[], cheerWeeks, duels, bosses, bossKills,
+              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills,
               started:true, daysUntil:0, startDate:null};
     },
     async rosterList(){
@@ -537,6 +539,11 @@ const DemoDB = (()=>{
     async feedbackSend(kind,text,page){ db.feedback=db.feedback||[]; const me=db.runners.find(r=>r.name===db.me);
       db.feedback.push({id:uid++, kind, text, page, status:"new", admin_note:null, created_at:new Date().toISOString(), profile_id:me.id, author:me.name, house_id:me.house, voters:[]}); save(); },
     async feedbackVote(id,on){ const f=(db.feedback||[]).find(x=>x.id===id); if(!f) return; const me=db.runners.find(r=>r.name===db.me); f.voters=(f.voters||[]).filter(v=>v!==me.id); if(on) f.voters.push(me.id); save(); },
+    async nudge(toId){ db.nudges=db.nudges||[]; const me=db.runners.find(x=>x.name===db.me), to=db.runners.find(x=>x.id===toId);
+      if(db.subs.some(s=>s.who===to.name&&s.day===db.today)) throw new Error("เขาส่งงานวันนี้แล้ว 🎉 ไปเชียร์แทนได้เลย");
+      if(db.nudges.some(n=>n.from_id===me.id&&n.to_id===toId&&n.day_index===db.today)) throw new Error("วันนี้สะกิดคนนี้ไปแล้ว");
+      if(db.nudges.filter(n=>n.from_id===me.id&&n.day_index===db.today).length>=5) throw new Error("วันนี้สะกิดครบ 5 คนแล้ว");
+      db.nudges.push({from_id:me.id,to_id:toId,day_index:db.today}); save(); onChange(); },
     /* ---- สังคม (จำลองในเครื่อง) ---- */
     async cheer(toId, emoji){
       db.cheers=db.cheers||[]; const me=db.runners.find(x=>x.name===db.me);
@@ -561,7 +568,7 @@ const DemoDB = (()=>{
     },
     async deleteSub(id){
       const i=db.subs.findIndex(s=>s.id===id&&s.who===db.me); if(i<0) throw new Error("ไม่พบงาน");
-      if(Date.now()-db.subs[i].ts>600e3) throw new Error("ลบได้เฉพาะภายใน 10 นาทีหลังส่ง");
+      if(Date.now()-db.subs[i].ts>DEL_MS) throw new Error("ลบได้เฉพาะภายใน 30 นาทีหลังส่ง");
       db.subs.splice(i,1); save(); onChange();
     },
     async savePush(){}, async removePush(){},
@@ -790,7 +797,7 @@ const LiveDB = (()=>{
           freezeLeft: b.freeze_left==null ? null : b.freeze_left,
           weeksHit:   b.weeks_hit||0,
           byDay:      {},                      // โหลดเฉพาะตอนเปิดโปรไฟล์
-          style:      b.pledge_style||"normal"
+          style:      (b.pledge_style && b.pledge_style!=="normal") ? b.pledge_style : (b.week_target ? optOf(b.week_target).style : "normal")   // เซิร์ฟเวอร์ไม่รู้จักไฟเขียว (เป้า 4) → เติมจาก config
         }
       }));
       /* ป้าย burnout/weak ย้ายไปติดตอนของประดับมาถึง (markStyles) เพราะมาจาก v_burnout/v_weak */
@@ -848,11 +855,12 @@ const LiveDB = (()=>{
         ()=>soft(()=>sb.from("live_sessions").select("id,title,starts_at,ends_at").gte("ends_at", new Date(Date.now()-2*3600e3).toISOString()).order("starts_at"), "live_sessions"),
         ()=>uidNow ? soft(()=>sb.from("checkins").select("session_id").eq("profile_id",uidNow), "checkins") : Promise.resolve({data:[]}),
         ()=>soft(()=>sb.from("v_holiday_grinders").select("profile_id,n"), "v_holiday_grinders"),
-        ()=>soft(()=>sb.from("v_cheer_stats").select("profile_id,given,received,quest_days"), "v_cheer_stats")
+        ()=>soft(()=>sb.from("v_cheer_stats").select("profile_id,given,received,quest_days"), "v_cheer_stats"),
+        ()=>soft(()=>sb.from("nudges").select("from_id,to_id,day_index").gte("day_index",(todayIdx||1)-1).limit(5000), "nudges")
       ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
                    {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
-                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows}])=>({
-        cheerStats: cheerStatRows||[],
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows}])=>({
+        cheerStats: cheerStatRows||[], nudges: nudgeRows||[],
         burnIds: (burn||[]).map(b=>b.profile_id),
         weakIds: (weakRows||[]).map(b=>b.profile_id),
         cups: cups||[],
@@ -964,6 +972,10 @@ const LiveDB = (()=>{
                    : sb.from("feedback_votes").delete().eq("feedback_id",id).eq("profile_id",session.user.id);
       const {error}=await q; if(error && error.code!=="23505") throw new Error(error.message);
     },
+    async nudge(toId){
+      const {error}=await sb.rpc("nudge",{to_pid:toId});
+      if(error) throw new Error(/nudge|schema cache|does not exist/i.test(error.message) ? "ฟีเจอร์สะกิดยังไม่เปิด (รอทีมงานอัปเดตฐานข้อมูล)" : error.message.replace(/^.*?:s*/,""));
+    },
     /* ---- สังคม: เชียร์ / ดวล / ลบงานล่าสุด / push ---- */
     async cheer(toId, emoji){
       const {error}=await sb.from("cheers").insert({from_id:session.user.id, to_id:toId, emoji, day_index:1});
@@ -980,7 +992,7 @@ const LiveDB = (()=>{
     async deleteSub(id){
       const {error, count}=await sb.from("submissions").delete({count:"exact"}).eq("id",id).eq("profile_id",session.user.id);
       if(error) throw new Error(error.message.replace(/^.*?:\s*/,""));
-      if(!count) throw new Error("ลบไม่ได้ — ลบได้เฉพาะภายใน 10 นาทีหลังส่ง");
+      if(!count) throw new Error("ลบไม่ได้ — ลบได้เฉพาะภายใน 30 นาทีหลังส่ง");
     },
     async savePush(sub){
       const {error}=await sb.from("push_subs").upsert({profile_id:session.user.id, ...sub},{onConflict:"profile_id,endpoint"});
@@ -1189,7 +1201,7 @@ function renderPledge(){
   const o=optOf(st.weekTarget);
   const pct=Math.min(100, st.weekDone/st.weekTarget*100);
   const dash=2*Math.PI*44;
-  const ringColor = o.style==="flame" ? "#ffb020" : o.style==="red" ? "#ff2436" : o.style==="boost" ? "#39e5ff" : r.color;
+  const ringColor = o.style==="flame" ? "#ffb020" : o.style==="red" ? "#ff2436" : o.style==="boost" ? "#39e5ff" : o.style==="green" ? "#5ef08c" : r.color;
   /* เซิร์ฟเวอร์ตัดรอบพุธ 19:30 ไม่ใช่เที่ยงคืนวันที่ 7 — ใช้เวลาตัดจริงถ้ามี ไม่งั้นเช้าวันพุธจะโชว์ "เหลือ 0 วัน" ทั้งที่ยังส่งได้ */
   const dayLeft = S.weekEndsAt ? Math.max(1, Math.ceil((S.weekEndsAt-Date.now())/864e5)) : weekEnd(cw)-S.today+1;
   /* เตือนว่าวันนี้ยังไม่ได้ส่งงาน — ตัวเดียวที่ทำงานได้โดยไม่ต้องพึ่งบริการภายนอก */
@@ -1509,7 +1521,7 @@ async function openProfile(name){
   $("pMap").innerHTML=mapHTML(r, det.byDay);
   $("mBadges").innerHTML=badgesHTML(earnedBadges(r,det), false);
   $("mLevel").innerHTML=levelHTML(r);
-  $("mCheer").innerHTML=cheerHTML(r)+duelBtnHTML(r);
+  $("mCheer").innerHTML=cheerHTML(r)+nudgeHTML(r)+duelBtnHTML(r);
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>${f.kind?`<span class="kd">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
@@ -1553,6 +1565,11 @@ function drawSpriteCanvas(ctx, x, y, px, av, style){
     gr.addColorStop(0,"rgba(255,120,120,.95)"); gr.addColorStop(.4,"rgba(255,40,70,.6)");
     gr.addColorStop(.7,"rgba(200,0,40,.25)"); gr.addColorStop(1,"rgba(200,0,40,0)");
     ctx.fillStyle=gr; ctx.fillRect(x-8*px, y-6*px, 32*px, 34*px);
+  }
+  if(style==="green"){
+    const gg=ctx.createRadialGradient(x+8*px, y+22*px, 2*px, x+8*px, y+20*px, 14*px);
+    gg.addColorStop(0,"rgba(150,255,190,.85)"); gg.addColorStop(.45,"rgba(60,220,120,.45)"); gg.addColorStop(1,"rgba(30,160,80,0)");
+    ctx.fillStyle=gg; ctx.fillRect(x-8*px, y-6*px, 32*px, 36*px);
   }
   if(style==="boost"){
     const gr=ctx.createRadialGradient(x+8*px, y+16*px, 2*px, x+8*px, y+16*px, 13*px);
@@ -1653,11 +1670,11 @@ function drawCard(){
     ctx.fillStyle="#a49ce0"; ctx.fillText(l, x+bw/2, y+86);
   }));
 
-  if(["boost","red","flame"].includes(s.style)){
+  if(["boost","red","flame","green"].includes(s.style)){
     const o=optOf(s.weekTarget);
     ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace";
-    ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":"#39e5ff";
-    ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":"🔵"} ${o.name} MODE`, W/2, 178);
+    ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":s.style==="green"?"#5ef08c":"#39e5ff";
+    ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":s.style==="green"?"🟢":"🔵"} ${o.name} MODE`, W/2, 178);
   } else if(s.style==="burnout" || s.style==="weak"){
     ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace";
     ctx.fillStyle=s.style==="burnout"?"#c8c4b8":"#b9ad9a";
@@ -1942,6 +1959,7 @@ function renderHud(){
 }
 function renderAll(){
   try{ bgmSync(); }catch(e){}                       // เปลี่ยนเพลงตามสถานการณ์ (ดวล/บอสใกล้ล้ม)
+  try{ nudgeWatch(); }catch(e){}
   /* แถบเตือนโหมดทดลอง — กันคนเข้าใจผิดว่าส่งงานจริงแล้ว */
   $("demoBar").style.display = DB.mode==="demo" ? "" : "none";
   renderFilters(); renderPledge(); renderTrack(); renderFeed(); renderHud(); renderQuests();
@@ -1983,6 +2001,7 @@ function drawPledgePick(){
       <div class="wk">${o.style==="red"?"🔥 ไฟแดงลุกทั้งตัวทั้งสัปดาห์"
         : o.style==="flame"?"🔥 ตัวละครติดไฟ โหมดซูเปอร์ไซย่า"
         : o.style==="boost"?"🔵 ตาเรืองแสงสีฟ้าทั้งสัปดาห์"
+        : o.style==="green"?"🟢 ไฟเขียว Green Go Go! ทั้งสัปดาห์"
         : "เฉลี่ย "+(o.target/7).toFixed(1)+" ชิ้นต่อวัน"}</div>
       ${note?`<div class="lockTag">${note}</div>`:""}</button>`;
   }).join("");
@@ -2193,6 +2212,7 @@ $("plSave").onclick=async()=>{
     toast(o.style==="flame" ? `🔥 ${o.name}<br>ตัวละครติดไฟแล้ว`
         : o.style==="red" ? `🔥 ${o.name}<br>ไฟแดงลุกทั้งตัวสัปดาห์นี้`
         : o.style==="boost" ? `🔵 ${o.name}<br>ตาเรืองแสงฟ้าสัปดาห์นี้`
+        : o.style==="green" ? `🟢 ${o.name}<br>ไฟเขียว Green Go Go!`
         : `รับเป้า ${o.target} ชิ้นแล้ว`);
   }catch(err){ toast(err.message); }
   $("plSave").disabled=false;
@@ -2357,6 +2377,9 @@ function myEvents(){
   const ch=(S.cheers||[]).filter(c=>c.to_id===id && c.day_index===S.today);
   if(ch.length){ const names=[...new Set(ch.map(c=>(S.runners.find(r=>r.id===c.from_id)||{}).name).filter(Boolean))];
     ev.push({k:"cheer"+ch.length, i:"👏", t:`วันนี้มีคนเชียร์คุณ ${ch.length} คน`, s:names.slice(0,5).join(", "), go:()=>showPage("pgRace")}); }
+  { const ng=(S.nudges||[]).filter(n=>n.to_id===id && n.day_index===S.today);
+    if(ng.length && !S.postedToday){ const nn=[...new Set(ng.map(n=>(S.runners.find(r=>r.id===n.from_id)||{}).name).filter(Boolean))];
+      ev.push({k:"ng"+S.today+":"+ng.length, i:"👉", t:`${nn.length} คนสะกิดให้คุณส่งงานวันนี้`, s:nn.slice(0,5).join(", "), go:goSubmit}); } }
   (S.duels||[]).forEach(d=>{
     const mine=d.challenger===id||d.opponent===id; if(!mine) return;
     const other=d.challenger===id?d.opponent_name:d.challenger_name;
@@ -2978,7 +3001,7 @@ function renderMyFeed(list){
       <button class="btn xs" data-editurl="${f.id}" title="แก้ลิงก์ เช่น โพสต์ผิดแอคเคาท์ แล้วลงใหม่">🔗 แก้ลิงก์</button>
       ${f.kudos?'<span class="kudo" title="TA ให้ 👍 งานดี">👍 งานดี</span>':""}${vacDay(f.day)?'<span class="vac" title="ส่งงานช่วงปิดเทอม">🏅 นักเรียนดีเด่น</span>':""}
       <span class="when">${ago(f.ts)}</span>
-      ${Date.now()-f.ts<600e3 ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 10 นาทีหลังส่ง">ลบ</button>` : ""}
+      ${Date.now()-f.ts<DEL_MS ? `<button class="btn xs danger" data-delsub="${f.id}" title="ลบได้ภายใน 30 นาทีหลังส่ง">ลบ (เหลือ ${Math.max(1,Math.ceil((DEL_MS-(Date.now()-f.ts))/60000))} นาที)</button>` : ""}
       <span class="note" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <input class="statIn" type="number" min="0" inputmode="numeric" data-views="${f.id}" value="${f.views||""}" placeholder="👁 วิว">
         <input class="statIn" type="number" min="0" inputmode="numeric" data-likes="${f.id}" value="${f.likes||""}" placeholder="❤ ไลก์">
@@ -3057,7 +3080,7 @@ document.addEventListener("click", async e=>{
   const b=e.target.closest(".cheerBtn"); if(!b || b.disabled) return;
   b.disabled=true;
   try{ await DB.cheer(b.dataset.to, b.dataset.cheer); SFX.coin(); toast(`ส่ง ${b.dataset.cheer} ให้แล้ว`); await refresh();
-    const r=S.runners.find(x=>x.id===b.dataset.to); if(r && $("modal").classList.contains("on")) $("mCheer").innerHTML=cheerHTML(r)+duelBtnHTML(r); }
+    const r=S.runners.find(x=>x.id===b.dataset.to); if(r && $("modal").classList.contains("on")) $("mCheer").innerHTML=cheerHTML(r)+nudgeHTML(r)+duelBtnHTML(r); }
   catch(err){ toast(err.message); b.disabled=false; }
 });
 /* กำลังใจที่ฉันได้รับวันนี้ (โชว์ในการ์ดเป้า) */
@@ -3079,6 +3102,34 @@ function duelHatOf(r){
   const d=(S.duels||[]).find(d=>d.status==="done" && d.prize_hat!=null && d.winner && (d.challenger===r.id||d.opponent===r.id) && S.today>d.end_day && S.today<=d.end_day+7);
   if(!d) return null;
   return d.winner===r.id ? WINNER_HAT : d.prize_hat;      // ผู้ชนะได้ป้าย WINNER ควบคู่กันไป 7 วันเท่ากัน
+}
+/* ---- 👉 สะกิดเพื่อนที่วันนี้ยังไม่ส่งงาน (คำขอจากนักเรียน · migration 047) — วันละครั้งต่อคน สูงสุด 5 คนต่อวัน เซิร์ฟเวอร์เป็นคนตัดสิน ---- */
+const nudgedByMeToday = id => (S.nudges||[]).some(n=>n.to_id===id && n.from_id===meId() && n.day_index===S.today);
+function nudgeHTML(r){
+  if(!r || S.spectator || !meR() || r.id===meId() || isVacation() || finished()) return "";
+  if((S.subs||[]).some(s=>s.who===r.name && s.day===S.today)) return "";            // รู้แน่ว่าส่งแล้ว → ไม่ต้องโชว์
+  const done=nudgedByMeToday(r.id), got=(S.nudges||[]).filter(n=>n.to_id===r.id && n.day_index===S.today).length;
+  return `<div class="duelBox nudgeBox"><button class="btn sm" data-nudge="${r.id}" ${done?"disabled":""}>👉 ${done?"สะกิดไปแล้ววันนี้":"สะกิดให้ส่งงาน"}</button>
+    <small>${got?`วันนี้โดนสะกิดแล้ว ${got} คน · `:""}เขาจะเห็นในกระดิ่ง (และแจ้งเตือนถ้าเปิดไว้) · ใช้ได้เมื่อเขายังไม่ส่งงานวันนี้</small></div>`;
+}
+document.addEventListener("click", async e=>{
+  const b=e.target.closest("button[data-nudge]"); if(!b || b.disabled) return;
+  const r=S.runners.find(x=>x.id===b.dataset.nudge); if(!r) return;
+  b.disabled=true;
+  try{ await DB.nudge(r.id); SFX.coin(); toast(`👉 สะกิด ${r.name} แล้ว`); (S.nudges=S.nudges||[]).push({from_id:meId(), to_id:r.id, day_index:S.today});
+    if($("modal").classList.contains("on")) $("mCheer").innerHTML=cheerHTML(r)+nudgeHTML(r)+duelBtnHTML(r); }
+  catch(err){ toast(err.message); b.disabled=false; }
+});
+/* โดนสะกิด → toast ครั้งเดียวต่อคนต่อวัน (ถ้ายังไม่ส่งงาน) */
+function nudgeWatch(){
+  const id=meId(); if(!id || S.postedToday) return;
+  const mine=(S.nudges||[]).filter(n=>n.to_id===id && n.day_index===S.today); if(!mine.length) return;
+  let seen={}; try{ seen=JSON.parse(localStorage.getItem("opb.nudgeSeen")||"{}"); }catch(e){}
+  const fresh=mine.filter(n=>!seen[S.today+":"+n.from_id]); if(!fresh.length) return;
+  const names=fresh.map(n=>(S.runners.find(r=>r.id===n.from_id)||{}).name).filter(Boolean);
+  fresh.forEach(n=>{ seen[S.today+":"+n.from_id]=1; });
+  try{ const keep={}; Object.keys(seen).filter(k=>k.startsWith(S.today+":")).forEach(k=>keep[k]=1); localStorage.setItem("opb.nudgeSeen", JSON.stringify(keep)); }catch(e){}
+  if(names.length) toast(`👉 ${names.slice(0,3).join(", ")}${names.length>3?` และอีก ${names.length-3} คน`:""} สะกิดคุณ<br>วันนี้ยังไม่ได้ส่งงานนะ 💪`);
 }
 function duelBtnHTML(r){
   if(!r || S.spectator || !meR() || r.id===meId()) return "";          // ทุกคนท้าได้ รวม TA และโค้ช (อีกฝ่ายต้องกดรับ)
@@ -3352,7 +3403,7 @@ function markStyles(burnIds, weakIds){
   const burnt=new Set(burnIds||[]), weak=new Set(weakIds||[]);
   S.runners.forEach(r=>{
     delete r.burnout; delete r.weak; delete r.st.burnout; delete r.st.weak;
-    if(r.st.style==="burnout"||r.st.style==="weak") r.st.style="normal";
+    if(r.st.style==="burnout"||r.st.style==="weak") r.st.style = r.st.weekTarget ? optOf(r.st.weekTarget).style : "normal";
     if(burnt.has(r.id)){ r.burnout=true; r.st.burnout=true; r.st.style="burnout"; }
     else if(weak.has(r.id)){ r.weak=true; r.st.weak=true; r.st.style="weak"; }
   });
@@ -3378,6 +3429,7 @@ function applyExtras(e){
   S.cups=e.cups||[];
   S.kings=e.kings||[];                        // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
   S.cheers=e.cheers||[]; S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
+  S.nudges=e.nudges||[];
   S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
   S.bosses=e.bosses||[]; S.bossKills=e.bossKills||[];
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
