@@ -491,7 +491,7 @@
     font-size:11px; letter-spacing:.5px; color:rgba(255,204,77,.85); text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.8);
     background:rgba(10,8,32,.55); padding:4px 9px; border:2px solid rgba(255,204,77,.35)}
   /* ---------- TOAST ---------- */
-  #toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(200%);
+  #toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(calc(100% + 160px));   /* ต้องพ้นจอแน่ ๆ แม้บนมือถือที่ toast ลอยสูงกว่าเมนูล่าง (เดิม 200% ไม่พอ เห็นเป็นกล่องเปล่า) */
     font-family:var(--f-px); font-weight:700; font-size:17px; color:#fff; text-align:center;
     padding:16px 26px; line-height:1.6; max-width:90vw; z-index:45; text-shadow:0 2px 0 #000;
     background:linear-gradient(180deg,#4b41a8,#2a2270 60%,#1a1450);
@@ -527,9 +527,9 @@
   .chip.bgm.playing{color:#5ef08c; border-color:#5ef08c}
   .chip.bgm.nudge{animation:bgmNudge 1.2s ease-in-out infinite}
   @keyframes bgmNudge{ 50%{transform:scale(1.15); box-shadow:0 0 12px rgba(94,240,140,.7)} }
-  .bgmPop{right:56px; min-width:240px; padding:10px}
-  .bgmPop.fromFab{position:fixed; right:14px; bottom:148px; top:auto; margin:0}
-  @media(max-width:700px){ .bgmPop.fromFab{bottom:calc(200px + env(safe-area-inset-bottom))} }
+  .bellMenu.bgmPop{right:56px; min-width:240px; padding:12px}      /* ต้องเจาะจงกว่า .bellMenu (padding:6px 0) ไม่งั้นข้อความชิดขอบ */
+  .bellMenu.bgmPop.fromFab{position:fixed; right:14px; bottom:148px; top:auto; margin:0}
+  @media(max-width:700px){ .bellMenu.bgmPop{right:16px} .bellMenu.bgmPop.fromFab{right:8px; bottom:calc(200px + env(safe-area-inset-bottom))} }
   .bgmRow{display:flex; gap:8px; align-items:center; margin-bottom:8px}
   .bgmRow .btn{flex:1; min-height:36px}
   .bgmRow input[type=range]{flex:1; accent-color:#ffcc4d}
@@ -1032,6 +1032,8 @@
   @media(max-width:700px){
     .toTop{bottom:calc(74px + env(safe-area-inset-bottom)); right:8px; width:38px; height:38px; font-size:16px; opacity:.9}
     .houseCard .hn, .houseCard .hth{padding-right:40px}          /* ชื่อบ้านไม่วิ่งไปทับอีโมจิมุมขวา */
+    #mStats{grid-template-columns:repeat(2,1fr) !important}       /* โปรไฟล์: 4 ช่องเรียงแถวเดียวล้นจอจนเกิด scroll แนวนอน → 2x2 */
+    #homeBtn{display:none}                                        /* แถบ HUD ล้นจนปุ่ม ⋯ โดนตัด — กลับหน้าแรกได้จากโลโก้และเมนู ⋯ */
     .duelRow{padding:10px 8px; gap:6px 6px}
     /* จอแคบ: ตัวละครอยู่บน ชื่อ/บ้าน/คะแนนอยู่ล่าง กึ่งกลาง — ชื่อได้ความกว้างเต็มคอลัมน์ ไม่โดนตัด */
     .dfighter, .dfighter.r{flex-direction:column; align-items:center; text-align:center; gap:4px}

@@ -90,6 +90,12 @@
   .top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
   .top a{color:var(--cyan); font-size:13px}
   .scroll{overflow-x:auto}
+  @media(max-width:700px){
+    .csRow{grid-template-columns:96px 1fr; gap:4px 8px}
+    .csRow > :nth-child(3){grid-column:1/-1; font-size:12px; color:#cdc7ff; padding-bottom:6px}   /* ตัวเลขสรุปท้ายแถวโดนตัดขอบจอ → ลงบรรทัดใหม่ */
+    .wrap{padding:16px 10px 60px} .body{padding:12px}
+    h1{font-size:20px}
+  }
   .jump{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 14px} .jump a{font-family:var(--f-px); font-size:11px; color:#cdc7ff; text-decoration:none; border:2px solid var(--line); padding:4px 8px; background:rgba(0,0,0,.25)} .jump a:hover{border-color:var(--gold); color:var(--gold)}
   /* ---- ภาพรวมรุ่น ---- */
   .csRow{display:grid; grid-template-columns:120px 1fr 110px; gap:10px; align-items:center; padding:4px 0; font-size:13px}
@@ -256,7 +262,7 @@
       <div class="titlebar"><h2>💡 Feedback · คำขอจากนักเรียน</h2><span>เรียงตามโหวต · ตั้งสถานะ + ตอบกลับ นักเรียนเห็นในแอปทันที <button class="btn xs" id="fbReload">↻ โหลดใหม่</button></span></div>
       <div class="body">
         <div class="filters" id="fbFilters"><button class="fBtn on" data-fs="open">ยังไม่ปิด</button><button class="fBtn" data-fs="all">ทั้งหมด</button></div>
-        <div id="fbAdmin"><small class="dim">กำลังโหลด…</small></div>
+        <div id="fbAdmin" class="scroll"><small class="dim">กำลังโหลด…</small></div>
       </div>
     </section>
 
