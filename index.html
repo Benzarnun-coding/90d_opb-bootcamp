@@ -187,6 +187,7 @@
     box-shadow:0 0 0 2px var(--void),0 5px 0 rgba(0,0,0,.5),0 0 18px rgba(255,204,77,.3)}
   .navBtn .mL{display:none}
   .fab{display:none}
+  .wmFoot{display:none}
   .navBtn small{display:block; font-family:var(--f-th); font-size:11px; font-weight:400;
     color:#8f87cc; margin-top:3px; text-shadow:none}
   .navBtn.on small{color:#e6d9ff}
@@ -541,7 +542,7 @@
   .bgmFab.playing{color:#5ef08c; border-color:#5ef08c #0f4a28 #0f4a28 #5ef08c}
   .bgmFab.nudge{animation:bgmNudge 1.2s ease-in-out infinite}
   .bgmFab[hidden]{display:none}
-  @media(max-width:700px){ .bgmFab{bottom:calc(148px + env(safe-area-inset-bottom))} }
+  @media(max-width:700px){ .bgmFab{bottom:calc(118px + env(safe-area-inset-bottom)); right:8px; width:38px; height:38px; font-size:16px; opacity:.9} }
   /* กล่องขอฟีเจอร์ / แจ้งบั๊ก */
   .fbForm{padding:12px; background:#120d30; border:3px solid; border-color:#3a2f7a #0a0820 #0a0820 #3a2f7a; margin-bottom:14px}
   .fbKinds{display:flex; gap:8px; margin-bottom:8px}
@@ -636,7 +637,7 @@
     .navBtn .dL{display:none} .navBtn .mL{display:block; font-size:18px; line-height:1}
     .navBtn .mL small{display:block; font-size:10px; margin-top:3px; font-family:var(--f-th); font-weight:600}
     /* ปุ่มส่งงานลอย โผล่เมื่อเลื่อนพ้นฟอร์มส่งงาน */
-    .fab{display:block; position:fixed; left:12px; bottom:calc(84px + env(safe-area-inset-bottom)); z-index:40; font-family:var(--f-px); font-weight:700; font-size:14px; letter-spacing:1px;
+    .fab{display:none !important; position:fixed; left:12px; bottom:calc(84px + env(safe-area-inset-bottom)); z-index:40; font-family:var(--f-px); font-weight:700; font-size:14px; letter-spacing:1px;
       padding:10px 16px; color:#0d0a22; cursor:pointer; background:linear-gradient(180deg,#7dffa8,#2ecc71 60%,#1f8a4a); border:3px solid; border-color:#c8ffd9 #0f4a28 #0f4a28 #c8ffd9; box-shadow:0 4px 0 rgba(0,0,0,.5)}
     .fab[hidden]{display:none}
     /* การ์ดนับถอยหลังย่อเป็นแถบเดียวหลังเห็นครั้งแรกของวัน (แตะเพื่อขยาย) */
@@ -650,8 +651,9 @@
     .navBtn.go{font-size:15px}
     @media(max-width:430px){ .navBtn small{display:none} .navBtn{padding:11px 2px} }
     .wrap{padding-bottom:110px}
-    .wm{bottom:78px; font-size:8px}
-    .toTop{bottom:96px}
+    .wm{display:none}                       /* มือถือ: เครดิตลอยทับเนื้อหา → ย้ายไปอยู่ท้ายหน้าแทน (.wmFoot) */
+    .wmFoot{display:block; text-align:center; font-family:var(--f-px); font-weight:700; font-size:9px; letter-spacing:1px; color:#8f86e6; padding:4px 0 96px}
+    .toTop{bottom:calc(74px + env(safe-area-inset-bottom)); right:8px; width:38px; height:38px; font-size:16px; opacity:.9}
     .todayBar{font-size:12px; gap:6px 12px; padding:8px 10px}
     .todayBar #tbGo{margin-left:auto}
   }
@@ -1010,7 +1012,9 @@
   @media (max-width:640px){ .bossFig{flex:0 0 76px; height:84px} .bossFig .bossSprite{width:72px; height:72px} .bossShadow{width:56px} .bossName{font-size:14px} }
   .runner .lbl .stk{font-style:normal; color:var(--orange); font-size:10px}
   .duelTag{font-style:normal; font-family:var(--f-px); font-size:9px; padding:0 4px; margin-left:2px; color:#fff; background:linear-gradient(180deg,#ff6a2a,#b8201f); border:1px solid #ffb324; animation:duelTagBlink 1s steps(2) infinite; vertical-align:middle}
-  .dfighter .nm .duelTag{font-size:10px; margin:0 4px 0 0}
+  .dfighter > div:last-child{min-width:0; flex:1}
+  .dfighter .nm .duelTag{display:table; font-size:9px; margin:0 0 3px}
+  .dfighter.r .nm .duelTag{margin-left:auto}
   @keyframes duelTagBlink{ 50%{background:linear-gradient(180deg,#ffb324,#ff6a2a)} }
   .feetfire{position:absolute; left:50%; bottom:4px; width:36px; height:14px; transform:translateX(-50%); pointer-events:none;
     background:radial-gradient(ellipse at 50% 100%, #ffd23f 0%, #ff7a00 35%, rgba(255,60,0,.55) 60%, transparent 72%);
@@ -1024,6 +1028,19 @@
   .recapLine{font-size:13px; line-height:1.8; color:#cdc7ff; margin:6px 0}
   #recapCanvas{width:100%; max-width:300px; display:block; margin:10px auto; border:3px solid var(--line); image-rendering:pixelated}
   @media (max-width:640px){ .recapGrid{grid-template-columns:repeat(2,1fr)} .cheerBtn{font-size:18px; padding:5px 7px} }
+  /* ---- มือถือ: กฎที่ต้องมาหลังกฎหลัก (ของเดิมอยู่ก่อน .toTop เลยไม่เคยมีผล ปุ่ม ⬆ จมอยู่หลังเมนูล่าง) ---- */
+  @media(max-width:700px){
+    .toTop{bottom:calc(74px + env(safe-area-inset-bottom)); right:8px; width:38px; height:38px; font-size:16px; opacity:.9}
+    .houseCard .hn, .houseCard .hth{padding-right:40px}          /* ชื่อบ้านไม่วิ่งไปทับอีโมจิมุมขวา */
+    .duelRow{padding:10px 8px; gap:6px 6px}
+    /* จอแคบ: ตัวละครอยู่บน ชื่อ/บ้าน/คะแนนอยู่ล่าง กึ่งกลาง — ชื่อได้ความกว้างเต็มคอลัมน์ ไม่โดนตัด */
+    .dfighter, .dfighter.r{flex-direction:column; align-items:center; text-align:center; gap:4px}
+    .dfighter > div:last-child{width:100%; flex:none}
+    .dfighter .nm .duelTag, .dfighter.r .nm .duelTag{margin:0 auto 3px}
+    .dfighter .spr{width:52px; height:80px}
+    .dmid{min-width:46px; font-size:10px}
+    .dmid b{font-size:16px}
+  }
 </style>
 </head>
 <body>
@@ -1337,6 +1354,7 @@
   </div>
 
   <footer id="foot"></footer>
+  <div class="wmFoot" id="wmFoot"></div>
 </div>
 </section>
 

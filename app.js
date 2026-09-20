@@ -3537,6 +3537,7 @@ $("parade").innerHTML=["normal","boost","red","normal","flame"].map((stl,i)=>
   `<div style="animation-duration:${7+i*1.7}s;animation-delay:-${i*2.3}s">${runnerBox(Object.assign(randAv(i+3),{color:COLORS[i]}),2,stl)}</div>`).join("");
 $("bcTitle").textContent=C.TITLE;
 $("wm").textContent = C.TITLE + (CREDIT ? " · " + CREDIT : "");
+if($("wmFoot")) $("wmFoot").textContent = $("wm").textContent;
 $("bcTitle2").textContent=C.TITLE;
 document.title=C.TITLE;
 applyPlatFocus();
