@@ -1012,6 +1012,21 @@
   @media (max-width:640px){ .bossFig{flex:0 0 76px; height:84px} .bossFig .bossSprite{width:72px; height:72px} .bossShadow{width:56px} .bossName{font-size:14px} }
   .runner .lbl .stk{font-style:normal; color:var(--orange); font-size:10px}
   .duelTag{font-style:normal; font-family:var(--f-px); font-size:9px; padding:0 4px; margin-left:2px; color:#fff; background:linear-gradient(180deg,#ff6a2a,#b8201f); border:1px solid #ffb324; animation:duelTagBlink 1s steps(2) infinite; vertical-align:middle}
+  /* สถิติดวล: ชิปใต้ชื่อใน Arena + ประวัติในโปรไฟล์ */
+  .duelRec{display:inline-block; margin-top:3px; padding:1px 6px; font-family:var(--f-px); font-size:10px; font-weight:700; color:#ffe9a8; background:rgba(0,0,0,.35); border:1px solid #7a5000; white-space:nowrap}
+  .duelRec i{font-style:normal; opacity:.5; margin:0 3px}
+  .badge.link{cursor:pointer} .badge.link:hover{filter:brightness(1.2)}
+  .duelHist{margin-top:18px}
+  .dhSum{display:flex; flex-wrap:wrap; gap:6px 8px; margin-bottom:8px; font-size:12px}
+  .dhSum span{padding:4px 9px; background:#120d30; border:2px solid var(--line); color:#cdc7ff} .dhSum b{color:#fff; font-family:var(--f-px)}
+  .dhSum .win{border-color:#1f8a4a} .dhSum .lose{border-color:#7d2419} .dhSum .draw{border-color:#5a5a66}
+  .dhList{list-style:none; margin:0; padding:0; max-height:220px; overflow:auto; border:3px solid; border-color:var(--bevelLo) var(--line) var(--line) var(--bevelLo); background:#0e0928}
+  .dh{display:grid; grid-template-columns:auto 1fr auto; gap:2px 10px; align-items:center; padding:8px 10px; border-bottom:1px solid #2a2360; font-size:13px}
+  .dh:last-child{border-bottom:0}
+  .dh small{grid-column:1/-1; color:var(--dim); font-size:11px}
+  .dhRes{font-family:var(--f-px); font-size:11px; white-space:nowrap} .dh.win .dhRes{color:var(--green)} .dh.lose .dhRes{color:var(--orange)} .dh.draw .dhRes{color:#cdc7ff} .dh.live .dhRes{color:var(--gold)}
+  .dhVs{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap} .dhVs a{color:var(--cyan)}
+  .dhSc{font-family:var(--f-px); font-weight:900; font-size:15px; color:#fff}
   .dfighter > div:last-child{min-width:0; flex:1}
   .dfighter .nm .duelTag{display:table; font-size:9px; margin:0 0 3px}
   .dfighter.r .nm .duelTag{margin-left:auto}
@@ -1407,6 +1422,7 @@
     <div id="mCheer"></div>
     <div class="statGrid" style="grid-template-columns:repeat(4,1fr)" id="mStats"></div>
     <div style="margin-top:14px"><label>ป้ายรางวัล</label><div id="mBadges"></div></div>
+    <div id="mDuels"></div>
     <div style="margin-top:22px">
       <label>SPRINT MAP</label>
       <div id="pMap"></div>

@@ -1521,6 +1521,7 @@ async function openProfile(name){
   $("pMap").innerHTML=mapHTML(r, det.byDay);
   $("mBadges").innerHTML=badgesHTML(earnedBadges(r,det), false);
   $("mLevel").innerHTML=levelHTML(r);
+  $("mDuels").innerHTML=duelHistoryHTML(r);
   $("mCheer").innerHTML=cheerHTML(r)+nudgeHTML(r)+duelBtnHTML(r);
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>${f.kind?`<span class="kd">${KIND_ICON[f.kind]}</span>`:""}
@@ -2826,7 +2827,7 @@ const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(
 function badgesHTML(list, showAll){
   const html=BADGES.map(b=>{
     const got=list.find(x=>x.k===b.k), on=!!got; if(!on && !showAll) return "";
-    return `<span class="badge ${on?"on":""}" title="${b.th}"><i>${b.e}</i><b>${on?got.n:b.n}</b><small>${b.th}</small></span>`;
+    return `<span class="badge ${on?"on":""}${on&&(b.k==="duelist"||b.k==="fallen")?" link":""}" data-bk="${b.k}" title="${b.th}${on&&(b.k==="duelist"||b.k==="fallen")?" · แตะเพื่อดูประวัติดวล":""}"><i>${b.e}</i><b>${on?got.n:b.n}</b><small>${b.th}</small></span>`;
   }).join("");
   return html ? `<div class="badges">${html}</div>` : `<div class="noJoin" style="padding:10px">ยังไม่มีป้าย — ปล่อยชิ้นแรกก็ได้ป้ายแรกแล้ว</div>`;
 }
@@ -3147,6 +3148,40 @@ document.addEventListener("click", async e=>{
   try{ await DB.duelCreate(r.id); SFX.fanfare(); toast(`ส่งคำท้าให้ ${r.name} แล้ว ⚔️<br>รอเขากดรับ`); await refresh(); $("modal").classList.remove("on"); }
   catch(err){ toast(err.message); b.disabled=false; }
 });
+/* ---- สถิติดวลของแต่ละคน: ชนะ/แพ้/เสมอ + ประวัติทุกนัด (จาก S.duels ที่โหลดมาอยู่แล้ว) ---- */
+function duelRecordOf(id){
+  const mine=(S.duels||[]).filter(d=>d.challenger===id||d.opponent===id);
+  const done=mine.filter(d=>d.status==="done");
+  return { w:done.filter(d=>d.winner===id).length,
+           l:done.filter(d=>d.winner && d.winner!==id).length,
+           d:done.filter(d=>!d.winner).length,
+           live:mine.filter(d=>d.status==="active"),
+           done:done.sort((a,b)=>(b.end_day||0)-(a.end_day||0)) };
+}
+const duelRecordChip = id => { const r=duelRecordOf(id); return (r.w||r.l||r.d) ? `<span class="duelRec" title="สถิติดวล: ชนะ ${r.w} · แพ้ ${r.l} · เสมอ ${r.d} — แตะเพื่อดูประวัติ">🏆${r.w}<i>·</i>💀${r.l}${r.d?`<i>·</i>🤝${r.d}`:""}</span>` : ""; };
+function duelHistoryHTML(r){
+  if(!r) return "";
+  const rec=duelRecordOf(r.id); if(!rec.done.length && !rec.live.length) return "";
+  const row=(d,live)=>{
+    const meCh=d.challenger===r.id, other=meCh?d.opponent_name:d.challenger_name;
+    const my=+(meCh?d.challenger_score:d.opponent_score)||0, th=+(meCh?d.opponent_score:d.challenger_score)||0;
+    const res = live ? ["live","⚔️ กำลังดวล"] : !d.winner ? ["draw","🤝 เสมอ"] : d.winner===r.id ? ["win","🏆 ชนะ"] : ["lose","💀 แพ้"];
+    const hat = (!live && d.winner && d.prize_hat!=null) ? ` · ${d.winner===r.id?"ให้เขาใส่":"โดนใส่"} "${AV.hat[d.prize_hat]||"หมวก"}"` : "";
+    const when = d.start_day ? `${dayDateTH(d.start_day)} – ${dayDateTH(d.end_day)}` : "";
+    return `<li class="dh ${res[0]}"><b class="dhRes">${res[1]}</b>
+      <span class="dhVs">vs <a href="#" data-prof="${String(other||"").replace(/"/g,"&quot;")}">${other||"?"}</a></span>
+      <span class="dhSc">${my} : ${th}</span>
+      <small>${when}${live?` · เหลือ ${Math.max(0,d.end_day-S.today+1)} วัน`:""}${hat}</small></li>`;
+  };
+  return `<div class="duelHist" id="duelHist"><label>⚔️ สถิติดวล</label>
+    <div class="dhSum"><span class="win">🏆 ชนะ <b>${rec.w}</b></span><span class="lose">💀 แพ้ <b>${rec.l}</b></span><span class="draw">🤝 เสมอ <b>${rec.d}</b></span>${rec.w+rec.l?`<span>อัตราชนะ <b>${Math.round(rec.w/(rec.w+rec.l)*100)}%</b></span>`:""}</div>
+    <ul class="dhList">${rec.live.map(d=>row(d,true)).join("")}${rec.done.map(d=>row(d,false)).join("")}</ul></div>`;
+}
+document.addEventListener("click", e=>{
+  const a=e.target.closest("[data-prof]"); if(a){ e.preventDefault(); openProfile(a.dataset.prof); return; }
+  const b=e.target.closest('.badge.link[data-bk="duelist"], .badge.link[data-bk="fallen"]');
+  if(b){ const h=document.getElementById("duelHist"); if(h) h.scrollIntoView({behavior:"smooth", block:"center"}); }
+});
 function duelBannerHTML(){
   const d=myDuel(), id=meId(); if(!d) return "";
   const meIsCh=d.challenger===id, other=meIsCh?d.opponent_name:d.challenger_name;
@@ -3199,7 +3234,7 @@ function renderDuelRoom(){
     const r=S.runners.find(x=>x.id===id); const h=r?houseOf(r.house):null;
     return `<div class="dfighter ${side} ${cls}" data-n="${r?r.name:""}">
       <div class="spr">${r?sprite(avOf(r),3,"normal"):""}</div>
-      <div><div class="nm" style="color:${r?nameColor(r):"#fff"}">${fighting?`<em class="duelTag">⚔️ FIGHTING</em> `:""}${name||"?"}<small>${r?(roleOf(r)==="head"?"🎓 หัวหน้าโค้ช":`${h.emoji} ${h.name}`):""}</small></div>
+      <div><div class="nm" style="color:${r?nameColor(r):"#fff"}">${fighting?`<em class="duelTag">⚔️ FIGHTING</em> `:""}${name||"?"}<small>${r?(roleOf(r)==="head"?"🎓 หัวหน้าโค้ช":`${h.emoji} ${h.name}`):""}</small>${r?duelRecordChip(r.id):""}</div>
       <div class="sc">${score}</div></div></div>`;
   };
   $("duelRoom").innerHTML=all.map(d=>{
@@ -3227,7 +3262,7 @@ function renderDuelRoom(){
     </div>`;
   }).join("");
 }
-$("duelRoom").onclick=e=>{ const t=e.target.closest(".dfighter"); if(t&&t.dataset.n) openProfile(t.dataset.n); };
+$("duelRoom").onclick=async e=>{ const t=e.target.closest(".dfighter"); if(!(t&&t.dataset.n)) return; await openProfile(t.dataset.n); const h=document.getElementById("duelHist"); if(h) setTimeout(()=>h.scrollIntoView({behavior:"smooth", block:"center"}), 250); };
 
 /* ---- แจ้งเตือนดวล: ป๊อปอัพเมื่อถูกท้า · toast เมื่ออีกฝ่ายรับ/ปฏิเสธ/เลือกหมวก
    จำสถานะที่เห็นแล้วไว้ในเครื่อง จะได้เตือนแค่ครั้งเดียวต่อเหตุการณ์ แม้ปิดแท็บไปแล้วค่อยกลับมา ---- */
