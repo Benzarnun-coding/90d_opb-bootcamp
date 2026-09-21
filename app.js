@@ -2240,15 +2240,16 @@ function xpOf(r){
   const cheersGiven= cst ? +cst.given : (S.cheers||[]).filter(c=>c.from_id===r.id).length;
   const kills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
   const wins=(S.duels||[]).filter(d=>d.status==="done"&&d.winner===r.id).length;
+  const fought=(S.duels||[]).filter(d=>d.status==="done"&&d.winner!==r.id&&(d.challenger===r.id||d.opponent===r.id)).length;   // ดวลจนจบแต่ไม่ชนะ (แพ้/เสมอ) ก็ได้ XP — กล้าลงสนามต้องคุ้ม
   const kingW=(S.kings||[]).filter(k=>k.profile_id===r.id).length;
   /* วันภารกิจ = วันที่ส่ง ≥1 ชิ้น และเชียร์ ≥3 ครั้ง — คิดจากข้อมูลเซิร์ฟเวอร์ให้ทุกคนเท่ากัน
      (เดิมนับใน localStorage ของเครื่องตัวเอง → เปลี่ยนเครื่องแล้ว XP ตก คนอื่นได้ 0 ตลอด) */
   const byDay=s.byDay||{}; const cheerDays={};
   (S.cheers||[]).forEach(c=>{ if(c.from_id===r.id) cheerDays[c.day_index]=(cheerDays[c.day_index]||0)+1; });
   const questDays= cst ? +cst.quest_days : Object.keys(byDay).filter(d=>byDay[d]>=1 && (cheerDays[d]||0)>=3).length;
-  return s.contents*10 + cheersGiven*2 + s.weeksHit*30 + kills*50 + wins*40 + kingW*60 + questDays*30 + Math.min(s.dayStreak,30)*3;
+  return s.contents*10 + cheersGiven*2 + s.weeksHit*30 + kills*50 + wins*40 + fought*15 + kingW*60 + questDays*30 + Math.min(s.dayStreak,30)*3;
 }
-const XP_RULES="ส่งงาน 1 ชิ้น +10 · เชียร์เพื่อน +2/ครั้ง · ส่ง 1 + เชียร์ 3 ในวันเดียว +30 · ครบเป้าสัปดาห์ +30 · streak +3/วัน (สูงสุด 30 วัน) · ชนะดวล +40 · ล้มบอส +50 · King of the Week +60";
+const XP_RULES="ส่งงาน 1 ชิ้น +10 · เชียร์เพื่อน +2/ครั้ง · ส่ง 1 + เชียร์ 3 ในวันเดียว +30 · ครบเป้าสัปดาห์ +30 · streak +3/วัน (สูงสุด 30 วัน) · ชนะดวล +40 (แพ้/เสมอก็ได้ +15) · ล้มบอส +50 · King of the Week +60";
 const levelOf = xp => Math.floor(Math.sqrt(xp/40))+1;
 const xpForLevel = lv => (lv-1)*(lv-1)*40;
 const titleOf = lv => { let t=LV_TITLES[0][1]; LV_TITLES.forEach(([l,n])=>{ if(lv>=l) t=n; }); return t; };
@@ -2791,6 +2792,7 @@ const BADGES=[
   {k:"popular", e:"💖", n:"POPULAR",      th:"มีคนเชียร์ 10 ครั้งขึ้นไปในสัปดาห์เดียว",     test:c=>c.popular},
   {k:"duelist", e:"⚔️", n:"DUELIST",      th:"เคยดวลมาแล้ว · แตะเพื่อดูว่าสู้กับใครมาบ้าง",        test:c=>c.duelFought>0,
                 label:c=>c.duelFought>1?`DUELIST ×${c.duelFought}`:"DUELIST"},
+  {k:"brave",   e:"🛡️", n:"BRAVE",        th:"ลงดวลจนจบครบ 3 ครั้ง ไม่ว่าแพ้หรือชนะ",            test:c=>c.duelDone>=3},
   {k:"quality", e:"👍", n:"QUALITY",      th:"TA ให้ 'งานดี' 3 ชิ้นขึ้นไป",                  test:c=>c.kudosN>=3},
   {k:"reach",   e:"👁", n:"10K VIEWS",    th:"ยอดวิวรวมที่กรอกไว้ถึง 10,000",              test:c=>c.views>=10000},
   {k:"holiday", e:"🏅", n:"STAR STUDENT", th:"นักเรียนดีเด่น ส่งงานช่วงปิดเทอม",              test:c=>c.holiday>0,
@@ -2814,11 +2816,12 @@ function badgeCtx(r, det){
   const cups=(S.cups||[]).filter(c=>c.house_id===r.house).length;
   const kingWeeks=(S.kings||[]).filter(k=>k.profile_id===r.id).map(k=>k.week_no).sort((a,b)=>a-b);
   const popular=(S.cheerWeeks||[]).some(w=>w.profile_id===r.id && w.n>=10);
+  const duelDone=(S.duels||[]).filter(d=>d.status==="done" && (d.challenger===r.id||d.opponent===r.id)).length;
   const duelFought=(S.duels||[]).filter(d=>(d.status==="done"||d.status==="active") && (d.challenger===r.id||d.opponent===r.id)).length;
   const bossKills=(S.bossKills||[]).filter(k=>k.profile_id===r.id).length;
   const kudosN=(S.kudos||{})[r.id]||0, views=((S.reach||{})[r.id]||{}).total_views||0;
   const holiday = det ? Object.keys(byDay).reduce((s,d)=>s+(vacDay(+d)?byDay[d]:0),0) : ((S.holiday||{})[r.id]||0);
-  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelFought, bossKills, kudosN, views, holiday};
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelFought, duelDone, bossKills, kudosN, views, holiday};
 }
 const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)).map(b=>Object.assign({},b,{n:b.label?b.label(c):b.n})); };
 function badgesHTML(list, showAll){
