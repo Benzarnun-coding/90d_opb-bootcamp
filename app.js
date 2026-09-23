@@ -2531,7 +2531,6 @@ function renderToday(){
       <div class="qFoot">
         <span>🎯 สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b></span>
         <span>🔥 streak ${s.dayStreak} วัน</span>
-        ${s.freezeLeft==null?"":`<span class="shield" title="พลาดวันได้โดย streak ไม่ขาด สปรินต์ละ 2 วัน">🛡 วันลา ${s.freezeLeft}/2</span>`}
         ${n?"":'<button class="btn xs gold" id="tbGo">ส่งงาน ▶</button>'}
       </div>
     </div>`;
