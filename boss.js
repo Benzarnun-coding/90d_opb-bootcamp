@@ -85,33 +85,6 @@ const BOSS_SKINS = [
     "........................",
     "........................",
     "........................"]},
-  { k:"slime", n:"สไลม์ขี้เกียจ", e:"🟣", anim:"",
-    pal:{S:"#b04cff", s:"#7a2bc0", L:"#e6b3ff", E:"#0b0316", W:"#ffffff", M:"#4a0f80"},
-    g:[
-    "........................",
-    "........................",
-    "........................",
-    "........................",
-    ".........OOOOOO.........",
-    ".......OOSSSSSSOO.......",
-    ".....OOSSLLSSSSSSOO.....",
-    "....OSSSLLSSSSSSSSSO....",
-    "...OSSSSLSSSSSSSSSSSO...",
-    "..OSSSSSSSSSSSSSSSSSSO..",
-    "..OSSSSEESSSSSSEESSSSO..",
-    ".OSSSSSEWSSSSSSEWSSSSSO.",
-    ".OSSSSSSSSSSSSSSSSSSSSO.",
-    ".OSSSSSSSMMMMMMMSSSSSSO.",
-    ".OSSSSSSMWMWMWMWMSSSSSO.",
-    ".OSSSSSSSMMMMMMMSSSSSSO.",
-    ".OSSSSSSSSSSSSSSSSSSSSO.",
-    ".OsSSSSSSSSSSSSSSSSSSsO.",
-    ".OssSSSSSSSSSSSSSSSSssO.",
-    "..OsssSSSSSSSSSSSSsssO..",
-    "...OOssssssssssssssOO...",
-    ".....OOOOOOOOOOOOOO.....",
-    "........................",
-    "........................"]},
   { k:"robot", n:"จอมอัลกอริทึม", e:"🤖", anim:"Y",
     pal:{M:"#9aa7b8", m:"#5b6675", E:"#ff3b5c", C:"#4ee1ff", Y:"#ffd23f"},
     g:[
@@ -139,6 +112,136 @@ const BOSS_SKINS = [
     "......OMMMO..OMMMO......",
     "......OOOOO..OOOOO......",
     "........................"]},
+  { k:"slime", n:"สไลม์ขี้เกียจ", e:"🟢", anim:"ZSDC",
+    pal:{G:"#8ee86a", g:"#4fae4a", L:"#e4ffd0", E:"#1a0b2e", W:"#ffffff", P:"#ff8fb0", M:"#7a1030", D:"#7fd8ff", Z:"#ffffff",
+         N:"#6b7cff", n:"#f2eee6", S:"#e8e8f0", R:"#ff5c7a", T:"#b8742e", t:"#6e3f16", Y:"#ffd23f", y:"#d19a12", C:"#fff6b0"},
+    /* เปลี่ยนร่างตามเลือดที่เหลือ (min = สัดส่วน HP ที่เหลืออย่างน้อย) · dead = ร่างนอนแผ่ + หีบสมบัติ */
+    phases:[
+      { min:.75, t:"💤 ร่าง 1 · หลับอืด", g:[
+    "........................",
+    "..................ZZZZ..",
+    "....................Z...",
+    "..................ZZZZ..",
+    "........................",
+    ".....................ZZ.",
+    "...........NNNNN.....ZZ.",
+    "..........NNNNNNNN......",
+    "..........NNNN...NNn....",
+    ".........NNNNN.....nn...",
+    "........nnnnnnnnn.......",
+    ".......OOOOOOOOOO.......",
+    "......OGGGGGGGGGGO......",
+    ".....OLLGGGGGGGGGGO.....",
+    "....OGGLGGGGGGGGGGGO....",
+    "...OGGGGGGGGGGGGGGggO...",
+    "..OGGGEEEGGGGGGEEEGggO..",
+    ".OGGGPPGGGGGGGGGGPPGggO.",
+    ".OGGGGGGGGGMMMGGGGGGggO.",
+    ".OGGGGGGGGGGDGGGGGGGggO.",
+    ".OggggggggggDgggggggggO.",
+    "..OggggggggggggggggggO..",
+    "...OOOOOOOOOOOOOOOOOO...",
+    "........................"] },
+      { min:.5,  t:"😤 ร่าง 2 · โดนปลุก หงุดหงิด", g:[
+    "........................",
+    "........................",
+    "................nN......",
+    "................NN..S.S.",
+    "..S.S..........NNN..SSS.",
+    "..SSS.........NNNN......",
+    ".........OOOOnnnnnn.....",
+    ".......OOGGGGGGOO.......",
+    "......OGGGGGGGGGGO......",
+    ".....OGGGGGGGGGGGGO.....",
+    ".....OLLGGGGGGGGggO.....",
+    "....OGEEGGGGGGGGGEEO....",
+    "...OGGGEEGGGGGGGEEggO...",
+    "...OGGEEEEGGGGEEEEggO...",
+    "...OGGWWEWGGGGWEWWggO...",
+    "..OGGGGWWGGGGGWWGGGggO..",
+    "..OGGGGGGGGGGGGGGGGggO..",
+    "..OGGGGGGGGGGGGGGGGggO..",
+    "..OGGGGGGMMMMMGGGGGggO..",
+    "..OGGGGGGMGGGMGGGGGggO..",
+    "..OggggggggggggggggggO..",
+    "...OggggggggggggggggO...",
+    "....OOOOOOOOOOOOOOOO....",
+    "........................"] },
+      { min:.25, t:"😱 ร่าง 3 · ตกใจ เหงื่อแตก", g:[
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    ".........OOOOOO.........",
+    ".......OOGGGGGGOO.......",
+    "..D...OGGGGGGGGGGO......",
+    "..DD.OGGGGGGGGGGGGO..D..",
+    ".....OLLGGGGGGGGggO..DD.",
+    "....OGLGGGGGGGGGGggO....",
+    "....OGWWWWGGGGWWWWgO....",
+    "...OGGWEEWGGGGWEEWggO...",
+    "...DGGWEEWGGGGWEEWggO...",
+    "...OGGWWWWGGGGWWWWggO...",
+    "..OGGGGGGGGGGGGGGGGggO..",
+    "..OGGGGGGGGMMGGGGGGggO..",
+    "..OGGGGGGGMMMMGGGGGggO..",
+    "..OgggggggMMMMgggggggO..",
+    "...OgggggggMMgggggggO...",
+    "...OGOOOOOOOOOOOOOGO....",
+    "...OGO............O.....",
+    "....O..................."] },
+      { min:0,   t:"🫠 ร่าง 4 · ละลายแล้ว", g:[
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "....D...................",
+    "...................D....",
+    ".......OOOOOOOOOO.......",
+    ".....OOGGGGGGGGGGOO.....",
+    "....OGGGGGGGGGGGGGGO....",
+    "...OGGLGGGGGGGGGGGGGO...",
+    "..OGGGWWWGGGGGGWWWGggO..",
+    "..OGGGWEWGGGGGGWEWGggO..",
+    ".OGGGGDGGGGGGGGGGGDGggO.",
+    ".OGGGGDGGGGMMGGGGGDGggO.",
+    ".OggggggggMggMggggggggO.",
+    "..OggggggggggggggggggO..",
+    "..OGOOOOOGOOOOOGOOOOGO..",
+    "..OGO....O....OGO...O...",
+    "...O...........O........"] }],
+    dead:[
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "................C.......",
+    "...............CCC...C..",
+    "................C.......",
+    "........................",
+    ".....SSS....Y........yY.",
+    "....SESES.....OOOOOOO...",
+    "....SSSSS....OtttttttO..",
+    "....S.S.S...OtTTTTTTTtO.",
+    "...........COtTTTYTTTtO.",
+    ".....S......OOOOOOOOOOO.",
+    "............OYCYyYYCyYOC",
+    "...OOOOOOO..OYYyYYYyYYO.",
+    "..OGGGGGGGO.OOOOOOOOOOO.",
+    ".OGLLGGGGGGOOTTTTTTTTTO.",
+    "OGELEGGGEGEGOYYYYOYYYYO.",
+    "GGGEGGGGGEGGOTTTOYOTTTO.",
+    "ggEgEgRgEgEgOTTTTTTTTTO.",
+    "OggggRRgggggOOOOOOOOOOO.",
+    ".OOOOOOOOOOO............"] },
   { k:"skull", n:"ราชาผู้ไม่กล้ากดปล่อย", e:"💀", anim:"",
     pal:{K:"#f2eee6", k:"#b8b0a4", G:"#ffcc4d", R:"#ff3b5c", E:"#3a0a4a", P:"#c4b5ff", p:"#7a5cd6"},
     g:[
@@ -169,26 +272,37 @@ const BOSS_SKINS = [
 ];
 const BOSS_W = 24, BOSS_H = 24;
 const bossSkin = k => BOSS_SKINS.find(s=>s.k===k) || BOSS_SKINS[0];
-
-/* วาดบอสเป็น SVG · state: idle | hurt (HP ≤ 30%) | dead */
-function bossSprite(k, px=4, state="idle"){
+/* ร่างตามเลือดที่เหลือ · frac = HP ที่เหลือ / HP เต็ม (ไม่ส่ง = ร่างแรก) */
+function bossPhase(k, frac){
   const sk = bossSkin(k);
+  if(!sk.phases) return null;
+  return sk.phases.find(p => (frac==null ? 1 : frac) >= p.min) || sk.phases[sk.phases.length-1];
+}
+function bossGrid(sk, state, frac){
+  if(state==="dead" && sk.dead) return sk.dead;
+  return sk.phases ? bossPhase(sk.k, frac).g : sk.g;
+}
+
+/* วาดบอสเป็น SVG · state: idle | hurt (HP ≤ 30%) | dead
+   บอสที่มีร่างตาย (dead) ของตัวเอง จะไม่ถูกกลับหัว/ทำสีเทา แต่โชว์ร่างนอนแผ่ + สมบัติแทน */
+function bossSprite(k, px=4, state="idle", frac){
+  const sk = bossSkin(k), g = bossGrid(sk, state, frac);
   const pal = Object.assign({O:"#0b0316"}, sk.pal);
   if(state==="hurt") pal.E = "#ff2d55";             // ตาแดงตอนใกล้ตาย
   let body="", anim="";
   for(let y=0;y<BOSS_H;y++) for(let x=0;x<BOSS_W;x++){
-    const ch=sk.g[y][x], c=pal[ch]; if(!c) continue;
+    const ch=g[y][x], c=pal[ch]; if(!c) continue;
     const r=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${c}"/>`;
     if(sk.anim.includes(ch)) anim+=r; else body+=r;
   }
-  return `<svg class="bossSprite ${state}" width="${BOSS_W*px}" height="${BOSS_H*px}" viewBox="0 0 ${BOSS_W*px} ${BOSS_H*px}" shape-rendering="crispEdges">
+  return `<svg class="bossSprite ${state}${state==="dead"&&sk.dead?" own":""}" width="${BOSS_W*px}" height="${BOSS_H*px}" viewBox="0 0 ${BOSS_W*px} ${BOSS_H*px}" shape-rendering="crispEdges">
     ${body}${anim?`<g class="banim">${anim}</g>`:""}</svg>`;
 }
 /* วาดลง canvas (การ์ดสรุป / แชร์) */
-function drawBossCanvas(ctx, x, y, px, k){
-  const sk = bossSkin(k), pal = Object.assign({O:"#0b0316"}, sk.pal);
+function drawBossCanvas(ctx, x, y, px, k, state, frac){
+  const sk = bossSkin(k), g = bossGrid(sk, state, frac), pal = Object.assign({O:"#0b0316"}, sk.pal);
   for(let yy=0;yy<BOSS_H;yy++) for(let xx=0;xx<BOSS_W;xx++){
-    const c=pal[sk.g[yy][xx]]; if(!c) continue;
+    const c=pal[g[yy][xx]]; if(!c) continue;
     ctx.fillStyle=c; ctx.fillRect(x+xx*px, y+yy*px, px, px);
   }
 }

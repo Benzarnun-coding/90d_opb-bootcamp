@@ -985,6 +985,14 @@
   .bossBar.hurt .bossSprite{animation:bossHurt .45s steps(2) infinite; filter:drop-shadow(0 0 7px #ff2d55)}
   .bossBar.dead .bossSprite{filter:grayscale(1) brightness(.55); transform:rotate(180deg) translateY(-4px); animation:none}
   .bossBar.dead .bossSprite .banim{animation:none}
+  /* บอสที่มีร่างตายของตัวเอง (สไลม์): ไม่กลับหัว ไม่เทา · ประกายหีบสมบัติกะพริบ */
+  .bossBar.dead .bossSprite.own{filter:drop-shadow(0 4px 0 rgba(0,0,0,.5)) drop-shadow(0 0 6px rgba(255,210,63,.6)); transform:none}
+  .bossBar.dead .bossSprite.own .banim{animation:bossTwinkle .7s steps(2) infinite alternate}
+  .bossLoot{position:relative; margin-top:10px; padding:8px 10px; border:2px solid #ffd23f; background:rgba(255,210,63,.08); display:grid; gap:6px}
+  .lootHd{font-family:var(--f-px); font-size:12px; color:#ffd23f; letter-spacing:.5px}
+  .lootIt{display:grid; gap:2px; font-size:13px; line-height:1.4}
+  .lootIt b{color:#fff6b0}
+  .lootIt span{color:var(--dim); font-size:12px}
   .bossBar.hit .bossFig{animation:bossHit .5s steps(4) 1}
   .dmgPop{position:absolute; top:4px; right:-6px; z-index:2; font-family:var(--f-px); font-weight:700; font-size:20px; color:#ffd23f;
     text-shadow:0 2px 0 #000, 0 0 8px #ff8a00; animation:dmgPop 1.8s ease-out forwards}
@@ -1007,6 +1015,7 @@
   @keyframes bossFlap{from{transform:scaleY(1)}to{transform:scaleY(.72)}}
   @keyframes bossHurt{0%{transform:translateX(0)}50%{transform:translateX(-3px) rotate(-2deg)}100%{transform:translateX(3px) rotate(2deg)}}
   @keyframes bossHit{0%{transform:translateX(0)}25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-5px)}100%{transform:translateX(0)}}
+  @keyframes bossTwinkle{from{opacity:1}to{opacity:.25}}
   @keyframes bossAlert{from{opacity:1}to{opacity:.75}}
   @keyframes dmgPop{0%{opacity:0; transform:translateY(10px) scale(.6)}15%{opacity:1; transform:translateY(0) scale(1.2)}70%{opacity:1; transform:translateY(-18px) scale(1)}100%{opacity:0; transform:translateY(-34px)}}
   @media (max-width:640px){ .bossFig{flex:0 0 76px; height:84px} .bossFig .bossSprite{width:72px; height:72px} .bossShadow{width:56px} .bossName{font-size:14px} }

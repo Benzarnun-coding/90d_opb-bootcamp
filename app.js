@@ -3320,20 +3320,26 @@ function bossHTML(){
   return list.map(b=>{
     const left=Math.max(0,b.hp-b.damage), pct=Math.min(100, b.damage/b.hp*100), dead=b.damage>=b.hp, hurt=!dead && left<=b.hp*0.3;
     const h=b.house_id?houseOf(b.house_id):null, state=dead?"dead":hurt?"hurt":"idle";
+    const ph=!dead && bossPhase(b.skin, left/b.hp), loot=dead && bossSkin(b.skin).dead;
+    /* รางวัล: บรรทัดละรางวัล "ชื่อ — รายละเอียด" · ก่อนล้มโชว์แค่ชื่อ ล้มแล้วเปิดหีบโชว์เต็ม */
+    const rw=(b.reward||"").split("\n").map(x=>x.trim()).filter(Boolean), rwName=x=>x.split(" — ")[0];
+    const rwShort=rw.length>1?`${rw.length} รางวัล: ${rw.map(rwName).join(" · ")}`:rw.map(rwName).join("");
     /* ดาเมจใหม่ตั้งแต่เปิดครั้งก่อน → ตัวเลขเด้ง + บอสสะเทือน */
     const key="bossDmg."+b.id; let prev=null; try{ prev=localStorage.getItem(key); localStorage.setItem(key,String(b.damage)); }catch(e){}
     const delta=prev==null?0:b.damage-(+prev);
     return `<div class="bossBar ${state} ${delta>0?"hit":""}">
       <div class="bossStage">
-        <div class="bossFig">${bossSprite(b.skin, 4, state)}<span class="bossShadow"></span>${delta>0?`<b class="dmgPop">-${delta}</b>`:""}</div>
+        <div class="bossFig">${bossSprite(b.skin, 4, state, left/b.hp)}<span class="bossShadow"></span>${delta>0?`<b class="dmgPop">-${delta}</b>`:""}</div>
         <div class="bossInfo">
-          <div class="bossTag">${dead?"★ DEFEATED ★":hurt?"⚠ BOSS ใกล้ตาย!":"WEEKLY BOSS"} · WEEK ${b.week_no}</div>
+          <div class="bossTag">${dead?"★ DEFEATED ★":hurt?"⚠ BOSS ใกล้ตาย!":"WEEKLY BOSS"} · WEEK ${b.week_no}${ph?` · ${ph.t}`:""}</div>
           <div class="bossName">${b.name}<span class="bossWho">${h?h.emoji+" "+h.name:"🌏 ทั้งรุ่นช่วยกัน"}</span></div>
           <div class="bossHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${left} / ${b.hp}`}</span></div>
-          <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER${b.reward?" · 🎁 "+b.reward:""}`
-            : `ทุกชิ้นที่ส่ง = 1 ดาเมจ · โดนไปแล้ว <b>${b.damage}</b> จาก ${b.fighters} คน${hurt?" · อีก <b>"+left+"</b> ชิ้นล้ม!":""}${b.reward?" · 🎁 "+b.reward:""}`}</div>
+          <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER${rw.length&&!loot?" · 🎁 "+rw.join(" · "):""}`
+            : `ทุกชิ้นที่ส่ง = 1 ดาเมจ · โดนไปแล้ว <b>${b.damage}</b> จาก ${b.fighters} คน${hurt?" · อีก <b>"+left+"</b> ชิ้นล้ม!":""}${rw.length?" · 🎁 "+rwShort:""}`}</div>
         </div>
       </div>
+      ${loot&&rw.length?`<div class="bossLoot"><div class="lootHd">💰 บอสทิ้งสมบัติไว้ · เปิดหีบได้ ${rw.length} รางวัล</div>
+        ${rw.map(x=>{ const [t,...d]=x.split(" — "); return `<div class="lootIt"><b>🎁 ${t}</b>${d.length?`<span>${d.join(" — ")}</span>`:""}</div>`; }).join("")}</div>`:""}
     </div>`;
   }).join("");
 }
