@@ -1015,6 +1015,55 @@
   @keyframes bossFlap{from{transform:scaleY(1)}to{transform:scaleY(.72)}}
   @keyframes bossHurt{0%{transform:translateX(0)}50%{transform:translateX(-3px) rotate(-2deg)}100%{transform:translateX(3px) rotate(2deg)}}
   @keyframes bossHit{0%{transform:translateX(0)}25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-5px)}100%{transform:translateX(0)}}
+  /* ---- บอสตัวใหญ่เหนือแถบแท็บ + ห้องบอส ---- */
+  .bossHero{margin:0 0 10px}
+  .bossHero .bossBar{margin-top:0; cursor:pointer}
+  .bossBar.hero{padding:14px 18px 12px}
+  .bossBar.hero .bossFig{flex:0 0 176px; height:180px}
+  .bossBar.hero .bossShadow{width:130px; height:16px}
+  .bossBar.hero .bossName{font-size:22px}
+  .bossBar.hero .bossSub{font-size:12.5px}
+  .bossTop{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .bossTop span{font-size:12px; padding:3px 8px; background:rgba(0,0,0,.35); border:1px solid #3a3280; color:#e8e4ff}
+  .bossTop b{color:#ffd23f}
+  .bossGo{margin-top:8px; font-family:var(--f-px); font-weight:700; font-size:12px; color:var(--gold)}
+  .bossHero .bossBar:hover .bossGo{text-decoration:underline}
+  .bRoom{display:grid; gap:12px}
+  .bRoom + .bRoom{margin-top:18px; padding-top:18px; border-top:2px dashed #3a3280}
+  .bRoomHd{display:flex; align-items:center; gap:8px}
+  .bRoomHd small{color:var(--dim)}
+  .bStats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .bStats .statBox b small{font-size:.55em; color:var(--dim)}
+  .bTitles{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:8px}
+  .bTitle{display:grid; gap:2px; padding:10px 12px; background:#161139; border:2px solid #3a3280}
+  .bTitle i{font-style:normal; font-size:22px}
+  .bTitle small{font-family:var(--f-px); font-weight:700; font-size:11px; color:var(--dim); letter-spacing:.5px}
+  .bTitle b{color:var(--gold); font-size:14px; overflow-wrap:anywhere}
+  .bTitle span{font-size:12px; color:#cdc7ff}
+  .bhHd{font-family:var(--f-px); font-weight:700; font-size:14px; color:#fff}
+  .bhHd small{font-family:inherit; font-weight:400; font-size:11px; color:var(--dim)}
+  .bhList{display:grid; gap:4px}
+  .bhRow{display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; padding:7px 10px; background:#161139; cursor:pointer}
+  .bhRow:hover{background:#221a55}
+  .bhRow.me{outline:2px solid var(--gold); outline-offset:-2px}
+  .bhRow .rk{text-align:center; font-family:var(--f-px); font-weight:700; color:var(--dim)}
+  .bhRow .who{min-width:0; display:grid; gap:3px}
+  .bhRow .n{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bhRow small{color:var(--dim); font-size:11px}
+  .bhBar{display:block; height:6px; background:#0a0722}
+  .bhBar i{display:block; height:100%; background:linear-gradient(90deg,#ff8a00,#ffd23f)}
+  .bhRow .hits{font-family:var(--f-px); font-weight:700; font-size:18px; color:#ffd23f; text-shadow:0 2px 0 #000}
+  .bhNote{font-size:12px; color:var(--dim); line-height:1.6}
+  @media (max-width:640px){
+    .bossBar.hero{padding:12px}
+    .bossBar.hero .bossFig{flex:0 0 116px; height:122px}
+    .bossBar.hero .bossFig .bossSprite{width:112px; height:112px}
+    .bossBar.hero .bossShadow{width:88px}
+    .bossBar.hero .bossName{font-size:16px}
+    .subTabs button{font-size:11px; padding:8px 2px}
+    .bStats{grid-template-columns:repeat(2,1fr)}
+    .bTitles{grid-template-columns:repeat(2,1fr)}
+  }
   @keyframes bossTwinkle{from{opacity:1}to{opacity:.25}}
   @keyframes bossAlert{from{opacity:1}to{opacity:.75}}
   @keyframes dmgPop{0%{opacity:0; transform:translateY(10px) scale(.6)}15%{opacity:1; transform:translateY(0) scale(1.2)}70%{opacity:1; transform:translateY(-18px) scale(1)}100%{opacity:0; transform:translateY(-34px)}}
@@ -1216,9 +1265,13 @@
 
     <section class="pledgeCard bevel" id="pledgeCard"></section>
 
+    <!-- บอสประจำสัปดาห์ ตัวใหญ่เหนือแถบแท็บ · แตะแล้วเข้าห้องบอส -->
+    <section class="bossHero" id="bossHero" hidden></section>
+
 
     <div class="subTabs" id="subTabs">
       <button class="on" data-st="track">🏁 สนามแข่ง</button>
+      <button data-st="boss" id="stBoss" hidden>👹 ห้องบอส</button>
       <button data-st="ta" id="stTa">⚔️ TA WAR</button>
       <button data-st="duel" id="stDuel">🥊 ท้าดวล</button>
       <button data-st="feed">📡 ฟีด</button>
@@ -1231,6 +1284,11 @@
         <div class="checkpoints" id="cps"></div>
         <div id="lanes"></div>
       </div></div>
+    </section>
+
+    <section class="panel bevel" id="bossPanel" hidden>
+      <div class="titlebar"><h2>👹 BOSS ROOM</h2><span>ใครตีบอสไปกี่ดาเมจ · ใครแรงสุดรอบนี้</span></div>
+      <div class="body" id="bossRoom"></div>
     </section>
 
     <section class="panel bevel" id="taPanel" hidden>

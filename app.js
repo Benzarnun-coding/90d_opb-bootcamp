@@ -509,12 +509,18 @@ const DemoDB = (()=>{
         return Object.assign({}, d, {challenger_name:nm(d.challenger), opponent_name:nm(d.opponent), challenger_score:sc(d.challenger), opponent_score:sc(d.opponent), today:db.today}); });
       const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).length;
         return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
+      const bossHits=[]; bosses.forEach(b=>{ let n=0; const by={};
+        db.subs.filter(s=>weekOf(s.day)===cw).sort((a,c)=>a.day-c.day||a.id-c.id).forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who);
+          if(!r0||r0.role!=="student"||(b.house_id!=null&&r0.house!==b.house_id)) return; n++;
+          const o=by[r0.id]=by[r0.id]||{boss_id:b.id, profile_id:r0.id, hits:0, per:{}, first_blood:n===1, last_hit:false, last_at:new Date(s.ts||0).toISOString()};
+          o.hits++; o.per[s.day]=(o.per[s.day]||0)+1; if(n===b.hp) o.last_hit=true; });
+        Object.values(by).forEach(o=>{ o.days=Object.keys(o.per).length; o.best_day=Math.max(...Object.values(o.per)); bossHits.push(o); }); });
       const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.role==="student"&&r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
       const reach={}; db.subs.forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who); if(!r0) return; const o=reach[r0.id]=reach[r0.id]||{profile_id:r0.id,total_views:0,total_likes:0,best_views:0,pieces:0}; o.total_views+=s.views||0; o.total_likes+=s.likes||0; o.best_views=Math.max(o.best_views,s.views||0); o.pieces++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
               reach:Object.values(reach), kudos:[], sessions:[], myCheckins:[],
-              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills,
+              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills, bossHits,
               started:true, daysUntil:0, startDate:null};
     },
     async rosterList(){
@@ -856,17 +862,18 @@ const LiveDB = (()=>{
         ()=>uidNow ? soft(()=>sb.from("checkins").select("session_id").eq("profile_id",uidNow), "checkins") : Promise.resolve({data:[]}),
         ()=>soft(()=>sb.from("v_holiday_grinders").select("profile_id,n"), "v_holiday_grinders"),
         ()=>soft(()=>sb.from("v_cheer_stats").select("profile_id,given,received,quest_days"), "v_cheer_stats"),
-        ()=>soft(()=>sb.from("nudges").select("from_id,to_id,day_index").gte("day_index",(todayIdx||1)-1).limit(5000), "nudges")
+        ()=>soft(()=>sb.from("nudges").select("from_id,to_id,day_index").gte("day_index",(todayIdx||1)-1).limit(5000), "nudges"),
+        ()=>soft(()=>sb.from("v_boss_hits").select("*"), "v_boss_hits")
       ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
                    {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
-                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows}])=>({
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows}])=>({
         cheerStats: cheerStatRows||[], nudges: nudgeRows||[],
         burnIds: (burn||[]).map(b=>b.profile_id),
         weakIds: (weakRows||[]).map(b=>b.profile_id),
         cups: cups||[],
         kings: (kingRows||[]).concat(taKingRows||[]),      // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[],
-        bosses: bossRows||[], bossKills: killRows||[],
+        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[],
         reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[],
         sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id)
       }));
@@ -1145,8 +1152,7 @@ function renderPledge(){
       + '<div class="pledgeTxt"><span class="big normal">โหมดคนดู</span><br>'
       + 'เห็นสนามแข่งและกระดานแบบเรียลไทม์ · กดที่เลนหรือแถวเพื่อดูโปรไฟล์<br>'
       + '<span style="color:var(--dim)">ส่งงานหรือรับเป้าต้องเป็นนักเรียนในรุ่นเท่านั้น</span></div>'
-      + '<button class="btn go" style="max-width:260px" onclick="leaveSpectator()">▶ เข้าสู่ระบบเพื่อลงแข่ง</button>'
-      + bossHTML();
+      + '<button class="btn go" style="max-width:260px" onclick="leaveSpectator()">▶ เข้าสู่ระบบเพื่อลงแข่ง</button>';
     return;
   }
   const r=meR(); if(!r) return;
@@ -1188,7 +1194,7 @@ function renderPledge(){
         <span style="color:var(--gold)">ใครส่งช่วงนี้ = นักเรียนดีเด่น 🏅 นับรวมยอดและได้ป้าย STAR STUDENT</span>`
       : `<span class="big normal">กลับมาแล้ว! 💪</span><br>งานวันนี้นับรวมยอดเลย · สัปดาห์ใหม่เริ่มหลังไลฟ์ ${DOW_TH[C.WEEK_CUTOFF_DOW==null?3:+C.WEEK_CUTOFF_DOW]} ${S.weekCut||C.WEEK_CUTOFF_TIME||"19:30"} น.<br>
         <span style="color:var(--dim)">ค่อยเลือกเป้าสัปดาห์ใหม่ตอนนั้น</span>`;
-    $("pledgeCard").innerHTML=`<div class="paceNum on">${isVacation()?"🏖":"💪"}</div><div class="pledgeTxt">${vacTxt}</div>` + starBoardHTML() + bossHTML();
+    $("pledgeCard").innerHTML=`<div class="paceNum on">${isVacation()?"🏖":"💪"}</div><div class="pledgeTxt">${vacTxt}</div>` + starBoardHTML();
     return;
   }
   if(!st.weekTarget){
@@ -1247,7 +1253,7 @@ function renderPledge(){
     <div class="rival">${st.burnout
       ? `💀 สัปดาห์นี้เป็นร่างกระโหลก · ทำครบ ${st.weekTarget} ชิ้น = <b style="color:var(--gold)">ฟื้นคืนชีพ</b> ได้ป้าย REVIVED · `
       : st.weak ? `😵 สัปดาห์นี้เป็นร่างหมดแรง (พลาดเป้าสัปดาห์ที่แล้ว) · ทำครบสัปดาห์นี้แล้วสัปดาห์หน้ากลับมาปกติ · ` : ""}${rivalHTML(r)}</div>`
-    + myCheersHTML() + duelBannerHTML() + bossHTML() + nudge;
+    + myCheersHTML() + duelBannerHTML() + nudge;
   /* ยุบเหลือบรรทัดเดียวเมื่อเลือกเป้าแล้ว — ขยายเองถ้ามีเรื่องต้องกด (ดวล/เชียร์ใหม่/บอสใกล้ตาย) */
   const d=myDuel(); const needAct = d && ((d.status==="pending" && d.opponent===r.id) || (d.status==="done" && d.winner===r.id && d.prize_hat==null));
   const key="pledgeOpen."+r.id; let open=false; try{ open=localStorage.getItem(key)==="1"; }catch(e){}
@@ -1259,7 +1265,7 @@ function renderPledge(){
   $("pledgeCard").insertAdjacentHTML("afterbegin", `<div class="plSum" onclick="togglePledge()">
       <span class="big ${o.style}" style="font-size:13px">${o.name}</span> <b>${st.weekDone}/${st.weekTarget}</b>
       <span>เหลือ ${dayLeft} วัน${st.weekDone>=st.weekTarget?" · ครบเป้าแล้ว 🎉":" · ขาดอีก "+(st.weekTarget-st.weekDone)}</span>
-      ${chips}<em>${open?"▲ ย่อ":"▼ รายละเอียด · คู่แข่ง · เชียร์ · ดวล · บอส"}</em></div>`);
+      ${chips}<em>${open?"▲ ย่อ":"▼ รายละเอียด · คู่แข่ง · เชียร์ · ดวล"}</em></div>`);
   $("pledgeCard").classList.toggle("collapsed", !open);
 }
 function togglePledge(){
@@ -1963,7 +1969,7 @@ function renderAll(){
   try{ nudgeWatch(); }catch(e){}
   /* แถบเตือนโหมดทดลอง — กันคนเข้าใจผิดว่าส่งงานจริงแล้ว */
   $("demoBar").style.display = DB.mode==="demo" ? "" : "none";
-  renderFilters(); renderPledge(); renderTrack(); renderFeed(); renderHud(); renderQuests();
+  renderFilters(); renderPledge(); renderBoss(); renderTrack(); renderFeed(); renderHud(); renderQuests();
   if($("pgBoard").classList.contains("on")) renderBoard();
   if($("pgStatus").classList.contains("on")) renderStatus();
 }
@@ -2446,13 +2452,15 @@ window.addEventListener("popstate", e=>{
 });
 document.querySelectorAll("[data-back]").forEach(el=>el.onclick=ev=>{ ev.preventDefault(); showPage("pgRace"); });
 
-/* ---- แท็บในหน้า RACE: สนาม | TA WAR | ฟีด ---- */
+/* ---- แท็บในหน้า RACE: สนาม | ห้องบอส | TA WAR | ท้าดวล | ฟีด ---- */
 function setSubTab(k){
   if(k==="ta" && $("taPanel").hidden) k="track";
+  if(k==="boss" && $("stBoss").hidden) k="track";
   document.querySelectorAll("#subTabs button").forEach(b=>b.classList.toggle("on", b.dataset.st===k));
   $("trackPanel").hidden = k!=="track";
   $("taPanel").style.display = k==="ta" ? "" : "none";
   $("duelPanel").hidden = k!=="duel";
+  $("bossPanel").hidden = k!=="boss";
   $("feedPanel").hidden = k!=="feed";
   try{ localStorage.setItem("subTab", k); }catch(e){}
 }
@@ -3313,36 +3321,116 @@ function starBoardHTML(){
   return `<div class="starBoard"><div class="sbHead"><b>🏅 บอร์ดนักเรียนดีเด่น</b><span>ส่งงานช่วงปิดเทอม · ${rows.length} คน</span></div>
     <ul>${list}</ul>${mine?`<div class="sbMe">คุณส่งไป ${mine} ชิ้นแล้ว 🏅 เหรียญติดตัวบนสนามและในสกอร์บอร์ด</div>`:isVacation()?`<div class="sbMe dim">ส่งชิ้นเดียวก็ได้เหรียญ 🏅 และป้าย STAR STUDENT</div>`:""}</div>`;
 }
-function bossHTML(){
+/* บอสสัปดาห์นี้ที่คนนี้เห็น (บอสทั้งรุ่น + บอสบ้านตัวเอง · คนดูเห็นทุกตัว) */
+function curBosses(){
   const me=meR(), cw=curWeek();
-  const list=(S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null || (me && b.house_id===me.house) || S.spectator));
-  if(!list.length) return "";
-  return list.map(b=>{
+  return (S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null || (me && b.house_id===me.house) || S.spectator));
+}
+/* รางวัล: บรรทัดละรางวัล "ชื่อ — รายละเอียด" */
+const bossRewards = b => (b.reward||"").split("\n").map(x=>x.trim()).filter(Boolean);
+const rewardName  = x => x.split(" — ")[0];
+const lootHTML = rw => rw.map(x=>{ const [t,...d]=x.split(" — "); return `<div class="lootIt"><b>🎁 ${t}</b>${d.length?`<span>${d.join(" — ")}</span>`:""}</div>`; }).join("");
+
+/* กระดานดาเมจของบอสหนึ่งตัว เรียงจากตีหนักสุด (เสมอ = ใครถึงยอดนี้ก่อนอยู่บน)
+   มาจาก v_boss_hits (050) · ถ้ายังไม่มี view นี้ ประมาณจากยอดสัปดาห์นี้ของแต่ละคน */
+function bossBoard(b){
+  const rows=(S.bossHits||[]).filter(x=>x.boss_id===b.id);
+  const out = (rows.length || !b.damage)
+    ? rows.map(x=>({r:S.runners.find(r=>r.id===x.profile_id), hits:+x.hits||0, days:+x.days||0, best:+x.best_day||0,
+                    first:!!x.first_blood, last:!!x.last_hit, at:x.last_at?Date.parse(x.last_at):0}))
+    : S.runners.filter(r=>roleOf(r)==="student" && (b.house_id==null || r.house===b.house_id) && r.st && r.st.weekDone>0)
+        .map(r=>({r, hits:r.st.weekDone, days:0, best:0, first:false, last:false, at:0, approx:true}));
+  return out.filter(x=>x.r && x.hits>0).sort((a,c)=>c.hits-a.hits || a.at-c.at);
+}
+
+/* ตัวบอสใหญ่ก่อนแถบแท็บ · แตะแล้วเข้าห้องบอส */
+function bossHTML(){
+  return curBosses().map(b=>{
     const left=Math.max(0,b.hp-b.damage), pct=Math.min(100, b.damage/b.hp*100), dead=b.damage>=b.hp, hurt=!dead && left<=b.hp*0.3;
     const h=b.house_id?houseOf(b.house_id):null, state=dead?"dead":hurt?"hurt":"idle";
     const ph=!dead && bossPhase(b.skin, left/b.hp), loot=dead && bossSkin(b.skin).dead;
-    /* รางวัล: บรรทัดละรางวัล "ชื่อ — รายละเอียด" · ก่อนล้มโชว์แค่ชื่อ ล้มแล้วเปิดหีบโชว์เต็ม */
-    const rw=(b.reward||"").split("\n").map(x=>x.trim()).filter(Boolean), rwName=x=>x.split(" — ")[0];
-    const rwShort=rw.length>1?`${rw.length} รางวัล: ${rw.map(rwName).join(" · ")}`:rw.map(rwName).join("");
+    /* ก่อนล้มโชว์แค่ชื่อรางวัล ล้มแล้วเปิดหีบโชว์เต็ม */
+    const rw=bossRewards(b), rwShort=rw.length>1?`${rw.length} รางวัล: ${rw.map(rewardName).join(" · ")}`:rw.map(rewardName).join("");
     /* ดาเมจใหม่ตั้งแต่เปิดครั้งก่อน → ตัวเลขเด้ง + บอสสะเทือน */
     const key="bossDmg."+b.id; let prev=null; try{ prev=localStorage.getItem(key); localStorage.setItem(key,String(b.damage)); }catch(e){}
     const delta=prev==null?0:b.damage-(+prev);
-    return `<div class="bossBar ${state} ${delta>0?"hit":""}">
+    const top=bossBoard(b).slice(0,3);
+    return `<div class="bossBar hero ${state} ${delta>0?"hit":""}" data-boss-go>
       <div class="bossStage">
-        <div class="bossFig">${bossSprite(b.skin, 4, state, left/b.hp)}<span class="bossShadow"></span>${delta>0?`<b class="dmgPop">-${delta}</b>`:""}</div>
+        <div class="bossFig">${bossSprite(b.skin, 7, state, left/b.hp)}<span class="bossShadow"></span>${delta>0?`<b class="dmgPop">-${delta}</b>`:""}</div>
         <div class="bossInfo">
           <div class="bossTag">${dead?"★ DEFEATED ★":hurt?"⚠ BOSS ใกล้ตาย!":"WEEKLY BOSS"} · WEEK ${b.week_no}${ph?` · ${ph.t}`:""}</div>
           <div class="bossName">${b.name}<span class="bossWho">${h?h.emoji+" "+h.name:"🌏 ทั้งรุ่นช่วยกัน"}</span></div>
           <div class="bossHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${left} / ${b.hp}`}</span></div>
-          <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER${rw.length&&!loot?" · 🎁 "+rw.join(" · "):""}`
-            : `ทุกชิ้นที่ส่ง = 1 ดาเมจ · โดนไปแล้ว <b>${b.damage}</b> จาก ${b.fighters} คน${hurt?" · อีก <b>"+left+"</b> ชิ้นล้ม!":""}${rw.length?" · 🎁 "+rwShort:""}`}</div>
+          <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ตีได้ป้าย BOSS SLAYER${rw.length&&!loot?" · 🎁 "+rw.join(" · "):""}`
+            : `ส่งงาน 1 ชิ้น = 1 ดาเมจ · โดนไปแล้ว <b>${b.damage}</b> จาก ${b.fighters} คน${hurt?" · อีก <b>"+left+"</b> ชิ้นล้ม!":""}${rw.length?" · 🎁 "+rwShort:""}`}</div>
+          ${top.length?`<div class="bossTop">${top.map((x,i)=>`<span>${["🥇","🥈","🥉"][i]} ${x.r.name} <b>${x.hits}</b></span>`).join("")}</div>`:""}
+          <div class="bossGo">👹 เข้าห้องบอส · ดูว่าใครตีไปกี่ดาเมจ ▶</div>
         </div>
       </div>
-      ${loot&&rw.length?`<div class="bossLoot"><div class="lootHd">💰 บอสทิ้งสมบัติไว้ · เปิดหีบได้ ${rw.length} รางวัล</div>
-        ${rw.map(x=>{ const [t,...d]=x.split(" — "); return `<div class="lootIt"><b>🎁 ${t}</b>${d.length?`<span>${d.join(" — ")}</span>`:""}</div>`; }).join("")}</div>`:""}
+      ${loot&&rw.length?`<div class="bossLoot"><div class="lootHd">💰 บอสทิ้งสมบัติไว้ · เปิดหีบได้ ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
     </div>`;
   }).join("");
 }
+
+/* ห้องบอส: สถิติว่าใครตีไปกี่ดาเมจ + ฉายาประจำรอบ */
+function bossRoomHTML(){
+  const list=curBosses(), me=meR();
+  if(!list.length) return `<div class="noJoin">สัปดาห์นี้ยังไม่มีบอส</div>`;
+  return list.map(b=>{
+    const bd=bossBoard(b), left=Math.max(0,b.hp-b.damage), dead=b.damage>=b.hp, rw=bossRewards(b);
+    const myI=me?bd.findIndex(x=>x.r.id===me.id):-1, my=myI>=0?bd[myI]:null, top=bd[0];
+    const pool=S.runners.filter(r=>roleOf(r)==="student" && (b.house_id==null || r.house===b.house_id)).length;
+    const names=w=>w.slice(0,2).map(x=>x.r.name).join(", ")+(w.length>2?` +${w.length-2} คน`:"");
+    const best=f=>{ const v=Math.max(0,...bd.map(f)); return v>0?{v, who:bd.filter(x=>f(x)===v)}:null; };
+    const combo=best(x=>x.best), grind=best(x=>x.days), fb=bd.find(x=>x.first), lh=bd.find(x=>x.last);
+    const titles=[
+      top   && {i:"🏆", t:"MVP · ดาเมจสูงสุด", n:names(bd.filter(x=>x.hits===top.hits)), v:`${top.hits} ดาเมจ`},
+      combo && {i:"⚡", t:"คอมโบแรงสุด", n:names(combo.who), v:`${combo.v} ชิ้นในวันเดียว`},
+      grind && {i:"🗓️", t:"ตีไม่หยุด", n:names(grind.who), v:`ตีมาแล้ว ${grind.v} วัน`},
+      fb    && {i:"🩸", t:"FIRST BLOOD", n:fb.r.name, v:"ดาเมจแรกของบอส"},
+      lh    && {i:"💥", t:"LAST HIT", n:lh.r.name, v:"ตีดาเมจสุดท้ายจนบอสล้ม"}
+    ].filter(Boolean);
+    const max=top?top.hits:1, h=b.house_id?houseOf(b.house_id):null;
+    return `<div class="bRoom">
+      ${list.length>1?`<div class="bRoomHd">${bossSprite(b.skin,2,dead?"dead":"idle",left/b.hp)} <b>${b.name}</b> <small>${h?h.emoji+" "+h.name:"ทั้งรุ่น"}</small></div>`:""}
+      <div class="bStats">
+        <div class="statBox"><b>${b.damage}<small>/${b.hp}</small></b><span>ดาเมจรวม</span></div>
+        <div class="statBox"><b>${bd.length}<small>/${pool}</small></b><span>นักรบที่ลงมือแล้ว</span></div>
+        <div class="statBox"><b>${my?my.hits:0}</b><span>${my?`ดาเมจของคุณ · อันดับ ${myI+1}`:S.spectator?"โหมดคนดู":"ดาเมจของคุณ · ยังไม่ได้ตี"}</span></div>
+        <div class="statBox"><b>${dead?"💥":left}</b><span>${dead?"บอสล้มแล้ว":"เลือดที่เหลือ"}</span></div>
+      </div>
+      ${titles.length?`<div class="bTitles">${titles.map(x=>`<div class="bTitle"><i>${x.i}</i><small>${x.t}</small><b>${x.n}</b><span>${x.v}</span></div>`).join("")}</div>`:""}
+      <div class="bhHd">⚔️ ตารางดาเมจ${bd.some(x=>x.approx)?` <small>· นับจากยอดสัปดาห์นี้ของคนที่เลือกเป้าแล้ว</small>`:""}</div>
+      ${bd.length?`<div class="bhList">${bd.map((x,i)=>{ const hs=houseOf(x.r.house);
+        return `<div class="bhRow ${me&&x.r.id===me.id?"me":""}" data-prof="${String(x.r.name).replace(/"/g,"&quot;")}">
+          <span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>
+          <span class="who"><span class="n">${hs.emoji} ${x.r.name}${x.first?" 🩸":""}${x.last?" 💥":""}</span>
+            <span class="bhBar"><i style="width:${Math.max(4,x.hits/max*100)}%"></i></span>
+            ${x.days?`<small>ตี ${x.days} วัน · หนักสุด ${x.best} ชิ้น/วัน</small>`:""}</span>
+          <span class="hits">${x.hits}</span></div>`; }).join("")}</div>`
+        :`<div class="noJoin">ยังไม่มีใครตีเลย ส่งงานชิ้นแรกก็ได้ FIRST BLOOD 🩸</div>`}
+      ${pool>bd.length&&bd.length?`<div class="bhNote">ยังไม่ได้ตีอีก ${pool-bd.length} คน · ส่งงาน 1 ชิ้นก็ขึ้นกระดานแล้ว</div>`:""}
+      ${rw.length?`<div class="bossLoot"><div class="lootHd">${dead?"💰 บอสทิ้งสมบัติไว้":"🎁 รางวัลเมื่อล้มบอส"} · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
+      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ (นับวันละไม่เกิน ${C.MAX_PER_DAY||4} ชิ้นเหมือนสนามแข่ง) · นับเฉพาะนักเรียน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
+    </div>`;
+  }).join("");
+}
+function renderBoss(){
+  const has=curBosses().length>0;
+  $("bossHero").hidden=!has; $("bossHero").innerHTML=has?bossHTML():"";
+  $("stBoss").hidden=!has;
+  if(has){
+    $("bossRoom").innerHTML=bossRoomHTML();
+    /* รอบที่แล้วเปิดค้างไว้ที่ห้องบอส แต่ตอนเปิดเว็บบอสยังโหลดไม่มา → พากลับห้องบอสเมื่อบอสมาถึง */
+    if(!renderBoss._restored){ renderBoss._restored=true; let k=""; try{ k=localStorage.getItem("subTab")||""; }catch(e){} if(k==="boss") setSubTab("boss"); }
+  } else if(!$("bossPanel").hidden) setSubTab("track");
+}
+function openBossRoom(){ setSubTab("boss"); $("subTabs").scrollIntoView({behavior:"smooth", block:"start"}); }
+document.addEventListener("click", e=>{
+  if(e.target.closest("#bossHero [data-boss-go]")) return openBossRoom();
+  const a=e.target.closest("#bossRoom [data-prof]"); if(a) openProfile(a.dataset.prof);
+});
 
 /* ---- สรุปจบสัปดาห์ ---- */
 async function maybeShowRecap(){
@@ -3476,7 +3564,7 @@ function applyExtras(e){
   S.cheers=e.cheers||[]; S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
   S.nudges=e.nudges||[];
   S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
-  S.bosses=e.bosses||[]; S.bossKills=e.bossKills||[];
+  S.bosses=e.bosses||[]; S.bossKills=e.bossKills||[]; S.bossHits=e.bossHits||[];
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
   S.kudos={};   (e.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
   S.holiday={}; (e.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });
