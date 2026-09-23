@@ -2176,6 +2176,7 @@ $("pushBtn").onclick=async()=>{
     await DB.submit({url, platform:$("plat").value, kind:$("kind").value, note:$("note").value.trim()});
     $("url").value=""; $("platHint").textContent=""; $("note").value="";
     S.postedToday=true;
+    { const m=meR(); if(m && roleOf(m)==="student") curBosses().forEach(b=>{ b.damage++; }); renderBoss(); }   // เลือดบอสลดทันที ของจริงตามมาตอน refresh
     await refresh();
     S.submitting=false;
     const after=stats(meR());
@@ -3090,7 +3091,9 @@ function cheerHTML(r){
 document.addEventListener("click", async e=>{
   const b=e.target.closest(".cheerBtn"); if(!b || b.disabled) return;
   b.disabled=true;
-  try{ await DB.cheer(b.dataset.to, b.dataset.cheer); SFX.coin(); toast(`ส่ง ${b.dataset.cheer} ให้แล้ว`); await refresh();
+  try{ await DB.cheer(b.dataset.to, b.dataset.cheer); SFX.coin(); toast(`ส่ง ${b.dataset.cheer} ให้แล้ว`);
+    (S.cheers=S.cheers||[]).push({from_id:meId(), to_id:b.dataset.to, emoji:b.dataset.cheer, day_index:S.today}); renderAll();   // ติ๊กภารกิจทันที เซิร์ฟเวอร์ยืนยันซ้ำตอน refresh
+    await refresh();
     const r=S.runners.find(x=>x.id===b.dataset.to); if(r && $("modal").classList.contains("on")) $("mCheer").innerHTML=cheerHTML(r)+nudgeHTML(r)+duelBtnHTML(r); }
   catch(err){ toast(err.message); b.disabled=false; }
 });
@@ -3564,10 +3567,11 @@ function applyExtras(e){
   if(Array.isArray(e.burnIds) || Array.isArray(e.weakIds)) markStyles(e.burnIds, e.weakIds);
   S.cups=e.cups||[];
   S.kings=e.kings||[];                        // ประวัติ King of the Week (สัปดาห์ที่จบแล้ว) จากเซิร์ฟเวอร์
-  S.cheers=e.cheers||[]; S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
+  const keep=(nu,old)=>(Array.isArray(nu)&&nu.length)?nu:(old&&old.length?old:(nu||[]));
+  S.cheers=keep(e.cheers,S.cheers); S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
   S.nudges=e.nudges||[];
   S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
-  S.bosses=e.bosses||[]; S.bossKills=e.bossKills||[]; S.bossHits=e.bossHits||[];
+  S.bosses=keep(e.bosses,S.bosses); S.bossKills=e.bossKills||[]; S.bossHits=keep(e.bossHits,S.bossHits);
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
   S.kudos={};   (e.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
   S.holiday={}; (e.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });
