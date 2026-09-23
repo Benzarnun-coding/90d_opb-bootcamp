@@ -784,6 +784,7 @@ const LiveDB = (()=>{
         ()=>uidNow ? soft(()=>sb.from("pledges").select("week_no,target").eq("profile_id",uidNow), "pledges") : Promise.resolve({data:[]})
       ], 4);
       cohort=co;
+      S.maxPerDay = co && co.max_per_day!=null ? Number(co.max_per_day) : null;   // 0 = ไม่จำกัดต่อวัน (ค่าจริงอยู่ที่ฐานข้อมูล ไม่ใช่ config.js)
 
       const runners=(board||[]).map(b=>({
         id:b.id, name:b.name, handle:b.handle, color:b.color, avatar:b.avatar||{},
@@ -3414,7 +3415,7 @@ function bossRoomHTML(){
         :`<div class="noJoin">ยังไม่มีใครตีเลย ส่งงานชิ้นแรกก็ได้ FIRST BLOOD 🩸</div>`}
       ${pool>bd.length&&bd.length?`<div class="bhNote">ยังไม่ได้ตีอีก ${pool-bd.length} คน · ส่งงาน 1 ชิ้นก็ขึ้นกระดานแล้ว</div>`:""}
       ${rw.length?`<div class="bossLoot"><div class="lootHd">${dead?"💰 บอสทิ้งสมบัติไว้":"🎁 รางวัลเมื่อล้มบอส"} · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
-      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ (นับวันละไม่เกิน ${C.MAX_PER_DAY||4} ชิ้นเหมือนสนามแข่ง) · นับเฉพาะนักเรียน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
+      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นับเฉพาะนักเรียน (TA/โค้ชส่งไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
     </div>`;
   }).join("");
 }
