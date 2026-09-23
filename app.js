@@ -1320,7 +1320,7 @@ function renderTrack(){
       <div class="runner ${r.name===S.me?"me":""} ${s.style} ${r.house===champHouse()&&roleOf(r)==="student"?"cup":""} ${s.contents>=FINISH?"champ":""}" style="--p:${p}">
         <div class="body">
           <div class="lbl ${side}" style="bottom:${(ROWS-top)*2}px">
-            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${starN(r)?"🏅 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}${s.dayStreak>=2?` <em class="stk">🔥${s.dayStreak}</em>`:""}${av.sword?` <em class="duelTag">⚔️ FIGHTING</em>`:""}</span>
+            <span class="name ${role}"><i>${role==="head"?"🎓":h.emoji}</i> ${isKingNow(r)?"👑 ":""}${starN(r)?"🏅 ":""}${r.name}${rtag}${s.weekTarget?` · ${s.weekDone}/${s.weekTarget}`:""}${s.weekStreak>=1?` <em class="stk">🔥${s.weekStreak}สัปดาห์</em>`:""}${s.dayStreak>=2?` <em class="stk d">⚡${s.dayStreak}วัน</em>`:""}${av.sword?` <em class="duelTag">⚔️ FIGHTING</em>`:""}</span>
             <span class="tag">${s.contents}${s.contents>=FINISH?" 🏆":""}</span>
           </div>
           ${hasAura(s.style)?aura(s.style):""}${starN(r)?'<span class="medal" title="นักเรียนดีเด่น ส่งงานช่วงปิดเทอม">🏅</span>':""}${sprite(av,2,s.style)}${s.dayStreak>=7?`<span class="feetfire ${s.dayStreak>=14?"big":""}"></span>`:""}
@@ -1356,7 +1356,7 @@ function renderTaRoom(){
           <small>${role==="head"?"หัวหน้าโค้ช":"TA · "+h.name}</small></div>
         <div class="taBar"><i style="width:${p*100}%;background:${role==="head"?"linear-gradient(90deg,#ff4d6d,#ff8a9a)":"linear-gradient(90deg,#1f8a4a,#5ef08c)"}"></i>
           <span>${s.contents} / ${FINISH}${s.contents>=FINISH?" 🏆":""}</span></div>
-        <div class="taMeta">สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b> ชิ้น · ทำแล้ว ${s.activeDays} วัน${s.dayStreak>=2?` · <em class="stk">🔥${s.dayStreak}</em>`:""}${s.burnout?" · 💀":s.weak?" · 😵":""}</div>
+        <div class="taMeta">สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b> ชิ้น · ทำแล้ว ${s.activeDays} วัน${s.weekStreak>=1?` · <em class="stk">🔥${s.weekStreak} สัปดาห์</em>`:""}${s.dayStreak>=2?` · <em class="stk d">⚡${s.dayStreak} วันติด</em>`:""}${s.burnout?" · 💀":s.weak?" · 😵":""}</div>
       </div>
     </div>`;
   }).join("");
@@ -1519,7 +1519,7 @@ async function openProfile(name){
     : `${h.emoji} ${h.name} · อันดับ ${rankOf(name)} จาก ${students().length} · ลงไว้ ${r.joined.length}/${NSP} สปรินต์`;
   $("mStats").innerHTML=[
     ["CONTENTS", s.contents],["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
-    ["STREAK 🔥", s.weekStreak+" สัปดาห์"],["ห่างจากเป้า", (s.pace>0?"+":"")+s.pace]
+    ["ครบเป้าติดกัน 🔥", s.weekStreak+" สัปดาห์"],["ห่างจากเป้า", (s.pace>0?"+":"")+s.pace]
   ].map(([l,v])=>`<div class="statBox"><b>${v}</b><span>${l}</span></div>`).join("");
   let det={byDay:{},recent:[],weeks:[]};
   $("mBadges").innerHTML="";
@@ -1658,7 +1658,7 @@ function drawCard(){
 
   const rows=[
     [["สัปดาห์นี้", s.weekTarget?`${s.weekDone}/${s.weekTarget}`:"—"],
-     ["STREAK วัน", `${s.dayStreak||0}🔥`],
+     ["STREAK สัปดาห์", `${s.weekStreak||0}🔥`],
      ["ห่างจากเป้า", `${s.pace>0?"+":""}${s.pace}`]],
     [["อันดับในบ้าน", noHouse ? "—" : `#${rk.house}`],
      ["อันดับรุ่น", `#${rk.all}`],          // ไม่บอกจำนวนคนทั้งหมด — การ์ดเอาไปโพสต์ข้างนอก
@@ -2404,6 +2404,7 @@ function myEvents(){
   (S.passEvents||[]).filter(p=>Date.now()-p.ts<86400e3).slice(0,3).forEach(p=>ev.push({k:"pass"+p.who+p.ts, i:"🏃", t:`${p.who} แซงคุณแล้ว (ห่าง ${p.gap} ชิ้น)`, s:"ส่งอีกชิ้นเอาคืน", go:goSubmit}));
   if(isKingNow(me)) ev.push({k:"king"+cw, i:"👑", t:"คุณคือที่ 1 ของบ้านสัปดาห์นี้", s:"รักษาไว้จนจบสัปดาห์จะได้ป้าย King of the Week", go:()=>showPage("pgBoard")});
   const st=stats(me);
+  if(st.weekStreak>=2) ev.push({k:"wstk"+st.weekStreak, i:"🔥", t:`ครบเป้า ${st.weekStreak} สัปดาห์ติดแล้ว!`, s:"ทำครบเป้าสัปดาห์นี้อีก = ต่อ streak", go:()=>showPage("pgStatus")});
   if(st.dayStreak>=7 && [7,14,21,30].includes(st.dayStreak)) ev.push({k:"stk"+st.dayStreak, i:"🔥", t:`streak ${st.dayStreak} วันติด!`, s:"", go:()=>showPage("pgStatus")});
   return ev;
 }
@@ -2538,7 +2539,8 @@ function renderToday(){
       <div class="qList">${q.map(x=>`<button class="q ${x.done?"done":""}" data-q="${x.k}"><i>${x.done?"✅":x.i}</i><b>${x.t}</b><small>${x.sub}</small></button>`).join("")}</div>
       <div class="qFoot">
         <span>🎯 สัปดาห์นี้ <b>${s.weekDone}${s.weekTarget?"/"+s.weekTarget:""}</b></span>
-        <span>🔥 streak ${s.dayStreak} วัน</span>
+        <span>🔥 ครบเป้า ${s.weekStreak} สัปดาห์ติด</span>
+        <span class="dimTxt">⚡ ${s.dayStreak} วันติด</span>
         ${n?"":'<button class="btn xs gold" id="tbGo">ส่งงาน ▶</button>'}
       </div>
     </div>`;

@@ -1069,6 +1069,8 @@
   @keyframes dmgPop{0%{opacity:0; transform:translateY(10px) scale(.6)}15%{opacity:1; transform:translateY(0) scale(1.2)}70%{opacity:1; transform:translateY(-18px) scale(1)}100%{opacity:0; transform:translateY(-34px)}}
   @media (max-width:640px){ .bossFig{flex:0 0 76px; height:84px} .bossFig .bossSprite{width:72px; height:72px} .bossShadow{width:56px} .bossName{font-size:14px} }
   .runner .lbl .stk{font-style:normal; color:var(--orange); font-size:10px}
+  .stk.d{color:var(--dim)}                                             /* วันติด = ตัวรอง · streak หลักคือครบเป้ากี่สัปดาห์ติด */
+  .qFoot .dimTxt{color:var(--dim)}
   .duelTag{font-style:normal; font-family:var(--f-px); font-size:9px; padding:0 4px; margin-left:2px; color:#fff; background:linear-gradient(180deg,#ff6a2a,#b8201f); border:1px solid #ffb324; animation:duelTagBlink 1s steps(2) infinite; vertical-align:middle}
   /* สถิติดวล: ชิปใต้ชื่อใน Arena + ประวัติในโปรไฟล์ */
   .badge.link{cursor:pointer} .badge.link:hover{filter:brightness(1.2)}
@@ -1336,7 +1338,7 @@
         <table>
           <thead><tr>
             <th>#</th><th>RUNNER</th><th class="hideSm">HOUSE</th><th>CONTENTS</th>
-            <th>WEEK</th><th class="hideSm">STREAK</th><th class="hideMd">PACE</th><th class="hideMd">PROGRESS</th>
+            <th>WEEK</th><th class="hideSm" title="ครบเป้ากี่สัปดาห์ติด">WEEK STREAK</th><th class="hideMd">PACE</th><th class="hideMd">PROGRESS</th>
           </tr></thead>
           <tbody id="board"></tbody>
         </table>
@@ -1608,7 +1610,8 @@
       <li><b>XP คิดสดจากผลงานทั้งหมด</b> ไม่ได้เก็บเป็นแต้มสะสม — เพิ่มได้และ<b>ลดได้</b>ตามกติกาด้านล่าง</li>
       <li>ส่งงาน 1 ชิ้น <b>+10</b> · เชียร์เพื่อน <b>+2</b>/ครั้ง · ส่ง 1 ชิ้น + เชียร์ 3 คนในวันเดียวกัน <b>+30</b></li>
       <li>ทำครบเป้าสัปดาห์ <b>+30</b>/สัปดาห์ · ชนะดวล <b>+40</b> (แพ้หรือเสมอก็ได้ <b>+15</b> — กล้าลงสนามไม่เสียเปล่า) · ร่วมล้มบอส <b>+50</b> · King of the Week <b>+60</b></li>
-      <li>streak ส่งติดกัน <b>+3/วัน</b> (นับสูงสุด 30 วัน = 90) — <b>ขาดส่ง 1 วัน streak กลับไปเริ่มนับใหม่ XP ส่วนนี้จึงหายไปได้ถึง 90</b> นี่คือสาเหตุหลักที่เห็น XP ลด</li>
+      <li><b>streak หลักของเกม = ครบเป้ากี่สัปดาห์ติด</b> เลือกเป้า 4 ชิ้นแล้วทำครบทุกสัปดาห์ก็สะสมได้เท่าคนเลือก 10 ชิ้น ไม่ต้องส่งทุกวัน · สัปดาห์ไหนไม่ถึงเป้า streak เริ่มใหม่</li>
+      <li>วันติด (⚡) เป็นโบนัสสำหรับคนส่งทุกวัน: <b>+3/วัน</b> (นับสูงสุด 30 วัน = 90) — <b>ขาดส่ง 1 วัน streak กลับไปเริ่มนับใหม่ XP ส่วนนี้จึงหายไปได้ถึง 90</b> นี่คือสาเหตุหลักที่เห็น XP ลด</li>
       <li>XP ลดได้อีกกรณี: ลบงาน/งานถูกตัดออก · ลิงก์ซ้ำถูกปฏิเสธ · มงกุฎ King ถูกแซง</li>
       <li>เลเวล = √(XP ÷ 40) + 1 → Lv2 ที่ 40 · Lv3 ที่ 160 · Lv5 ที่ 640 · Lv7 ที่ 1,440 · Lv11 "ตำนาน" ที่ 4,000 XP</li>
     </ul>
