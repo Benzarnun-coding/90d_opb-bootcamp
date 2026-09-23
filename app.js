@@ -507,15 +507,15 @@ const DemoDB = (()=>{
       /* ดวลสด + บอสสาธิต */
       const duels=(db.duels||[]).map(d=>{ const nm=id=>(db.runners.find(x=>x.id===id)||{}).name; const sc=id=>d.start_day?db.subs.filter(s=>s.who===nm(id)&&s.day>=d.start_day&&s.day<=d.end_day).length:0;
         return Object.assign({}, d, {challenger_name:nm(d.challenger), opponent_name:nm(d.opponent), challenger_score:sc(d.challenger), opponent_score:sc(d.opponent), today:db.today}); });
-      const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).length;
+      const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).length;
         return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
       const bossHits=[]; bosses.forEach(b=>{ let n=0; const by={};
         db.subs.filter(s=>weekOf(s.day)===cw).sort((a,c)=>a.day-c.day||a.id-c.id).forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who);
-          if(!r0||r0.role!=="student"||(b.house_id!=null&&r0.house!==b.house_id)) return; n++;
+          if(!r0||!r0.house||(b.house_id!=null&&r0.house!==b.house_id)) return; n++;
           const o=by[r0.id]=by[r0.id]||{boss_id:b.id, profile_id:r0.id, hits:0, per:{}, first_blood:n===1, last_hit:false, last_at:new Date(s.ts||0).toISOString()};
           o.hits++; o.per[s.day]=(o.per[s.day]||0)+1; if(n===b.hp) o.last_hit=true; });
         Object.values(by).forEach(o=>{ o.days=Object.keys(o.per).length; o.best_day=Math.max(...Object.values(o.per)); bossHits.push(o); }); });
-      const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.role==="student"&&r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
+      const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
       const reach={}; db.subs.forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who); if(!r0) return; const o=reach[r0.id]=reach[r0.id]||{profile_id:r0.id,total_views:0,total_likes:0,best_views:0,pieces:0}; o.total_views+=s.views||0; o.total_likes+=s.likes||0; o.best_views=Math.max(o.best_views,s.views||0); o.pieces++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
@@ -2176,7 +2176,7 @@ $("pushBtn").onclick=async()=>{
     await DB.submit({url, platform:$("plat").value, kind:$("kind").value, note:$("note").value.trim()});
     $("url").value=""; $("platHint").textContent=""; $("note").value="";
     S.postedToday=true;
-    { const m=meR(); if(m && roleOf(m)==="student") curBosses().forEach(b=>{ b.damage++; }); renderBoss(); }   // เลือดบอสลดทันที ของจริงตามมาตอน refresh
+    { const m=meR(); if(bossFighter(m)) curBosses().forEach(b=>{ b.damage++; }); renderBoss(); }   // เลือดบอสลดทันที ของจริงตามมาตอน refresh
     await refresh();
     S.submitting=false;
     const after=stats(meR());
@@ -3339,12 +3339,13 @@ const lootHTML = rw => rw.map(x=>{ const [t,...d]=x.split(" — "); return `<div
 
 /* กระดานดาเมจของบอสหนึ่งตัว เรียงจากตีหนักสุด (เสมอ = ใครถึงยอดนี้ก่อนอยู่บน)
    มาจาก v_boss_hits (050) · ถ้ายังไม่มี view นี้ ประมาณจากยอดสัปดาห์นี้ของแต่ละคน */
+const bossFighter = r => r && roleOf(r)!=="head";     // นักเรียน + TA ตีบอสได้ (051) · หัวหน้าโค้ชไม่นับ
 function bossBoard(b){
   const rows=(S.bossHits||[]).filter(x=>x.boss_id===b.id);
   const out = (rows.length || !b.damage)
     ? rows.map(x=>({r:S.runners.find(r=>r.id===x.profile_id), hits:+x.hits||0, days:+x.days||0, best:+x.best_day||0,
                     first:!!x.first_blood, last:!!x.last_hit, at:x.last_at?Date.parse(x.last_at):0}))
-    : S.runners.filter(r=>roleOf(r)==="student" && (b.house_id==null || r.house===b.house_id) && r.st && r.st.weekDone>0)
+    : S.runners.filter(r=>bossFighter(r) && (b.house_id==null || r.house===b.house_id) && r.st && r.st.weekDone>0)
         .map(r=>({r, hits:r.st.weekDone, days:0, best:0, first:false, last:false, at:0, approx:true}));
   return out.filter(x=>x.r && x.hits>0).sort((a,c)=>c.hits-a.hits || a.at-c.at);
 }
@@ -3386,7 +3387,7 @@ function bossRoomHTML(){
   return list.map(b=>{
     const bd=bossBoard(b), left=Math.max(0,b.hp-b.damage), dead=b.damage>=b.hp, rw=bossRewards(b);
     const myI=me?bd.findIndex(x=>x.r.id===me.id):-1, my=myI>=0?bd[myI]:null, top=bd[0];
-    const pool=S.runners.filter(r=>roleOf(r)==="student" && (b.house_id==null || r.house===b.house_id)).length;
+    const pool=S.runners.filter(r=>bossFighter(r) && (b.house_id==null || r.house===b.house_id)).length;
     const names=w=>w.slice(0,2).map(x=>x.r.name).join(", ")+(w.length>2?` +${w.length-2} คน`:"");
     const best=f=>{ const v=Math.max(0,...bd.map(f)); return v>0?{v, who:bd.filter(x=>f(x)===v)}:null; };
     const combo=best(x=>x.best), grind=best(x=>x.days), fb=bd.find(x=>x.first), lh=bd.find(x=>x.last);
@@ -3418,7 +3419,7 @@ function bossRoomHTML(){
         :`<div class="noJoin">ยังไม่มีใครตีเลย ส่งงานชิ้นแรกก็ได้ FIRST BLOOD 🩸</div>`}
       ${pool>bd.length&&bd.length?`<div class="bhNote">ยังไม่ได้ตีอีก ${pool-bd.length} คน · ส่งงาน 1 ชิ้นก็ขึ้นกระดานแล้ว</div>`:""}
       ${rw.length?`<div class="bossLoot"><div class="lootHd">${dead?"💰 บอสทิ้งสมบัติไว้":"🎁 รางวัลเมื่อล้มบอส"} · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
-      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นับเฉพาะนักเรียน (TA/โค้ชส่งไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
+      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
     </div>`;
   }).join("");
 }
