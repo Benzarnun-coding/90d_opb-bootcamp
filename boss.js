@@ -306,3 +306,36 @@ function drawBossCanvas(ctx, x, y, px, k, state, frac){
     ctx.fillStyle=c; ctx.fillRect(x+xx*px, y+yy*px, px, px);
   }
 }
+
+/* หีบสมบัติหลังบอส: ปิด = ยังไม่ล้ม · เปิด = ตัดมาจากร่างตายของสไลม์ (พาเลตเดียวกัน) */
+const CHEST_PAL = {O:"#0b0316", T:"#b8742e", t:"#6e3f16", Y:"#ffd23f", y:"#d19a12", C:"#fff6b0"};
+const CHEST_CLOSED = [
+  "...........",
+  "...........",
+  ".OOOOOOOOO.",
+  "OtttttttttO",
+  "OtTTTTTTTtO",
+  "OOOOOOOOOOO",
+  "OTTTTTTTTTO",
+  "OYYYYOYYYYO",
+  "OTTTOYOTTTO",
+  "OTTTTTTTTTO",
+  "OOOOOOOOOOO"];
+const CHEST_OPEN = [
+  ".OOOOOOOO..",
+  "OttttttttO.",
+  "OtYttttYtO.",
+  "OOOOOOOOOO.",
+  "OyYCYYyYCO.",
+  "OYYYyYYYYO.",
+  "OOOOOOOOOO.",
+  "OTTTTTTTTO.",
+  "OYYYYYYYYO.",
+  "OTTTOOTTTO.",
+  "OTTTOYTTTO.",
+  "OOOOOOOOOO."];
+function chestSprite(px=6, open=false){
+  const g=open?CHEST_OPEN:CHEST_CLOSED, W=11, H=g.length; let body="";
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const c=CHEST_PAL[g[y][x]]; if(c) body+=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${c}"/>`; }
+  return `<svg class="chestSprite" width="${W*px}" height="${H*px}" viewBox="0 0 ${W*px} ${H*px}" shape-rendering="crispEdges">${body}</svg>`;
+}
