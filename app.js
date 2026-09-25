@@ -2400,6 +2400,7 @@ function myEvents(){
     if(d.status==="done" && d.winner && d.winner!==id && d.prize_hat!=null && S.today<=d.end_day+7) ev.push({k:"dl"+d.id, i:"😵", t:`แพ้ดวล ${other} — ใส่หมวกที่เขาเลือกอีก ${d.end_day+7-S.today+1} วัน`, s:"", go:()=>showPage("pgStatus")});
   });
   (S.bosses||[]).filter(b=>b.week_no===cw && (b.house_id==null||b.house_id===me.house)).forEach(b=>{
+    if(b.damage<b.hp && new Date().getHours()>=20) ev.push({k:"bd"+b.id+"-"+S.today, i:b.emoji||"👹", t:`สถานะบอสวันนี้: ${b.name} HP ${b.hp-b.damage}/${b.hp}`, s:`โดนไปแล้ว ${b.damage} จาก ${b.fighters} คน · แตะเพื่อเซฟรูปแชร์`, go:()=>{ showPage("pgRace"); openBossRoom(); }});
     if(b.damage>=b.hp) ev.push({k:"bk"+b.id, i:"💥", t:`ล้มบอส ${b.name} แล้ว!`, s:"ทุกคนที่ส่งงานสัปดาห์นี้ได้ป้าย BOSS SLAYER", go:()=>showPage("pgRace")});
     else if(b.hp-b.damage<=Math.ceil(b.hp*0.2)) ev.push({k:"bh"+b.id+b.damage, i:"👹", t:`บอส ${b.name} เหลือ HP ${b.hp-b.damage}`, s:"อีกนิดเดียว ส่งงานช่วยบ้าน!", go:()=>showPage("pgRace")});
   });
@@ -3372,7 +3373,7 @@ function bossHTML(){
           <div class="bossSub">${dead ? `ล้มบอสสำเร็จ · ทุกคนที่ตีได้ป้าย BOSS SLAYER${rw.length&&!loot?" · 🎁 "+rw.join(" · "):""}`
             : `ส่งงาน 1 ชิ้น = 1 ดาเมจ · โดนไปแล้ว <b>${b.damage}</b> จาก ${b.fighters} คน${hurt?" · อีก <b>"+left+"</b> ชิ้นล้ม!":""}${rw.length?" · 🎁 "+rwShort:""}`}</div>
           ${top.length?`<div class="bossTop">${top.map((x,i)=>`<span>${["🥇","🥈","🥉"][i]} ${x.r.name} <b>${x.hits}</b></span>`).join("")}</div>`:""}
-          <div class="bossGo">👹 เข้าห้องบอส · ดูว่าใครตีไปกี่ดาเมจ ▶</div>
+          <div class="bossGo">👹 เข้าห้องบอส · ดูว่าใครตีไปกี่ดาเมจ ▶ <button class="btn xs" data-boss-share="save" data-boss-id="${b.id}">📸 เซฟรูป</button></div>
         </div>
       </div>
       ${loot&&rw.length?`<div class="bossLoot"><div class="lootHd">💰 บอสทิ้งสมบัติไว้ · เปิดหีบได้ ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
@@ -3407,6 +3408,7 @@ function bossRoomHTML(){
         <div class="statBox"><b>${my?my.hits:0}</b><span>${my?`ดาเมจของคุณ · อันดับ ${myI+1}`:S.spectator?"โหมดคนดู":"ดาเมจของคุณ · ยังไม่ได้ตี"}</span></div>
         <div class="statBox"><b>${dead?"💥":left}</b><span>${dead?"บอสล้มแล้ว":"เลือดที่เหลือ"}</span></div>
       </div>
+      <div class="bShare"><button class="btn gold sm" data-boss-share="save" data-boss-id="${b.id}">💾 เซฟรูปสถานะบอส</button>${navigator.share?`<button class="btn sm" data-boss-share="share" data-boss-id="${b.id}">📣 แชร์ผ่านแอป</button>`:""}</div>
       ${titles.length?`<div class="bTitles">${titles.map(x=>`<div class="bTitle"><i>${x.i}</i><small>${x.t}</small><b>${x.n}</b><span>${x.v}</span></div>`).join("")}</div>`:""}
       <div class="bhHd">⚔️ ตารางดาเมจ${bd.some(x=>x.approx)?` <small>· นับจากยอดสัปดาห์นี้ของคนที่เลือกเป้าแล้ว</small>`:""}</div>
       ${bd.length?`<div class="bhList">${bd.map((x,i)=>{ const hs=houseOf(x.r.house);
@@ -3433,6 +3435,92 @@ function renderBoss(){
     if(!renderBoss._restored){ renderBoss._restored=true; let k=""; try{ k=localStorage.getItem("subTab")||""; }catch(e){} if(k==="boss") setSubTab("boss"); }
   } else if(!$("bossPanel").hidden) setSubTab("track");
 }
+
+/* ---- การ์ดสถานะบอส (รูป 1080×1350 เซฟลงมือถือ / แชร์ผ่านแอป) ---- */
+function drawBossCard(b){
+  const cv=document.createElement("canvas"); cv.width=1080; cv.height=1350;
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height, me=meR();
+  const left=Math.max(0,b.hp-b.damage), dead=b.damage>=b.hp, hurt=!dead && left<=b.hp*0.3, frac=left/b.hp;
+  const state=dead?"dead":hurt?"hurt":"idle", ph=!dead && bossPhase(b.skin, frac);
+  const bd=bossBoard(b), myI=me?bd.findIndex(x=>x.r.id===me.id):-1, my=myI>=0?bd[myI]:null;
+  const dayLeft = S.weekEndsAt ? Math.max(0, Math.ceil((S.weekEndsAt-Date.now())/864e5)) : Math.max(0, weekEnd(b.week_no)-S.today+1);
+  const accent = dead ? "#5ef08c" : hurt ? "#ff2d55" : "#ffd23f";
+  ctx.imageSmoothingEnabled=false;
+
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,"#0b0316"); bg.addColorStop(.5,"#2a0f4a"); bg.addColorStop(1,"#0a0820");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  const glow=ctx.createRadialGradient(W/2,560,40,W/2,560,W*.6);
+  glow.addColorStop(0,accent+"55"); glow.addColorStop(1,"transparent");
+  ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=.14; ctx.fillStyle="#000"; for(let y=0;y<H;y+=6) ctx.fillRect(0,y,W,2); ctx.globalAlpha=1;
+
+  ctx.textAlign="center";
+  ctx.font="700 40px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#cdc7ff"; ctx.fillText(C.TITLE, W/2, 92);
+  ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle=accent;
+  ctx.fillText((dead?"★ DEFEATED ★":hurt?"⚠ BOSS ใกล้ตาย!":"WEEKLY BOSS")+" · WEEK "+b.week_no, W/2, 150);
+
+  /* ตัวบอส */
+  const px=26, sw=BOSS_W*px; ctx.shadowColor="#000"; ctx.shadowOffsetY=8;
+  drawBossCanvas(ctx, (W-sw)/2, 190, px, b.skin, state, frac);
+  ctx.shadowOffsetY=0; ctx.shadowColor="transparent";
+  if(!dead){ ctx.fillStyle="rgba(0,0,0,.5)"; ctx.beginPath(); ctx.ellipse(W/2, 190+sw-8, 230, 26, 0, 0, Math.PI*2); ctx.fill(); }
+
+  ctx.font="700 72px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=6;
+  let nf=72; while(ctx.measureText(b.name).width > W-120 && nf>40){ nf-=4; ctx.font=`700 ${nf}px 'PxSeven','Pixelify Sans', monospace`; }
+  ctx.fillText(b.name, W/2, 905); ctx.shadowOffsetY=0;
+  ctx.font="500 30px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#cdc7ff";
+  ctx.fillText(ph ? ph.t : dead ? "ล้มแล้ว · ทุกคนที่ตีได้ป้าย BOSS SLAYER" : "", W/2, 950);
+
+  /* หลอดเลือด */
+  const bx=90, by=985, bw=W-180, bh=54;
+  ctx.fillStyle="#0b0316"; ctx.fillRect(bx-4,by-4,bw+8,bh+8);
+  ctx.fillStyle="#1a1245"; ctx.fillRect(bx,by,bw,bh);
+  const g=ctx.createLinearGradient(bx,0,bx+bw,0);
+  if(dead){ g.addColorStop(0,"#20c060"); g.addColorStop(1,"#8dff9d"); } else { g.addColorStop(0,"#ff2d55"); g.addColorStop(1,hurt?"#ff2d55":"#ff8a00"); }
+  ctx.fillStyle=g; ctx.fillRect(bx,by,bw*Math.min(1,b.damage/b.hp),bh);
+  ctx.font="700 30px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#fff"; ctx.shadowColor="#000"; ctx.shadowOffsetY=3;
+  ctx.fillText(dead?"💥 ล้มแล้ว!":`HP ${left} / ${b.hp}`, W/2, by+39); ctx.shadowOffsetY=0;
+
+  /* ตัวเลข */
+  const stat=(x,y,v,l)=>{ ctx.textAlign="center"; ctx.font="700 56px 'PxSeven','Pixelify Sans', monospace"; ctx.fillStyle="#ffd23f"; ctx.shadowColor="#000"; ctx.shadowOffsetY=4; ctx.fillText(v,x,y); ctx.shadowOffsetY=0;
+    ctx.font="500 26px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#9a92d8"; ctx.fillText(l,x,y+38); };
+  stat(W*.2, 1120, b.damage, "ดาเมจรวม"); stat(W*.5, 1120, b.fighters, "นักรบที่ตีแล้ว"); stat(W*.8, 1120, dead?"✓":dayLeft, dead?"สำเร็จ":"วันที่เหลือ");
+
+  /* MVP + ของฉัน */
+  ctx.font="600 30px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#fff";
+  const top=bd.slice(0,3).map((x,i)=>`${["🥇","🥈","🥉"][i]} ${x.r.name} ${x.hits}`).join("   ");
+  if(top) ctx.fillText(top, W/2, 1225);
+  ctx.fillStyle="#ffd23f";
+  ctx.fillText(my ? `⚔️ ${me.name} ตีไป ${my.hits} ดาเมจ · อันดับ ${myI+1}` : me && bossFighter(me) ? `⚔️ ${me.name} ยังไม่ได้ตี · ส่งงาน 1 ชิ้น = 1 ดาเมจ` : "ส่งงาน 1 ชิ้น = 1 ดาเมจ · ทั้งรุ่นช่วยกัน", W/2, 1275);
+
+  ctx.textAlign="left"; ctx.font="600 22px 'IBM Plex Sans Thai', sans-serif"; ctx.fillStyle="#9a92d8"; ctx.fillText(TAG, 40, H-16);
+  drawCredit(ctx, W, H-16); ctx.textAlign="center";
+  return cv;
+}
+async function shareBoss(b, how){
+  const cv=drawBossCard(b);
+  const blob=await new Promise(res=>cv.toBlob(res,"image/png"));
+  const left=Math.max(0,b.hp-b.damage);
+  const text=`${b.emoji||"👹"} ${b.name} HP ${left}/${b.hp} · โดนไปแล้ว ${b.damage} ดาเมจ จาก ${b.fighters} คน · WEEK ${b.week_no}\n${TAG}`+(CREDIT?"\n"+CREDIT:"");
+  if(how==="share"){
+    try{
+      const file=new File([blob], `boss-week${b.week_no}.png`, {type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], text}); return; }
+      if(navigator.share){ await navigator.share({text}); return; }
+    }catch(e){ if(e.name==="AbortError") return; }
+  }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`boss-week${b.week_no}-hp${left}.png`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  toast("เซฟรูปสถานะบอสแล้ว 💾<br>เอาไปโพสต์ / ส่งในกลุ่มได้เลย");
+}
+document.addEventListener("click", e=>{
+  const bt=e.target.closest("[data-boss-share]"); if(!bt) return;
+  e.stopPropagation();
+  const b=curBosses().find(x=>String(x.id)===bt.dataset.bossId) || curBosses()[0]; if(!b) return;
+  shareBoss(b, bt.dataset.bossShare);
+});
+
 function openBossRoom(){ setSubTab("boss"); $("subTabs").scrollIntoView({behavior:"smooth", block:"start"}); }
 document.addEventListener("click", e=>{
   if(e.target.closest("#bossHero [data-boss-go]")) return openBossRoom();
