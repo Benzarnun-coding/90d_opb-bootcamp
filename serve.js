@@ -23,6 +23,17 @@ http.createServer((req, res) => {
     "access-control-allow-headers": "*"
   };
   if(req.method === "OPTIONS"){ res.writeHead(204, cors).end(); return; }
+  // dev เท่านั้น: หน้าเว็บส่งไฟล์ (เช่น รูปสไปรต์ที่วาดบน canvas) มาเก็บใน dist/ — POST /__save?name=x.png body=base64
+  if(req.method === "POST" && clean === "/__save"){
+    const name = path.basename(new URL(req.url, "http://x").searchParams.get("name") || "");
+    if(!/^[\w.-]+$/.test(name)){ res.writeHead(400, cors).end("bad name"); return; }
+    let body=""; req.on("data", c => body += c); req.on("end", () => {
+      fs.mkdirSync(path.join(__dirname, "dist"), {recursive:true});
+      fs.writeFileSync(path.join(__dirname, "dist", name), Buffer.from(body, "base64"));
+      res.writeHead(200, cors).end("saved " + name);
+    });
+    return;
+  }
 
   fs.readFile(file, (err, buf) => {
     if(err){ res.writeHead(404, {"content-type":"text/plain"}).end("not found: " + rel); return; }
