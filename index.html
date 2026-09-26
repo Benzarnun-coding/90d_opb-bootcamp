@@ -994,7 +994,7 @@
   .hmHp b{position:relative; display:block; text-align:center; font-family:var(--f-px); font-size:11px; line-height:14px; color:#fff; text-shadow:0 1px 0 #000}
   .hmArrow{font-family:var(--f-px); color:var(--gold); font-size:13px}
   /* เวที */
-  .hallStage{position:relative; height:536px; overflow:hidden; background:
+  .hallStage{position:relative; height:506px; overflow:hidden; background:
     linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0) 30%),
     repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 2px,transparent 2px 64px),
     repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 2px,transparent 2px 64px),
@@ -1010,43 +1010,43 @@
   .hallChest svg{width:54px; height:auto; filter:drop-shadow(0 6px 0 rgba(0,0,0,.5)) brightness(.8)}
   .hallChest.open svg{filter:drop-shadow(0 6px 0 rgba(0,0,0,.5)) drop-shadow(0 0 16px rgba(255,204,77,.8))}
   .hallChest .chip{background:#0b0316}
-  .hallShadow{position:absolute; left:50%; top:288px; width:230px; height:18px; transform:translateX(-50%); background:rgba(0,0,0,.55); border-radius:50%}
-  .hallBoss{position:absolute; left:50%; top:60px; transform:translateX(-50%)}
-  .hallBoss svg{display:block; width:240px; height:240px; filter:drop-shadow(0 6px 0 rgba(0,0,0,.55)); animation:bossBob 1.2s steps(2) infinite}
+  .hallShadow{position:absolute; left:50%; top:232px; width:190px; height:18px; transform:translateX(-50%); background:rgba(0,0,0,.55); border-radius:50%}
+  .hallBoss{position:absolute; left:50%; top:52px; transform:translateX(-50%)}
+  .hallBoss svg{display:block; width:192px; height:192px; filter:drop-shadow(0 6px 0 rgba(0,0,0,.55)); animation:bossBob 1.2s steps(2) infinite}
   .hallBoss .banim{transform-box:fill-box; transform-origin:50% 100%; animation:bossFlap .5s steps(2) infinite alternate}
   .hall.hurt .hallBoss svg{animation:bossHurt .45s steps(2) infinite; filter:drop-shadow(0 6px 0 rgba(0,0,0,.55)) drop-shadow(0 0 10px #ff2d55)}
   .hall.dead .hallBoss svg{animation:none; filter:grayscale(1) brightness(.55); transform:rotate(180deg)}
   .hall.dead .hallBoss.own svg{filter:drop-shadow(0 6px 0 rgba(0,0,0,.55)) drop-shadow(0 0 8px rgba(255,210,63,.6)); transform:none}
   .hall.dead .hallBoss.own .banim{animation:bossTwinkle .7s steps(2) infinite alternate}
   .hall.hit .hallBoss{animation:bossHit .5s steps(4) 1}
-  .hallHit{position:absolute; left:50%; top:84px; margin-left:116px; display:flex; flex-direction:column; animation:dmgPop 2.4s ease-out forwards}
+  .hallHit{position:absolute; left:50%; top:70px; margin-left:92px; display:flex; flex-direction:column; animation:dmgPop 2.4s ease-out forwards}
   .hallHit b{font-family:var(--f-px); font-size:32px; color:var(--gold); text-shadow:0 3px 0 #000,0 0 12px #ff8a00}
   .hallHit small{font-family:var(--f-px); font-size:11px; color:#fff; text-shadow:0 2px 0 #000; white-space:nowrap}
-  .hallMid{position:absolute; left:200px; right:200px; top:306px; display:flex; flex-direction:column; align-items:center; gap:6px}
-  .hallName{display:flex; align-items:baseline; gap:12px; font-family:var(--f-px); font-weight:700; font-size:26px; color:#fff; text-shadow:0 4px 0 #000; white-space:nowrap}
+  .hallMid{position:absolute; left:200px; right:200px; top:250px; display:flex; flex-direction:column; align-items:center; gap:6px}
+  .hallName{display:flex; align-items:baseline; gap:12px; font-family:var(--f-px); font-weight:700; font-size:30px; color:#fff; text-shadow:0 4px 0 #000; white-space:nowrap}
   .hallName small{font-family:var(--f-th); font-weight:400; font-size:12px; color:var(--dim); text-shadow:none}
-  .hallHp{position:relative; width:100%; height:26px; background:#0b0316; border:3px solid #3a3280; box-shadow:0 0 0 2px #0b0316; overflow:hidden}
+  .hallHp{position:relative; width:100%; height:30px; background:#0b0316; border:3px solid #3a3280; box-shadow:0 0 0 2px #0b0316; overflow:hidden}
   .hallHp i{position:absolute; left:0; top:0; bottom:0; width:0; background:repeating-linear-gradient(90deg,transparent 0 46px,rgba(0,0,0,.35) 46px 48px),linear-gradient(90deg,#ff2d55,#ff8a00); transition:width .8s ease}
   .hall.hurt .hallHp i{animation:bossAlert .5s steps(2) infinite} .hall.dead .hallHp i{background:linear-gradient(90deg,#20c060,#8dff9d)}
   .hallHp span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--f-px); font-weight:700; font-size:15px; color:#fff; text-shadow:0 2px 0 #000}
   .hallSum{display:flex; gap:16px; font-size:12.5px; color:#cdc7ff; white-space:nowrap} .hallSum b{color:var(--gold)} .hallSum .hot{color:#ff8fa3}
   .hallChips{display:flex; gap:6px; flex-wrap:wrap; justify-content:center}
-  .hall .hallLoot{position:absolute; right:40px; left:auto; top:150px; width:280px; margin:0; background:rgba(10,8,32,.92)}
+  .hall .hallLoot{position:absolute; right:40px; left:auto; top:120px; width:280px; margin:0; background:rgba(10,8,32,.92)}
   /* แถวนักรบยืนบนพื้น */
   .hallLine{position:absolute; left:0; right:0; bottom:6px; display:flex; justify-content:center; align-items:flex-end; gap:4px; padding:0 8px; overflow-x:auto; scroll-snap-type:x proximity; scrollbar-width:none}
   .hallLine::-webkit-scrollbar{display:none}
-  .hf{position:relative; flex:0 0 66px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:0; background:none; border:0; color:inherit; font:inherit; cursor:pointer; scroll-snap-align:center}
+  .hf{position:relative; flex:0 0 78px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:0; background:none; border:0; color:inherit; font:inherit; cursor:pointer; scroll-snap-align:center}
   .hf .dmg{font-family:var(--f-px); font-weight:700; font-size:18px; color:var(--gold); text-shadow:0 2px 0 #000,0 0 8px rgba(255,204,77,.6)}
   .hall.dead .hf .dmg{color:var(--green)}
-  .hf svg{display:block; width:36px; height:auto; filter:drop-shadow(0 4px 0 rgba(0,0,0,.5)); transition:transform .15s}
+  .hf svg{display:block; width:44px; height:auto; filter:drop-shadow(0 4px 0 rgba(0,0,0,.5)); transition:transform .15s}
   .hf:hover svg,.hf:focus-visible svg{transform:translateY(-6px)}
   .hf .nm{font-family:var(--f-px); font-weight:700; font-size:11px; color:#dcd6ff; text-shadow:0 2px 0 #000; white-space:nowrap; max-width:84px; overflow:hidden; text-overflow:ellipsis}
-  .hf .ring{position:absolute; left:50%; bottom:12px; width:50px; height:14px; transform:translateX(-50%); border-radius:50%; background:rgba(0,0,0,.5)}
+  .hf .ring{position:absolute; left:50%; bottom:14px; width:60px; height:16px; transform:translateX(-50%); border-radius:50%; background:rgba(0,0,0,.5)}
   .hf.mvp .ring{background:rgba(255,204,77,.35); box-shadow:0 0 18px 6px rgba(255,204,77,.35)}
   .hf.me .ring{background:rgba(78,225,255,.35); box-shadow:0 0 18px 6px rgba(78,225,255,.35)}
   .hf .tag{font-family:var(--f-px); font-weight:700; font-size:10px; padding:2px 6px; border:2px solid #0b0316}
   .hf .mvpT{color:#2a1a00; background:var(--gold)} .hf .youT{color:#062a33; background:var(--cyan)}
-  .hf.more{flex:0 0 56px; height:86px; justify-content:center; border:2px dashed #3a3280; background:rgba(0,0,0,.35); gap:4px}
+  .hf.more{flex:0 0 64px; height:100px; justify-content:center; border:2px dashed #3a3280; background:rgba(0,0,0,.35); gap:4px}
   .hf.more .px{font-family:var(--f-px); font-weight:700; font-size:18px; color:#dcd6ff} .hf.more small{font-size:10px; color:var(--dim)}
   .hallEmpty{font-size:13px; color:var(--dim); padding:14px}
   /* ป๊อปอัปเหนือนักรบ (คอม/แท็บเล็ต) */
@@ -1074,12 +1074,12 @@
   .hbar .v{font-family:var(--f-px); font-weight:700; font-size:12px; color:var(--gold); text-align:right}
   /* แท็บเล็ต / มือถือแนวนอน */
   @media (max-width:1023px){
-    .hallStage{height:470px} .torch{top:40px} .torch.l{left:28px} .torch.r{right:28px}
-    .hallChest{top:14px} .hallChest svg{width:44px}
-    .hallBoss{top:56px} .hallBoss svg{width:192px; height:192px} .hallShadow{top:236px; width:190px}
-    .hallHit{top:72px; margin-left:90px} .hallHit b{font-size:24px}
-    .hallMid{left:60px; right:60px; top:254px} .hallName{font-size:22px} .hallHp{height:26px} .hallHp span{font-size:13px}
-    .hf{flex-basis:60px} .hf svg{width:32px} .hf .ring{width:46px}
+    .hallStage{height:440px} .torch{top:40px} .torch.l{left:28px} .torch.r{right:28px}
+    .hallChest{top:12px} .hallChest svg{width:44px}
+    .hallBoss{top:48px} .hallBoss svg{width:168px; height:168px} .hallShadow{top:204px; width:170px}
+    .hallHit{top:62px; margin-left:80px} .hallHit b{font-size:24px}
+    .hallMid{left:60px; right:60px; top:222px} .hallName{font-size:26px} .hallHp{height:28px} .hallHp span{font-size:14px}
+    .hf{flex-basis:70px} .hf svg{width:40px} .hf .ring{width:54px}
     .hall .hallLoot{right:16px; top:130px; width:240px}
     .hallFoot{grid-template-columns:repeat(4,1fr)} .hallHouses{display:none}
   }
@@ -1087,17 +1087,17 @@
   @media (max-width:640px){
     .hallHd{padding:8px 10px} .hallWhen,.hallHdL .chip:nth-child(3){display:none} .hallTag{font-size:12px}
     .hallHdR .btn:nth-child(3){display:none}
-    .hallStage{height:396px} .torch{top:32px} .torch.l{left:14px} .torch.r{right:14px}
-    .hallChest{top:10px} .hallChest svg{width:38px} .hallChest .chip{font-size:9px}
-    .hallBoss{top:44px} .hallBoss svg{width:144px; height:144px} .hallShadow{top:176px; width:140px; height:14px}
-    .hallHit{top:56px; margin-left:60px} .hallHit b{font-size:20px} .hallHit small{display:none}
-    .hallMid{left:12px; right:12px; top:194px; gap:4px} .hallName{font-size:19px} .hallName small{display:none}
+    .hallStage{height:392px} .torch{top:28px} .torch.l{left:14px} .torch.r{right:14px}
+    .hallChest{top:8px} .hallChest svg{width:36px} .hallChest .chip{font-size:9px}
+    .hallBoss{top:40px} .hallBoss svg{width:120px; height:120px} .hallShadow{top:150px; width:120px; height:12px}
+    .hallHit{top:50px; margin-left:50px} .hallHit b{font-size:20px} .hallHit small{display:none}
+    .hallMid{left:12px; right:12px; top:168px; gap:4px} .hallName{font-size:22px} .hallName small{display:none}
     .hallHp{height:28px} .hallHp span{font-size:13px} .hallSum{font-size:11px; gap:10px}
     .hallLine{justify-content:flex-start; gap:2px; scroll-snap-type:x mandatory}
-    .hf{flex-basis:54px} .hf svg{width:28px} .hf .ring{width:40px; bottom:10px} .hf .dmg{font-size:14px} .hf .nm{font-size:9px; max-width:52px}
-    .hf.more{flex-basis:46px; height:74px}
+    .hf{flex-basis:62px} .hf svg{width:36px} .hf .ring{width:48px; bottom:12px} .hf .dmg{font-size:15px} .hf .nm{font-size:10px; max-width:60px}
+    .hf.more{flex-basis:50px; height:86px}
     .hall .hallLoot{position:relative; top:auto; right:auto; width:auto; margin:0 12px}
-    .hallStage:has(.hallLoot){height:auto; box-sizing:border-box; padding:330px 0 100px} .hall.dead .hallChips .chip{font-size:10px}   /* ล้มแล้ว: กล่องรางวัลอยู่ในโฟลว์ใต้หลอดเลือด นักรบยังยืนล่างสุด */
+    .hallStage:has(.hallLoot){height:auto; box-sizing:border-box; padding:310px 0 118px} .hall.dead .hallChips .chip{font-size:10px}   /* ล้มแล้ว: กล่องรางวัลอยู่ในโฟลว์ใต้หลอดเลือด นักรบยังยืนล่างสุด */
     .hallFoot{grid-template-columns:repeat(2,1fr); padding:10px} .hallFoot .statBox{padding:8px} .hallHouses{display:none}
     .hallMini svg{flex-basis:40px; width:40px; height:40px} .hmName{font-size:13px} .hmName small{display:none} .hallMini .chip{display:none}
   }
