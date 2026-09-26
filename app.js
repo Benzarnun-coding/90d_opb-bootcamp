@@ -836,12 +836,15 @@ const LiveDB = (()=>{
         started  = new Date() >= new Date(co.start_date + "T00:00:00");
       }
       if(!todayIdx || !isFinite(todayIdx)) todayIdx=todayFrom(co.start_date);
-      let todayCount=0, todaySubs=[];
+      let todayCount=0, todaySubs=[], myCheersToday=null;
       if(uidNow){
-        const q=await soft(()=>sb.from("submissions").select("created_at")
-          .eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved"), "งานที่ส่งวันนี้");
+        const [q, qc]=await Promise.all([
+          soft(()=>sb.from("submissions").select("created_at").eq("profile_id",uidNow).eq("day_index",todayIdx).eq("status","approved"), "งานที่ส่งวันนี้"),
+          must(()=>sb.from("cheers").select("to_id").eq("from_id",uidNow).eq("day_index",todayIdx), "เชียร์วันนี้", 2).catch(()=>({data:null}))
+        ]);
         todaySubs=(q.data||[]).map(s=>new Date(s.created_at).getTime());
         todayCount=todaySubs.length;
+        myCheersToday = qc.data ? qc.data.length : null;      // null = โหลดไม่สำเร็จ ให้ใช้ก้อน cheers แทน
       }
       /* ---- ชุดที่ 2: ของประดับสนาม เริ่มยิงหลังชุดหลักมาถึงแล้วเท่านั้น
              และทยอยทีละ 3 ตัว เพื่อไม่ไปแย่ง connection กับชุดหลัก ---- */
@@ -883,7 +886,7 @@ const LiveDB = (()=>{
         today: todayIdx,
         me: me ? me.name : null,
         postedToday: (todayCount||0) > 0,
-        todayCount, todaySubs,
+        todayCount, todaySubs, myCheersToday,
         started, daysUntil, startDate: co.start_date,
         extrasReady,                 // ของประดับสนามตามมาทีหลัง คนเรียกจะ await เองหรือไม่ก็ได้
         runners,
@@ -2270,11 +2273,12 @@ function levelHTML(r){
 function questsOf(){
   const me=meR(); if(!me) return [];
   const n=Math.max(S.todayCount||0,(stats(me).byDay||{})[S.today]||0);
-  const cheered=(S.cheers||[]).filter(c=>c.from_id===me.id && c.day_index===S.today).length;
+  /* นับจากทั้งสองทาง เอาค่ามากกว่า: query ตรง (ชุดหลัก) กับก้อน cheers (ชุดของประดับ + ที่เพิ่งกดในเครื่อง) */
+  const cheered=Math.max(S.myCheersToday||0, (S.cheers||[]).filter(c=>c.from_id===me.id && c.day_index===S.today).length);
   const early=(S.todaySubs||[]).some(ts=>{ const hh=new Date(ts).getHours(); return hh>=C.CUTOFF_HOUR && hh<20; });
   return [
     {k:"post",  i:"🔗", t:"ส่งงาน 1 ชิ้น", done:n>=1, sub:n>=1?`ส่งแล้ว ${n} ชิ้น`:"วางลิงก์ด้านบน", go:goSubmit},
-    {k:"cheer", i:"👏", t:"เชียร์เพื่อน 3 คน", done:cheered>=3, sub:`${Math.min(cheered,3)}/3 · คลิกตัวละครเพื่อนแล้วกดอิโมจิ`, go:()=>{ showPage("pgBoard"); }},
+    {k:"cheer", i:"👏", t:"เชียร์เพื่อน 3 คน", done:cheered>=3, sub:cheered>=3?`ครบ 3 คนแล้ว · ภารกิจรีเซ็ตทุกวันตี 4`:`${cheered}/3 วันนี้ · แตะตัวละครเพื่อนแล้วกดอิโมจิ (คนละ 1 ครั้ง/วัน)`, go:()=>{ showPage("pgBoard"); }},
     {k:"early", i:"🌤", t:"ส่งก่อน 2 ทุ่ม", done:early, sub:early?"ทันเวลา!":(n>=1?"วันนี้ส่งหลัง 2 ทุ่ม พรุ่งนี้ลองใหม่":"ส่งก่อน 20:00 จะได้ข้อนี้"), go:goSubmit}
   ];
 }
@@ -3093,7 +3097,7 @@ document.addEventListener("click", async e=>{
   const b=e.target.closest(".cheerBtn"); if(!b || b.disabled) return;
   b.disabled=true;
   try{ await DB.cheer(b.dataset.to, b.dataset.cheer); SFX.coin(); toast(`ส่ง ${b.dataset.cheer} ให้แล้ว`);
-    (S.cheers=S.cheers||[]).push({from_id:meId(), to_id:b.dataset.to, emoji:b.dataset.cheer, day_index:S.today}); renderAll();   // ติ๊กภารกิจทันที เซิร์ฟเวอร์ยืนยันซ้ำตอน refresh
+    (S.cheers=S.cheers||[]).push({from_id:meId(), to_id:b.dataset.to, emoji:b.dataset.cheer, day_index:S.today}); if(S.myCheersToday!=null) S.myCheersToday++; renderAll();   // ติ๊กภารกิจทันที เซิร์ฟเวอร์ยืนยันซ้ำตอน refresh
     await refresh();
     const r=S.runners.find(x=>x.id===b.dataset.to); if(r && $("modal").classList.contains("on")) $("mCheer").innerHTML=cheerHTML(r)+nudgeHTML(r)+duelBtnHTML(r); }
   catch(err){ toast(err.message); b.disabled=false; }
@@ -3779,7 +3783,7 @@ async function refresh(){
   try{
     const d=await DB.fetchAll(applyExtras);        // ของประดับตามมาทีหลัง วาดซ้ำเองตอนถึง
     S.today=d.today; S.me=S.spectator?null:d.me; S.runners=d.runners; S.subs=d.subs; S.postedToday=!!d.postedToday;
-    S.todayCount=d.todayCount||0; S.todaySubs=d.todaySubs||[];
+    S.todayCount=d.todayCount||0; S.todaySubs=d.todaySubs||[]; S.myCheersToday=d.myCheersToday==null?null:d.myCheersToday;
     S.started = d.started !== false; S.daysUntil = d.daysUntil||0; S.startDate = d.startDate||null;
     if(DB.mode==="demo"){ S.runners.forEach(r=>{ r.st=computeStats(r); }); applyExtras(d); }  // โหมดทดลองคำนวณในเครื่อง ได้ครบมาพร้อมกันอยู่แล้ว
     computeKingsNow();
