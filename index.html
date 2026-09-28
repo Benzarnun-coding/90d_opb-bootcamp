@@ -1150,6 +1150,20 @@
   .runner .lbl .stk{font-style:normal; color:var(--orange); font-size:10px}
   .stk.d{color:var(--dim)}                                             /* วันติด = ตัวรอง · streak หลักคือครบเป้ากี่สัปดาห์ติด */
   .qFoot .dimTxt{color:var(--dim)}
+  /* 🤝 บัดดี้ในการ์ดวันนี้ + ปุ่มในโปรไฟล์ */
+  .bdBox{margin-top:10px; padding:8px 10px; background:rgba(0,0,0,.25); border:2px solid #3a3280; display:grid; gap:6px}
+  .bdHd{font-family:var(--f-px); font-weight:700; font-size:12px; color:var(--gold)} .bdHd small{color:var(--dim); font-family:var(--f-th); font-weight:400}
+  .bdRow{display:flex; align-items:center; gap:8px; min-height:40px; cursor:pointer}
+  .bdRow svg{flex:0 0 auto}
+  .bdWho{flex:1; min-width:0; display:grid} .bdWho b{font-family:var(--f-px); font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bdWho small{font-size:11px; color:var(--dim)} .bdWho small.ok{color:var(--green)} .bdWho small.wait{color:var(--gold)}
+  .bdN{font-family:var(--f-px); font-weight:700; font-size:15px; color:var(--gold); text-shadow:0 2px 0 #000; white-space:nowrap}
+  .bdBox .btn.xs{margin:0; min-height:36px; padding:6px 10px; background:linear-gradient(180deg,#2a2468,#1a1444 60%,#130f33); border-color:#5a51b8 #0a0722 #0a0722 #5a51b8; color:#dcd6ff}
+  .bdBox .btn.xs.gold{background:linear-gradient(180deg,#ffd76b,#c98a12 60%,#8a5a06); border-color:#fff0b3 #5a3a02 #5a3a02 #fff0b3; color:#2a1a00; text-shadow:none}
+  .bdRow.inv{cursor:default}
+  .bdHint{margin-top:10px; font-size:12px; color:var(--dim); line-height:1.5} .bdHint b{color:#dcd6ff}
+  .buddyAct{display:inline-flex; gap:6px; flex-wrap:wrap}
+  .buddyBox b{color:var(--gold)} .buddyBox a{color:var(--dim)}
   .duelTag{font-style:normal; font-family:var(--f-px); font-size:9px; padding:0 4px; margin-left:2px; color:#fff; background:linear-gradient(180deg,#ff6a2a,#b8201f); border:1px solid #ffb324; animation:duelTagBlink 1s steps(2) infinite; vertical-align:middle}
   /* สถิติดวล: ชิปใต้ชื่อใน Arena + ประวัติในโปรไฟล์ */
   .badge.link{cursor:pointer} .badge.link:hover{filter:brightness(1.2)}
@@ -1674,6 +1688,7 @@
     <ul>
       <li><b>เชียร์</b> คลิกตัวละครเพื่อน ส่ง 👏🔥💪❤️ ได้วันละครั้งต่อคน · ได้เชียร์ 10 ครั้งในสัปดาห์ = ป้าย POPULAR</li>
       <li><b>👉 สะกิด</b> เพื่อนที่วันนี้ยังไม่ส่งงาน กด "สะกิดให้ส่งงาน" ในโปรไฟล์เขา (วันละครั้งต่อคน สูงสุด 5 คน) เขาจะเห็นในกระดิ่ง</li>
+      <li><b>🤝 บัดดี้</b> แตะตัวละครเพื่อนแล้วกด "ชวนเป็นบัดดี้" (มีได้ 3 คน รวม TA) · วันไหนส่งงานทั้งคู่ = streak คู่ +1 ขาดคนใดคนหนึ่งนับใหม่ · ดูสถานะบัดดี้ได้ในการ์ดวันนี้ของฉัน · ครบ 7 วันได้ป้าย BUDDY</li>
       <li><b>ดวล 7 วัน</b> ท้าเพื่อน ใครส่งมากกว่าชนะ ผู้แพ้ใส่หมวกที่ผู้ชนะเลือก 7 วัน</li>
       <li><b>บอสประจำสัปดาห์</b> โค้ชปล่อยบอสให้บ้าน ทุกชิ้นที่ส่ง = 1 ดาเมจ HP หมด = ทั้งบ้านได้ป้าย BOSS SLAYER</li>
       <li><b>ห้องแต่งตัว</b> เปลี่ยนเพศ ผิว ผม แว่น เสื้อ กางเกง หมวก · ไอเทมพิเศษปลดล็อกที่ 30 / 60 / 90 ชิ้น</li>
