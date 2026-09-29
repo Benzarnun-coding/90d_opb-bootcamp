@@ -1049,6 +1049,15 @@
   .hf.more{flex:0 0 66px; height:100px; justify-content:center; border:2px dashed #3a3280; background:rgba(0,0,0,.35); gap:4px}
   .hf.more .px{font-family:var(--f-px); font-weight:700; font-size:18px; color:#dcd6ff} .hf.more small{font-size:10px; color:var(--dim)}
   .hallEmpty{font-size:13px; color:var(--dim); padding:14px}
+  /* บอสล้ม: ทุกจอเรียงแนวตั้ง — ร่างตาย+หีบ › ชื่อ+หลอด › ฉายา › กล่องรางวัล › นักรบ (ไม่มีอะไรซ้อนกัน) */
+  .hall.dead .hallStage{height:auto; display:flex; flex-direction:column; align-items:center; gap:14px; padding:44px 0 10px}
+  .hall.dead .hallBoss,.hall.dead .hallMid,.hall.dead .hallLine,.hall.dead .hallLoot{position:relative; left:auto; right:auto; top:auto; bottom:auto; transform:none; margin-left:0}
+  .hall.dead .hallBoss svg{width:432px; height:auto}
+  .hall.dead .hallMid{width:100%; max-width:760px; box-sizing:border-box; padding:0 16px}
+  .hall.dead .hallLoot{width:auto; max-width:620px; align-self:center; margin:0 16px}
+  .hall.dead .hallShadow,.hall.dead .hallHit{display:none}
+  .hall.dead .wallEdge{top:230px} .hall.dead .floorLines{top:236px}
+  .hall.dead .hallLine{width:100%; box-sizing:border-box; padding-top:16px}
   /* ป๊อปอัปเหนือนักรบ (คอม/แท็บเล็ต) */
   .hallPop{position:absolute; width:264px; padding:12px 14px; background:linear-gradient(180deg,#2a2360,#141033); border:3px solid; border-color:#a79dff #0a0722 #0a0722 #a79dff; box-shadow:0 0 0 2px #0a0820,0 12px 0 rgba(0,0,0,.5); z-index:5}
   .hallPop::after{content:""; position:absolute; left:var(--arrow,50%); bottom:-14px; margin-left:-8px; border:8px solid transparent; border-top-color:#0a0722; border-bottom:0}
@@ -1081,6 +1090,7 @@
     .hallMid{left:60px; right:60px; top:318px} .hallName{font-size:26px} .hallHp{height:30px} .hallHp span{font-size:14px}
     .hf{flex-basis:70px} .hf svg{width:40px} .hf .ring{width:54px}
     .hall .hallLoot{right:16px; top:170px; width:250px}
+    .hall.dead .hallBoss svg{width:336px} .hall.dead .wallEdge{top:190px} .hall.dead .floorLines{top:196px}
     .hallFoot{grid-template-columns:repeat(4,1fr)} .hallHouses{display:none}
   }
   /* มือถือ */
@@ -1097,14 +1107,10 @@
     .hf{flex-basis:62px} .hf svg{width:36px} .hf .ring{width:48px; bottom:12px} .hf .dmg{font-size:15px} .hf .nm{font-size:10px; max-width:60px}
     .hf.more{flex-basis:50px; height:86px}
     .hall .hallLoot{position:relative; top:auto; right:auto; width:auto; margin:0 12px}
-    /* ล้มแล้ว (มือถือ): เวทีเรียงเป็นแนวตั้งตามปกติ ไม่วางซ้อน — ร่างบอส › ชื่อ+หลอด › ฉายา › กล่องรางวัล › นักรบ */
-    .hall.dead .hallStage{height:auto; display:flex; flex-direction:column; align-items:center; gap:12px; padding:34px 0 8px}
-    .hall.dead .hallBoss,.hall.dead .hallMid,.hall.dead .hallLine{position:relative; left:auto; right:auto; top:auto; bottom:auto; transform:none}
-    .hall.dead .hallMid{width:100%; box-sizing:border-box; padding:0 12px; margin-top:-8px}
-    .hall.dead .hallShadow,.hall.dead .hallHit{display:none}
+    .hall.dead .hallStage{gap:10px; padding:28px 0 8px}
+    .hall.dead .hallBoss svg{width:264px}
     .hall.dead .wallEdge{top:150px} .hall.dead .floorLines{top:156px}
-    .hall.dead .hall .hallLoot,.hall.dead .hallLoot{align-self:stretch; margin:0 12px}
-    .hall.dead .hallLine{width:100%; box-sizing:border-box; padding-top:14px}
+    .hall.dead .hallLoot{align-self:stretch; margin:0 12px}
     .hall.dead .hallChips{gap:5px} .hall.dead .hallChips .chip{font-size:10px; padding:3px 6px; white-space:normal; text-align:left}
     .hallFoot{grid-template-columns:repeat(2,1fr); padding:10px} .hallFoot .statBox{padding:8px} .hallHouses{display:none}
     .hallMini svg{flex-basis:40px; width:40px; height:40px} .hmName{font-size:13px} .hmName small{display:none} .hallMini .chip{display:none}

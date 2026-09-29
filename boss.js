@@ -289,13 +289,16 @@ function bossSprite(k, px=4, state="idle", frac){
   const sk = bossSkin(k), g = bossGrid(sk, state, frac);
   const pal = Object.assign({O:"#0b0316"}, sk.pal);
   if(state==="hurt") pal.E = "#ff2d55";             // ตาแดงตอนใกล้ตาย
-  let body="", anim="";
-  for(let y=0;y<BOSS_H;y++) for(let x=0;x<BOSS_W;x++){
+  let body="", anim="", x0=0, y0=0, x1=BOSS_W-1, y1=BOSS_H-1;
+  if(state==="dead" && sk.dead){ x0=BOSS_W; y0=BOSS_H; x1=0; y1=0;      // ครอปร่างตายให้พอดีเนื้อหา
+    for(let y=0;y<BOSS_H;y++) for(let x=0;x<BOSS_W;x++) if(pal[g[y][x]]){ x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x); y1=Math.max(y1,y); } }
+  for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){
     const ch=g[y][x], c=pal[ch]; if(!c) continue;
-    const r=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${c}"/>`;
+    const r=`<rect x="${(x-x0)*px}" y="${(y-y0)*px}" width="${px}" height="${px}" fill="${c}"/>`;
     if(sk.anim.includes(ch)) anim+=r; else body+=r;
   }
-  return `<svg class="bossSprite ${state}${state==="dead"&&sk.dead?" own":""}" width="${BOSS_W*px}" height="${BOSS_H*px}" viewBox="0 0 ${BOSS_W*px} ${BOSS_H*px}" shape-rendering="crispEdges">
+  const W=(x1-x0+1)*px, H=(y1-y0+1)*px;
+  return `<svg class="bossSprite ${state}${state==="dead"&&sk.dead?" own":""}" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">
     ${body}${anim?`<g class="banim">${anim}</g>`:""}</svg>`;
 }
 /* วาดลง canvas (การ์ดสรุป / แชร์) */
