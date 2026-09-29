@@ -301,20 +301,41 @@ const hrWhy = c => c.reason==="comeback" ? `เห็นนะว่ากลั
   : `เห็นความสม่ำเสมอของคุณนะ สัปดาห์นี้ลงไป ${c.last7} วันแล้ว`;
 let hrCands=[], hrPick=new Set();
 async function loadHearts(){
-  const box=$("hrList"); if(!box) return;
+  const box=$("hrLog"); if(!box) return;
+  /* ตั้งค่ารอบอัตโนมัติ */
+  const {data:co}=await sb.from("cohort").select("heart_auto,heart_per_day,heart_msg").eq("id",1).maybeSingle();
+  if(co && co.heart_auto!==undefined){ $("hrAuto").checked=!!co.heart_auto; $("hrPerDay").value=co.heart_per_day; $("hrMsg").value=co.heart_msg||""; }
+  /* ผู้เข้าข่ายตอนนี้ */
   const {data,error}=await sb.rpc("coach_heart_candidates");
-  if(error){ box.innerHTML=`<small class="dim">${/coach_heart|schema cache|does not exist/i.test(error.message)?"ยังไม่ได้รัน migration 054":esc(error.message)}</small>`; return; }
+  if(error){ box.innerHTML=`<small class="dim">${/coach_heart|schema cache|does not exist/i.test(error.message)?"ยังไม่ได้รัน migration 054/055":esc(error.message)}</small>`; return; }
   const w=c=>c.reason==="comeback"?0:c.reason==="first"?1:2;
   hrCands=(data||[]).sort((a,b)=>w(a)-w(b) || (b.gap_days||0)-(a.gap_days||0) || a.received-b.received);
   hrPick=new Set([...hrPick].filter(id=>hrCands.some(c=>c.profile_id===id)));
   renderHearts();
-  const {data:hist}=await sb.from("coach_hearts").select("to_id,reason,created_at,seen_at").order("created_at",{ascending:false}).limit(20);
-  if(hist && hist.length){
-    const {data:ps}=await sb.from("profiles").select("id,name").in("id",[...new Set(hist.map(h=>h.to_id))]);
-    const nm=id=>((ps||[]).find(p=>p.id===id)||{}).name||"?";
-    $("hrHist").innerHTML=`<small class="dim">ส่งล่าสุด: ${hist.map(h=>`${esc(nm(h.to_id))} ${h.seen_at?"✓อ่านแล้ว":"·ยังไม่เปิด"} (${new Date(h.created_at).toLocaleDateString("th-TH",{day:"numeric",month:"short"})})`).join(" · ")}</small>`;
-  } else $("hrHist").innerHTML="";
+  const cnt=k=>hrCands.filter(c=>c.reason===k).length;
+  $("hrStatus").innerHTML = co && co.heart_auto===false ? "⏸ ปิดส่งอัตโนมัติอยู่"
+    : `▶ รอบถัดไป 19:00 · ส่งไม่เกิน <b>${co?co.heart_per_day:2}</b> คน · ตอนนี้เข้าเกณฑ์ ${hrCands.length} คน (🌱 ${cnt("comeback")} · 🐣 ${cnt("first")} · 🔁 ${cnt("steady")})`;
+  /* log */
+  const {data:hist}=await sb.from("coach_hearts").select("*").order("created_at",{ascending:false}).limit(100);
+  if(!hist || !hist.length){ box.innerHTML='<small class="dim">ยังไม่มีประวัติ — รอบแรกจะส่งตอน 19:00</small>'; return; }
+  const {data:ps}=await sb.from("profiles").select("id,name,house_id").in("id",[...new Set(hist.map(h=>h.to_id))]);
+  const pf=id=>(ps||[]).find(p=>p.id===id)||{};
+  const seen=hist.filter(h=>h.seen_at).length;
+  box.innerHTML=`<small class="dim">ส่งไปแล้ว ${hist.length} ครั้ง · เปิดอ่านแล้ว ${seen} (${Math.round(seen/hist.length*100)}%)</small>
+    <table style="margin-top:6px"><thead><tr><th>เมื่อ</th><th>นักเรียน</th><th>เหตุผล</th><th>ข้อความที่เขาเห็น</th><th>ส่งโดย</th><th>อ่านแล้ว</th></tr></thead><tbody>`+
+    hist.map(x=>{ const p=pf(x.to_id), h=HOUSES.find(z=>z.id===p.house_id)||{}, why=String(x.message||"").split("\n").slice(1).join(" ");
+      return `<tr><td><small>${new Date(x.created_at).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</small></td>
+        <td><b>${esc(p.name||"?")}</b><br><small class="dim">${h.emoji||""} ${h.name||""}</small></td>
+        <td>${HR_TH[x.reason]||"✋ เลือกเอง"}</td><td><small>${esc(why||x.message)}</small></td>
+        <td>${x.auto?"🤖 อัตโนมัติ":"✋ Benz"}</td><td>${x.seen_at?"✅ "+new Date(x.seen_at).toLocaleDateString("th-TH",{day:"numeric",month:"short"}):'<span class="dim">ยัง</span>'}</td></tr>`; }).join("")+"</tbody></table>";
 }
+$("hrSave").onclick=async()=>{
+  $("hrSave").disabled=true;
+  const {error}=await sb.rpc("coach_heart_config",{enabled:$("hrAuto").checked, per_day:+$("hrPerDay").value||0, msg:$("hrMsg").value});
+  $("hrSave").disabled=false;
+  if(error) return toast(error.message);
+  toast($("hrAuto").checked?"บันทึกแล้ว · ส่งอัตโนมัติทุกวัน 19:00":"บันทึกแล้ว · ปิดส่งอัตโนมัติ"); loadHearts();
+};
 function renderHearts(){
   $("hrCount").textContent=hrPick.size;
   if(!hrCands.length){ $("hrList").innerHTML='<small class="dim">ตอนนี้ยังไม่มีใครเข้าเกณฑ์ (หรือได้ไปแล้วภายใน 7 วัน) · ลองดูใหม่พรุ่งนี้</small>'; return; }
@@ -332,7 +353,6 @@ $("hrRand").onclick=()=>{
   while(hrPick.size<n && pool.length){ const tot=pool.reduce((a,x)=>a+x.w,0); let r=Math.random()*tot, i=0; while((r-=pool[i].w)>0) i++; hrPick.add(pool[i].c.profile_id); pool.splice(i,1); }
   renderHearts();
 };
-$("hrReload").onclick=loadHearts;
 $("hrSend").onclick=async()=>{
   const list=hrCands.filter(c=>hrPick.has(c.profile_id)); if(!list.length) return toast("เลือกคนก่อน (ติ๊ก หรือกด 🎲 สุ่ม)");
   if(!confirm(`ส่งกำลังใจให้ ${list.length} คน?\n${list.map(c=>c.name).join(", ")}\n\nเขาจะเห็นป๊อปอัปตอนเปิดแอป + แจ้งเตือนถ้าเปิดไว้`)) return;

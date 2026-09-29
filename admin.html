@@ -259,18 +259,25 @@
     </section>
 
     <section class="panel bevel" id="heartPanel">
-      <div class="titlebar"><h2>💛 ส่งกำลังใจ · ใครกำลังกลับมา</h2><span>ระบบคัดให้ · คนละไม่เกินสัปดาห์ละครั้ง · กดสุ่มหรือเลือกเอง แล้วกดส่ง</span></div>
+      <div class="titlebar"><h2>💛 กำลังใจจากอาจารย์ · ส่งเองอัตโนมัติ</h2><span>ทุกวัน 19:00 ระบบสุ่มส่งให้คนที่กำลังกลับมา · ดู log ด้านล่าง</span></div>
       <div class="body">
-        <div class="hint" style="margin:0 0 10px">🌱 <b>กลับมาแล้ว</b> ลงงาน 2 วันติดหลังหายไป 3 วัน+ · 🐣 <b>เริ่มครั้งแรก</b> ลงงาน 2 วันติดครั้งแรก · 🔁 <b>สม่ำเสมอ</b> ส่ง 3 วันใน 7 วัน และยังไม่เคยได้กำลังใจเลย · คนที่ได้ไปภายใน 7 วันถูกตัดออกเอง</div>
         <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
-          <div style="flex:1 1 360px"><label>ข้อความ (ทุกคนได้ข้อความนี้ + บรรทัดเหตุผลของแต่ละคน)</label><input id="hrMsg" value="อาจารย์กำลังส่งกำลังใจให้คุณ เฝ้ารอดูคุณอยู่นะ 💛" maxlength="200"></div>
-          <div style="flex:0 0 90px"><label>สุ่มกี่คน</label><input id="hrN" type="number" min="1" max="20" value="3"></div>
-          <div><button class="btn" id="hrRand">🎲 สุ่ม</button></div>
-          <div><button class="btn" id="hrSend" style="background:linear-gradient(180deg,#ffd76b,#c98a12 60%,#8a5a06);color:#2a1a00">💛 ส่งกำลังใจ (<span id="hrCount">0</span>)</button></div>
-          <div><button class="btn" id="hrReload" title="โหลดใหม่">↻</button></div>
+          <div style="flex:0 0 auto"><label>ส่งอัตโนมัติ</label><label style="display:flex;gap:6px;align-items:center;min-height:40px;cursor:pointer"><input type="checkbox" id="hrAuto"> เปิด</label></div>
+          <div style="flex:0 0 110px"><label>คนต่อวัน</label><input id="hrPerDay" type="number" min="0" max="10" value="2"></div>
+          <div style="flex:1 1 360px"><label>ข้อความหลัก (ต่อด้วยบรรทัดเหตุผลของแต่ละคนให้เอง)</label><input id="hrMsg" maxlength="200"></div>
+          <div><button class="btn" id="hrSave">บันทึก</button></div>
         </div>
-        <div id="hrList" class="scroll" style="margin-top:12px"><small class="dim">กำลังโหลด…</small></div>
-        <div id="hrHist" style="margin-top:12px"></div>
+        <div class="hint" id="hrStatus" style="margin:10px 0 0"></div>
+        <div id="hrLog" class="scroll" style="margin-top:12px"><small class="dim">กำลังโหลด…</small></div>
+        <details style="margin-top:14px"><summary style="cursor:pointer;color:var(--dim)">ส่งเองเพิ่ม (ไม่จำเป็น) · ดูว่าตอนนี้ใครเข้าเกณฑ์</summary>
+          <div class="hint" style="margin:10px 0">🌱 <b>กลับมาแล้ว</b> ลงงาน 2 วันติดหลังหายไป 3 วัน+ · 🐣 <b>เริ่มครั้งแรก</b> ลงงาน 2 วันติดครั้งแรก · 🔁 <b>สม่ำเสมอ</b> ส่ง 3 วันใน 7 วัน และยังไม่เคยได้เลย · คนที่ได้ไปภายใน 7 วันถูกตัดออกเอง</div>
+          <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+            <div style="flex:0 0 90px"><label>สุ่มกี่คน</label><input id="hrN" type="number" min="1" max="20" value="3"></div>
+            <div><button class="btn" id="hrRand">🎲 สุ่ม</button></div>
+            <div><button class="btn" id="hrSend">💛 ส่งตอนนี้ (<span id="hrCount">0</span>)</button></div>
+          </div>
+          <div id="hrList" class="scroll" style="margin-top:12px"></div>
+        </details>
       </div>
     </section>
 
