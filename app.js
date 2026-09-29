@@ -558,6 +558,7 @@ const DemoDB = (()=>{
       /* โหมดทดลอง: เพื่อนบอทกดรับให้ทันที จะได้ลองเล่นได้ */
       db.buddies.push({id:uid++, a:me.id, b:toId, status:"active", accepted_day:db.today}); save(); onChange(); },
     async buddyRespond(id, accept){ const b=(db.buddies||[]).find(x=>x.id===id); if(!b) throw new Error("คำชวนนี้ไม่อยู่แล้ว"); b.status=accept?"active":"declined"; b.accepted_day=db.today; save(); onChange(); },
+    async heartSeen(id){},
     async buddyEnd(id){ const b=(db.buddies||[]).find(x=>x.id===id); if(b) b.status="ended"; save(); onChange(); },
     async nudge(toId){ db.nudges=db.nudges||[]; const me=db.runners.find(x=>x.name===db.me), to=db.runners.find(x=>x.id===toId);
       if(db.subs.some(s=>s.who===to.name&&s.day===db.today)) throw new Error("เขาส่งงานวันนี้แล้ว 🎉 ไปเชียร์แทนได้เลย");
@@ -882,17 +883,19 @@ const LiveDB = (()=>{
         ()=>soft(()=>sb.from("v_cheer_stats").select("profile_id,given,received,quest_days"), "v_cheer_stats"),
         ()=>soft(()=>sb.from("nudges").select("from_id,to_id,day_index").gte("day_index",(todayIdx||1)-1).limit(5000), "nudges"),
         ()=>soft(()=>sb.from("v_boss_hits").select("*"), "v_boss_hits"),
-        ()=>soft(()=>sb.from("v_buddies").select("*"), "v_buddies")
+        ()=>soft(()=>sb.from("v_buddies").select("*"), "v_buddies"),
+        ()=>uidNow ? soft(()=>sb.from("coach_hearts").select("id,message,reason,created_at,from_id").eq("to_id",uidNow).is("seen_at",null).order("created_at"), "coach_hearts") : Promise.resolve({data:[]}),
+        ()=>soft(()=>sb.from("v_coach_heart_counts").select("profile_id,n"), "v_coach_heart_counts")
       ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
                    {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
-                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows},{data:buddyRows}])=>({
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows},{data:buddyRows},{data:heartRows},{data:heartCountRows}])=>({
         cheerStats: cheerStatRows||[], nudges: nudgeRows||[],
         burnIds: (burn||[]).map(b=>b.profile_id),
         weakIds: (weakRows||[]).map(b=>b.profile_id),
         cups: cups||[],
         kings: (kingRows||[]).concat(taKingRows||[]),      // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[],
-        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[], buddies: buddyRows||[],
+        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[], buddies: buddyRows||[], hearts: heartRows||[], heartCounts: heartCountRows||[],
         reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[],
         sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id)
       }));
@@ -1000,6 +1003,7 @@ const LiveDB = (()=>{
     },
     async buddyInvite(toId){ const {error}=await sb.rpc("buddy_invite",{to_pid:toId}); if(error) throw new Error(/buddy|schema cache|does not exist/i.test(error.message)&&!/[ก-๙]/.test(error.message) ? "ฟีเจอร์บัดดี้ยังไม่เปิด (รอทีมงานอัปเดตฐานข้อมูล)" : error.message.replace(/^.*?:\s*/,"")); },
     async buddyRespond(id, accept){ const {error}=await sb.rpc("buddy_respond",{bid:id, accept}); if(error) throw new Error(error.message.replace(/^.*?:\s*/,"")); },
+    async heartSeen(id){ await sb.rpc("coach_heart_seen",{hid:id}); },
     async buddyEnd(id){ const {error}=await sb.rpc("buddy_end",{bid:id}); if(error) throw new Error(error.message.replace(/^.*?:\s*/,"")); },
     async nudge(toId){
       const {error}=await sb.rpc("nudge",{to_pid:toId});
@@ -2413,6 +2417,7 @@ function myEvents(){
   { const ng=(S.nudges||[]).filter(n=>n.to_id===id && n.day_index===S.today);
     if(ng.length && !S.postedToday){ const nn=[...new Set(ng.map(n=>(S.runners.find(r=>r.id===n.from_id)||{}).name).filter(Boolean))];
       ev.push({k:"ng"+S.today+":"+ng.length, i:"👉", t:`${nn.length} คนสะกิดให้คุณส่งงานวันนี้`, s:nn.slice(0,5).join(", "), go:goSubmit}); } }
+  (S.hearts||[]).forEach(h=>ev.push({k:"heart"+h.id, i:"💛", t:"อาจารย์ส่งกำลังใจให้คุณ", s:String(h.message||"").split("\n")[0], go:maybeShowHeart}));
   buddyInvitesToMe().forEach(b=>{ const r=S.runners.find(x=>x.id===b.a); if(r) ev.push({k:"bi"+b.id, i:"🤝", t:`${r.name} ชวนคุณเป็นบัดดี้`, s:"กดรับที่การ์ดวันนี้ของฉัน", go:()=>showPage("pgRace")}); });
   myBuddies().forEach(x=>{ if(x.themToday && !x.meToday && !S.postedToday) ev.push({k:"bw"+x.row.id+"-"+S.today, i:"🤝", t:`${x.r.name} ส่งแล้ว รอคุณอยู่`, s:`ส่งวันนี้ = streak คู่ ×${x.streak+1}`, go:goSubmit});
     if(BUDDY_MILESTONES.includes(x.streak)) ev.push({k:"bm"+x.row.id+"-"+x.streak, i:"🤝", t:`streak คู่กับ ${x.r.name} ×${x.streak}!`, s:"", go:()=>showPage("pgRace")}); });
@@ -2831,6 +2836,7 @@ const BADGES=[
   {k:"popular", e:"💖", n:"POPULAR",      th:"มีคนเชียร์ 10 ครั้งขึ้นไปในสัปดาห์เดียว",     test:c=>c.popular},
   {k:"duelist", e:"⚔️", n:"DUELIST",      th:"เคยดวลมาแล้ว · แตะเพื่อดูว่าสู้กับใครมาบ้าง",        test:c=>c.duelFought>0,
                 label:c=>c.duelFought>1?`DUELIST ×${c.duelFought}`:"DUELIST"},
+  {k:"heart",   e:"💛", n:"COACH'S HEART", th:"ได้กำลังใจจากอาจารย์",   test:c=>c.hearts>=1, label:c=>c.hearts>1?`COACH'S HEART ×${c.hearts}`:"COACH'S HEART"},
   {k:"buddy",   e:"🤝", n:"BUDDY",        th:"ส่งงานพร้อมบัดดี้ติดกัน 7 วัน",   test:c=>c.buddyBest>=7, label:c=>`BUDDY ×${c.buddyBest}`},
   {k:"brave",   e:"🛡️", n:"BRAVE",        th:"ลงดวลจนจบครบ 3 ครั้ง ไม่ว่าแพ้หรือชนะ",            test:c=>c.duelDone>=3},
   {k:"quality", e:"👍", n:"QUALITY",      th:"TA ให้ 'งานดี' 3 ชิ้นขึ้นไป",                  test:c=>c.kudosN>=3},
@@ -2862,7 +2868,8 @@ function badgeCtx(r, det){
   const kudosN=(S.kudos||{})[r.id]||0, views=((S.reach||{})[r.id]||{}).total_views||0;
   const holiday = det ? Object.keys(byDay).reduce((s,d)=>s+(vacDay(+d)?byDay[d]:0),0) : ((S.holiday||{})[r.id]||0);
   const buddyBest=Math.max(0,...(S.buddies||[]).filter(b=>b.a===r.id||b.b===r.id).map(b=>+b.best||0));
-  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelFought, duelDone, bossKills, kudosN, views, holiday, buddyBest};
+  const hearts=(S.heartN||{})[r.id]||0;
+  return {st, weeks, maxDay, maxHit, early:!!(det&&det.early), revived, cups, kingWeeks, popular, duelFought, duelDone, bossKills, kudosN, views, holiday, buddyBest, hearts};
 }
 const earnedBadges = (r,det) => { const c=badgeCtx(r,det); return BADGES.filter(b=>b.test(c)).map(b=>Object.assign({},b,{n:b.label?b.label(c):b.n})); };
 function badgesHTML(list, showAll){
@@ -3212,6 +3219,24 @@ function buddyWatch(){
     else toast(`🤝 วันนี้ส่งครบทั้งคู่กับ ${x.r.name} · ×${x.streak}`);
   });
 }
+
+/* ---- 💛 กำลังใจจากอาจารย์ (054) — ป๊อปอัปครั้งเดียวต่อข้อความ ---- */
+function maybeShowHeart(){
+  const h=(S.hearts||[])[0]; if(!h || S.spectator || !meR() || !$("scArena").classList.contains("on")) return;
+  if(document.querySelector(".modal.on")) return setTimeout(maybeShowHeart, 4000);      // รอให้ป๊อปอัปอื่นปิดก่อน
+  const coach=S.runners.find(r=>r.id===h.from_id) || S.runners.find(r=>roleOf(r)==="head");
+  const [line1,...rest]=String(h.message||"").split("\n");
+  $("heartBody").innerHTML=`<div class="hrtFig">${coach?sprite(avOf(coach),5,"normal"):""}<span class="hrtGlow"></span></div>
+    <div class="hrtFrom">💛 ${coach?`อาจารย์ ${coach.name}`:"อาจารย์"} ส่งกำลังใจให้คุณ</div>
+    <div class="hrtMsg">${line1}</div>${rest.length?`<div class="hrtWhy">${rest.join("<br>")}</div>`:""}`;
+  $("heartModal")._id=h.id; $("heartModal").classList.add("on"); try{ SFX.fanfare(); }catch(e){}
+}
+$("heartOk").onclick=async()=>{
+  const id=$("heartModal")._id; $("heartModal").classList.remove("on");
+  S.hearts=(S.hearts||[]).filter(x=>x.id!==id); S.heartN=S.heartN||{}; S.heartN[meId()]=(S.heartN[meId()]||0)+1;
+  try{ await DB.heartSeen(id); }catch(e){}
+  renderAll(); setTimeout(maybeShowHeart, 800);
+};
 
 /* ---- ดวล ---- */
 const myDuel = () => { const id=meId(); if(!id) return null;
@@ -3867,6 +3892,8 @@ function applyExtras(e){
   S.cheers=keep(e.cheers,S.cheers); S.cheerWeeks=e.cheerWeeks||[]; S.duels=e.duels||[];
   S.nudges=e.nudges||[];
   if(Array.isArray(e.buddies)) S.buddies=e.buddies;
+  S.hearts=e.hearts||[]; S.heartN={}; (e.heartCounts||[]).forEach(x=>{ S.heartN[x.profile_id]=+x.n; });
+  setTimeout(maybeShowHeart, 600);
   S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
   S.bosses=keep(e.bosses,S.bosses); S.bossKills=e.bossKills||[]; S.bossHits=keep(e.bossHits,S.bossHits);
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });

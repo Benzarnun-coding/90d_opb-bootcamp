@@ -1164,6 +1164,17 @@
   .bdHint{margin-top:10px; font-size:12px; color:var(--dim); line-height:1.5} .bdHint b{color:#dcd6ff}
   .buddyAct{display:inline-flex; gap:6px; flex-wrap:wrap}
   .buddyBox b{color:var(--gold)} .buddyBox a{color:var(--dim)}
+  /* 💛 กำลังใจจากอาจารย์ */
+  .heartSheet{max-width:420px; text-align:center; border-color:#ffd76b #5a3a02 #5a3a02 #ffd76b; background:radial-gradient(ellipse at 50% 30%, #4a2a72 0%, #221c50 55%, #141033 100%)}
+  .heartSheet .body{display:flex; flex-direction:column; align-items:center; gap:10px; padding:26px 22px 6px}
+  .hrtFig{position:relative; display:flex; justify-content:center; padding:10px 0 4px}
+  .hrtFig svg{position:relative; z-index:1; filter:drop-shadow(0 4px 0 rgba(0,0,0,.5))}
+  .hrtGlow{position:absolute; left:50%; top:50%; width:170px; height:170px; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(closest-side, rgba(255,210,63,.55), rgba(255,210,63,0)); animation:bossTwinkle 1.4s ease-in-out infinite alternate}
+  .hrtFrom{font-family:var(--f-px); font-weight:700; font-size:18px; color:var(--gold); text-shadow:0 2px 0 #000}
+  .hrtMsg{font-size:17px; line-height:1.6; color:#fff}
+  .hrtWhy{font-size:13px; line-height:1.6; color:#cdc7ff; padding:8px 12px; background:rgba(0,0,0,.3); border:2px solid #3a3280}
+  .heartBtns{padding:10px 22px 22px} .heartBtns .btn{width:100%; min-height:48px; font-size:16px}
+  @media (prefers-reduced-motion:reduce){ .hrtGlow{animation:none} }
   .duelTag{font-style:normal; font-family:var(--f-px); font-size:9px; padding:0 4px; margin-left:2px; color:#fff; background:linear-gradient(180deg,#ff6a2a,#b8201f); border:1px solid #ffb324; animation:duelTagBlink 1s steps(2) infinite; vertical-align:middle}
   /* สถิติดวล: ชิปใต้ชื่อใน Arena + ประวัติในโปรไฟล์ */
   .badge.link{cursor:pointer} .badge.link:hover{filter:brightness(1.2)}
@@ -1622,6 +1633,10 @@
 </div></div>
 
 <!-- ============ สถิติดวล (เปิดจากป้าย DUELIST) ============ -->
+<div class="modal" id="heartModal"><div class="sheet bevel heartSheet" role="dialog" aria-label="กำลังใจจากอาจารย์">
+  <div class="body" id="heartBody"></div>
+  <div class="heartBtns"><button class="btn gold" id="heartOk">🙏 ขอบคุณครับ/ค่ะ</button></div>
+</div></div>
 <div class="bossSheet" id="bossSheet" hidden><div class="bsBack"></div><div class="bsCard bevel" id="bossSheetCard" role="dialog" aria-label="สถิตินักรบ"></div></div>
 <div class="modal" id="duelStatModal"><div class="sheet bevel" style="max-width:520px">
   <div class="titlebar"><h2 id="dsTitle">⚔️ สถิติดวล</h2><div class="closeX" data-close>✕ ปิด</div></div>

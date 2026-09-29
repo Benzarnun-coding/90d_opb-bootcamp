@@ -47,7 +47,7 @@ async function boot(){
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
-  loadFeedback();
+  loadFeedback(); loadHearts();
   loadRisk(); loadSessions(); loadRetention(); loadAudit(); loadEngagement(); loadCohortStats();
 }
 /* ---- กลุ่มเสี่ยง ---- */
@@ -292,6 +292,56 @@ $("lcSave").onclick = async ()=>{
   const {error} = await sb.rpc("admin_set_login_code", {c});
   if(error) return toast(error.message);
   $("lcCode").value = ""; toast("บันทึกรหัสรวมแล้ว"); await loadLoginCode();
+};
+
+/* ---- 💛 ส่งกำลังใจ (054) — ระบบคัดคนที่กำลังกลับมา Benz สุ่ม/เลือกแล้วกดส่ง ---- */
+const HR_TH = {comeback:"🌱 กลับมาแล้ว", first:"🐣 เริ่มครั้งแรก", steady:"🔁 สม่ำเสมอ ยังไม่เคยได้"};
+const hrWhy = c => c.reason==="comeback" ? `เห็นนะว่ากลับมาลงงาน 2 วันติดแล้ว หลังหายไป ${c.gap_days} วัน`
+  : c.reason==="first" ? "เห็นว่าเริ่มลงงาน 2 วันติดแล้ว ก้าวแรกสำคัญที่สุด"
+  : `เห็นความสม่ำเสมอของคุณนะ สัปดาห์นี้ลงไป ${c.last7} วันแล้ว`;
+let hrCands=[], hrPick=new Set();
+async function loadHearts(){
+  const box=$("hrList"); if(!box) return;
+  const {data,error}=await sb.rpc("coach_heart_candidates");
+  if(error){ box.innerHTML=`<small class="dim">${/coach_heart|schema cache|does not exist/i.test(error.message)?"ยังไม่ได้รัน migration 054":esc(error.message)}</small>`; return; }
+  const w=c=>c.reason==="comeback"?0:c.reason==="first"?1:2;
+  hrCands=(data||[]).sort((a,b)=>w(a)-w(b) || (b.gap_days||0)-(a.gap_days||0) || a.received-b.received);
+  hrPick=new Set([...hrPick].filter(id=>hrCands.some(c=>c.profile_id===id)));
+  renderHearts();
+  const {data:hist}=await sb.from("coach_hearts").select("to_id,reason,created_at,seen_at").order("created_at",{ascending:false}).limit(20);
+  if(hist && hist.length){
+    const {data:ps}=await sb.from("profiles").select("id,name").in("id",[...new Set(hist.map(h=>h.to_id))]);
+    const nm=id=>((ps||[]).find(p=>p.id===id)||{}).name||"?";
+    $("hrHist").innerHTML=`<small class="dim">ส่งล่าสุด: ${hist.map(h=>`${esc(nm(h.to_id))} ${h.seen_at?"✓อ่านแล้ว":"·ยังไม่เปิด"} (${new Date(h.created_at).toLocaleDateString("th-TH",{day:"numeric",month:"short"})})`).join(" · ")}</small>`;
+  } else $("hrHist").innerHTML="";
+}
+function renderHearts(){
+  $("hrCount").textContent=hrPick.size;
+  if(!hrCands.length){ $("hrList").innerHTML='<small class="dim">ตอนนี้ยังไม่มีใครเข้าเกณฑ์ (หรือได้ไปแล้วภายใน 7 วัน) · ลองดูใหม่พรุ่งนี้</small>'; return; }
+  $("hrList").innerHTML=`<table><thead><tr><th></th><th>นักเรียน</th><th>บ้าน</th><th>เข้าเกณฑ์</th><th>บรรทัดเหตุผลที่เขาจะเห็น</th><th>เคยได้</th></tr></thead><tbody>`+
+    hrCands.map(c=>{ const h=HOUSES.find(x=>x.id===c.house_id)||{};
+      return `<tr><td><input type="checkbox" data-hr="${c.profile_id}" ${hrPick.has(c.profile_id)?"checked":""}></td>
+        <td><b>${esc(c.name)}</b></td><td>${h.emoji||""} ${h.name||""}</td><td>${HR_TH[c.reason]||c.reason}</td>
+        <td><small>${esc(hrWhy(c))}</small></td><td>${c.received?`${c.received} ครั้ง`:'<b style="color:var(--gold)">ยังไม่เคย</b>'}</td></tr>`; }).join("")+"</tbody></table>";
+}
+$("hrList").onchange=e=>{ const b=e.target.closest("[data-hr]"); if(!b) return; b.checked?hrPick.add(b.dataset.hr):hrPick.delete(b.dataset.hr); $("hrCount").textContent=hrPick.size; };
+/* สุ่มแบบถ่วงน้ำหนัก: กลับมาแล้ว > เริ่มครั้งแรก > สม่ำเสมอ · ยังไม่เคยได้ ×2 · หายนานได้น้ำหนักเพิ่ม */
+$("hrRand").onclick=()=>{
+  const n=Math.max(1,Math.min(20,+$("hrN").value||3)), pool=hrCands.map(c=>({c, w:(c.reason==="comeback"?5+Math.min(c.gap_days||0,14)/2:c.reason==="first"?5:1)*(c.received?1:2)}));
+  hrPick=new Set();
+  while(hrPick.size<n && pool.length){ const tot=pool.reduce((a,x)=>a+x.w,0); let r=Math.random()*tot, i=0; while((r-=pool[i].w)>0) i++; hrPick.add(pool[i].c.profile_id); pool.splice(i,1); }
+  renderHearts();
+};
+$("hrReload").onclick=loadHearts;
+$("hrSend").onclick=async()=>{
+  const list=hrCands.filter(c=>hrPick.has(c.profile_id)); if(!list.length) return toast("เลือกคนก่อน (ติ๊ก หรือกด 🎲 สุ่ม)");
+  if(!confirm(`ส่งกำลังใจให้ ${list.length} คน?\n${list.map(c=>c.name).join(", ")}\n\nเขาจะเห็นป๊อปอัปตอนเปิดแอป + แจ้งเตือนถ้าเปิดไว้`)) return;
+  const msg=$("hrMsg").value.trim();
+  $("hrSend").disabled=true;
+  const {data,error}=await sb.rpc("coach_heart_send",{to_ids:list.map(c=>c.profile_id), reasons:list.map(c=>c.reason), messages:list.map(c=>(msg?msg+"\n":"")+hrWhy(c))});
+  $("hrSend").disabled=false;
+  if(error) return toast(error.message);
+  toast(`💛 ส่งกำลังใจแล้ว ${data} คน`); hrPick=new Set(); await loadHearts();
 };
 
 /* ---- Feedback / feature request (044) ---- */

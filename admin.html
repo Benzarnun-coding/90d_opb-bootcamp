@@ -258,6 +258,22 @@
       </div>
     </section>
 
+    <section class="panel bevel" id="heartPanel">
+      <div class="titlebar"><h2>💛 ส่งกำลังใจ · ใครกำลังกลับมา</h2><span>ระบบคัดให้ · คนละไม่เกินสัปดาห์ละครั้ง · กดสุ่มหรือเลือกเอง แล้วกดส่ง</span></div>
+      <div class="body">
+        <div class="hint" style="margin:0 0 10px">🌱 <b>กลับมาแล้ว</b> ลงงาน 2 วันติดหลังหายไป 3 วัน+ · 🐣 <b>เริ่มครั้งแรก</b> ลงงาน 2 วันติดครั้งแรก · 🔁 <b>สม่ำเสมอ</b> ส่ง 3 วันใน 7 วัน และยังไม่เคยได้กำลังใจเลย · คนที่ได้ไปภายใน 7 วันถูกตัดออกเอง</div>
+        <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+          <div style="flex:1 1 360px"><label>ข้อความ (ทุกคนได้ข้อความนี้ + บรรทัดเหตุผลของแต่ละคน)</label><input id="hrMsg" value="อาจารย์กำลังส่งกำลังใจให้คุณ เฝ้ารอดูคุณอยู่นะ 💛" maxlength="200"></div>
+          <div style="flex:0 0 90px"><label>สุ่มกี่คน</label><input id="hrN" type="number" min="1" max="20" value="3"></div>
+          <div><button class="btn" id="hrRand">🎲 สุ่ม</button></div>
+          <div><button class="btn" id="hrSend" style="background:linear-gradient(180deg,#ffd76b,#c98a12 60%,#8a5a06);color:#2a1a00">💛 ส่งกำลังใจ (<span id="hrCount">0</span>)</button></div>
+          <div><button class="btn" id="hrReload" title="โหลดใหม่">↻</button></div>
+        </div>
+        <div id="hrList" class="scroll" style="margin-top:12px"><small class="dim">กำลังโหลด…</small></div>
+        <div id="hrHist" style="margin-top:12px"></div>
+      </div>
+    </section>
+
     <section class="panel bevel" id="fbPanel">
       <div class="titlebar"><h2>💡 Feedback · คำขอจากนักเรียน</h2><span>เรียงตามโหวต · ตั้งสถานะ + ตอบกลับ นักเรียนเห็นในแอปทันที <button class="btn xs" id="fbReload">↻ โหลดใหม่</button></span></div>
       <div class="body">
