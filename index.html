@@ -1097,7 +1097,15 @@
     .hf{flex-basis:62px} .hf svg{width:36px} .hf .ring{width:48px; bottom:12px} .hf .dmg{font-size:15px} .hf .nm{font-size:10px; max-width:60px}
     .hf.more{flex-basis:50px; height:86px}
     .hall .hallLoot{position:relative; top:auto; right:auto; width:auto; margin:0 12px}
-    .hallStage:has(.hallLoot){height:auto; box-sizing:border-box; padding:410px 0 118px} .hall.dead .hallChips .chip{font-size:10px}   /* ล้มแล้ว: กล่องรางวัลอยู่ในโฟลว์ใต้หลอดเลือด นักรบยังยืนล่างสุด */
+    /* ล้มแล้ว (มือถือ): เวทีเรียงเป็นแนวตั้งตามปกติ ไม่วางซ้อน — ร่างบอส › ชื่อ+หลอด › ฉายา › กล่องรางวัล › นักรบ */
+    .hall.dead .hallStage{height:auto; display:flex; flex-direction:column; align-items:center; gap:12px; padding:34px 0 8px}
+    .hall.dead .hallBoss,.hall.dead .hallMid,.hall.dead .hallLine{position:relative; left:auto; right:auto; top:auto; bottom:auto; transform:none}
+    .hall.dead .hallMid{width:100%; box-sizing:border-box; padding:0 12px; margin-top:-8px}
+    .hall.dead .hallShadow,.hall.dead .hallHit{display:none}
+    .hall.dead .wallEdge{top:150px} .hall.dead .floorLines{top:156px}
+    .hall.dead .hall .hallLoot,.hall.dead .hallLoot{align-self:stretch; margin:0 12px}
+    .hall.dead .hallLine{width:100%; box-sizing:border-box; padding-top:14px}
+    .hall.dead .hallChips{gap:5px} .hall.dead .hallChips .chip{font-size:10px; padding:3px 6px; white-space:normal; text-align:left}
     .hallFoot{grid-template-columns:repeat(2,1fr); padding:10px} .hallFoot .statBox{padding:8px} .hallHouses{display:none}
     .hallMini svg{flex-basis:40px; width:40px; height:40px} .hmName{font-size:13px} .hmName small{display:none} .hallMini .chip{display:none}
   }
