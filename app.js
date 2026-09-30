@@ -3145,7 +3145,7 @@ function myCheersHTML(){
 
 /* ---- 🤝 Buddy Streak (migration 053) — ส่งงานวันเดียวกันทั้งคู่ = +1 · คนละไม่เกิน 3 บัดดี้ ---- */
 const BUDDY_MAX = 3, BUDDY_MILESTONES = [3,7,14,21,30,45,60];
-const buddyOk = r => !!r && roleOf(r)!=="head";          // นักเรียน + TA · หัวหน้าโค้ชไม่ร่วม
+const buddyOk = r => !!r;          // ทุกคนที่อยู่ในสนามชวนบัดดี้ได้ รวม TA และหัวหน้าโค้ช (056)
 const buddyRowWith = id => { const me=meId(); return (S.buddies||[]).find(b=>(b.a===me&&b.b===id)||(b.b===me&&b.a===id)) || null; };
 const buddyOpenCount = id => (S.buddies||[]).filter(b=>b.a===id||b.b===id).length;
 /* บัดดี้ที่จับคู่แล้วของฉัน · เรียงคนที่ streak ยาวก่อน */
