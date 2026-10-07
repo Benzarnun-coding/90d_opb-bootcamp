@@ -507,13 +507,13 @@ const DemoDB = (()=>{
       /* ดวลสด + บอสสาธิต */
       const duels=(db.duels||[]).map(d=>{ const nm=id=>(db.runners.find(x=>x.id===id)||{}).name; const sc=id=>d.start_day?db.subs.filter(s=>s.who===nm(id)&&s.day>=d.start_day&&s.day<=d.end_day).length:0;
         return Object.assign({}, d, {challenger_name:nm(d.challenger), opponent_name:nm(d.opponent), challenger_score:sc(d.challenger), opponent_score:sc(d.opponent), today:db.today}); });
-      const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).length;
-        return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
-      const bossHits=[]; bosses.forEach(b=>{ let n=0; const by={};
+      const bosses=HOUSES.map((hs,i)=>{ const mem=db.runners.filter(r=>r.house===hs.id); const dmg=db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).reduce((a,s)=>a+(s.crit||1),0);
+        return {id:100+hs.id, week_no:cw, house_id:hs.id, name:["มังกรผัดวันประกันพรุ่ง","ยักษ์ขี้เกียจ","ปีศาจเลื่อนโพสต์","ราชาผู้ไม่กล้ากดปล่อย"][i], emoji:["🐉","👹","👻","💀"][i], skin:["dragon","ogre","ghost","skull"][i], hp:60+i*10, reward:"ป้าย BOSS SLAYER ทั้งบ้าน", damage:dmg, crits:db.subs.filter(s=>weekOf(s.day)===cw&&(s.crit||1)>1&&mem.some(m=>m.name===s.who)).length, fighters:new Set(db.subs.filter(s=>weekOf(s.day)===cw&&mem.some(m=>m.name===s.who)).map(s=>s.who)).size}; });
+      const bossHits=[]; bosses.forEach(b=>{ let n=0, cum=0; const by={};
         db.subs.filter(s=>weekOf(s.day)===cw).sort((a,c)=>a.day-c.day||a.id-c.id).forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who);
           if(!r0||!r0.house||(b.house_id!=null&&r0.house!==b.house_id)) return; n++;
-          const o=by[r0.id]=by[r0.id]||{boss_id:b.id, profile_id:r0.id, hits:0, per:{}, first_blood:n===1, last_hit:false, last_at:new Date(s.ts||0).toISOString()};
-          o.hits++; o.per[s.day]=(o.per[s.day]||0)+1; if(n===b.hp) o.last_hit=true; });
+          const o=by[r0.id]=by[r0.id]||{boss_id:b.id, profile_id:r0.id, hits:0, crits:0, best_crit:1, per:{}, first_blood:n===1, last_hit:false, last_at:new Date(s.ts||0).toISOString()};
+          const cm=s.crit||1; cum+=cm; o.hits+=cm; if(cm>1) o.crits++; o.best_crit=Math.max(o.best_crit,cm); o.per[s.day]=(o.per[s.day]||0)+1; if(cum-cm<b.hp&&cum>=b.hp) o.last_hit=true; });
         Object.values(by).forEach(o=>{ o.days=Object.keys(o.per).length; o.best_day=Math.max(...Object.values(o.per)); bossHits.push(o); }); });
       const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
@@ -598,8 +598,9 @@ const DemoDB = (()=>{
       if(db.subs.some(s=>s.url.toLowerCase()===url.toLowerCase())) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
       const s=spOf(db.today);
       if(!r.joined.includes(s)) throw new Error(`ไม่ได้ลงสปรินต์ ${s+1}`);
-      db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now(), kind:kind||null, note:note||null, views:0, likes:0});
-      save(); onChange();
+      const roll=Math.random(), crit=(r.role==="coach"&&!r.house)?1:roll<0.005?10:roll<0.02?5:roll<0.06?3:1;
+      db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now(), kind:kind||null, note:note||null, views:0, likes:0, crit});
+      save(); onChange(); return {crit};
     },
     async updateSub(id, patch){
       const s=db.subs.find(x=>x.id===id && x.who===db.me); if(!s) throw new Error("ไม่พบงานชิ้นนี้");
@@ -965,6 +966,7 @@ const LiveDB = (()=>{
         }
         throw new Error(error.message.replace(/^.*?:\s*/,""));
       }
+      try{ const {data:cr}=await sb.from("submissions").select("crit").eq("profile_id",session.user.id).order("created_at",{ascending:false}).limit(1); return {crit:(cr&&cr[0]&&+cr[0].crit)||1}; }catch(e){ return {crit:1}; }
     },
     /* ---- ข้อมูลต่อชิ้น (เจ้าของแก้เอง: แพลตฟอร์ม/ประเภท/สรุป/ยอดวิว/ไลก์) ---- */
     async updateSub(id, patch){
@@ -2199,14 +2201,16 @@ $("pushBtn").onclick=async()=>{
   const before=stats(meR()), hadUnlocked=unlockedSet(before);
   $("pushBtn").disabled=true; S.submitting=true;
   try{
-    await DB.submit({url, platform:$("plat").value, kind:$("kind").value, note:$("note").value.trim()});
+    const subRes=await DB.submit({url, platform:$("plat").value, kind:$("kind").value, note:$("note").value.trim()});
+    const mult=Math.max(1,(subRes&&+subRes.crit)||1);
     $("url").value=""; $("platHint").textContent=""; $("note").value="";
     S.postedToday=true;
-    { const m=meR(); if(bossFighter(m)) curBosses().forEach(b=>{ b.damage++; }); renderBoss(); }   // เลือดบอสลดทันที ของจริงตามมาตอน refresh
+    { const m=meR(); if(bossFighter(m)) curBosses().forEach(b=>{ b.damage+=mult; }); renderBoss(); }   // เลือดบอสลดทันที ของจริงตามมาตอน refresh
     await refresh();
     S.submitting=false;
     const after=stats(meR());
     sprintMe();
+    if(mult>1 && curBosses().length && bossFighter(meR())) setTimeout(()=>{ bigPop(`💥 CRITICAL ×${mult}!`, `ดาเมจใส่บอส +${mult} ในชิ้นเดียว · โชคดีมาก!`, "pass"); try{ SFX.fanfare(); }catch(e){} }, 450);
     const todayN=Math.max(S.todayCount||0, (after.byDay||{})[S.today]||0);
     if(todayN>=2) setTimeout(()=>comboPop(todayN), 350);
     const passed=(S.lastPass&&S.lastPass.iPassed)||[];
@@ -3477,9 +3481,9 @@ function bossBoard(b){
   const rows=(S.bossHits||[]).filter(x=>x.boss_id===b.id);
   const out = (rows.length || !b.damage)
     ? rows.map(x=>({r:S.runners.find(r=>r.id===x.profile_id), hits:+x.hits||0, days:+x.days||0, best:+x.best_day||0,
-                    first:!!x.first_blood, last:!!x.last_hit, at:x.last_at?Date.parse(x.last_at):0}))
+                    first:!!x.first_blood, last:!!x.last_hit, crits:+x.crits||0, bestCrit:+x.best_crit||1, at:x.last_at?Date.parse(x.last_at):0}))
     : S.runners.filter(r=>bossFighter(r) && (b.house_id==null || r.house===b.house_id) && r.st && r.st.weekDone>0)
-        .map(r=>({r, hits:r.st.weekDone, days:0, best:0, first:false, last:false, at:0, approx:true}));
+        .map(r=>({r, hits:r.st.weekDone, days:0, best:0, first:false, last:false, crits:0, bestCrit:1, at:0, approx:true}));
   return out.filter(x=>x.r && x.hits>0).sort((a,c)=>c.hits-a.hits || a.at-c.at);
 }
 
@@ -3495,6 +3499,7 @@ function bossTitles(bd){
     top   && {k:"mvp",   i:"🏆", t:"MVP · ดาเมจสูงสุด", n:names(bd.filter(x=>x.hits===top.hits)), v:`${top.hits} ดาเมจ`},
     combo && {k:"combo", i:"⚡", t:"คอมโบแรงสุด", n:names(combo.who), v:`${combo.v} ชิ้นในวันเดียว`},
     grind && {k:"grind", i:"🗓️", t:"ตีไม่หยุด", n:names(grind.who), v:`ตีมาแล้ว ${grind.v} วัน`},
+    (()=>{ const m=Math.max(1,...bd.map(x=>x.bestCrit||1)); if(m<2) return null; const w=bd.filter(x=>x.bestCrit===m); return {k:"crit", i:"💥", t:"CRITICAL แรงสุด", n:names(w), v:`ติด ×${m}`}; })(),
     fb    && {k:"first", i:"🩸", t:"FIRST BLOOD", n:fb.r.name, v:"ดาเมจแรกของบอส"},
     lh    && {k:"last",  i:"💥", t:"LAST HIT", n:lh.r.name, v:"ตีดาเมจสุดท้ายจนบอสล้ม"}
   ].filter(Boolean);
@@ -3572,7 +3577,7 @@ function bossHTML(){
           <div class="hallHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${left} / ${b.hp}`}</span></div>
           ${dead
             ? `<div class="hallChips">${titles.map(t=>`<span class="chip ${t.k==="mvp"||t.k==="combo"?"gold":"red"}">${t.i} ${t.t.split(" · ")[0]} · ${t.n}</span>`).join("")}</div>`
-            : `<div class="hallSum"><span>โดนไปแล้ว <b>${b.damage}</b> ดาเมจ</span><span>นักรบ <b>${b.fighters}</b> คน</span>${hurt?`<span class="hot">อีก <b>${left}</b> ชิ้นล้ม!</span>`:""}</div>`}
+            : `<div class="hallSum"><span>โดนไปแล้ว <b>${b.damage}</b> ดาเมจ</span><span>นักรบ <b>${b.fighters}</b> คน</span>${+b.crits?`<span>💥 คริติคอล <b>${b.crits}</b> ครั้ง</span>`:""}${hurt?`<span class="hot">อีก <b>${left}</b> ชิ้นล้ม!</span>`:""}</div>`}
         </div>
         ${dead&&rw.length?`<div class="hallLoot bossLoot"><div class="lootHd">💰 บอสทิ้งสมบัติไว้ · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
         <div class="hallLine">${fighters||`<div class="hallEmpty">ยังไม่มีใครตีเลย — ส่งงานชิ้นแรกได้ FIRST BLOOD 🩸</div>`}</div>
@@ -3591,7 +3596,7 @@ function bossHTML(){
 /* ป๊อปอัป / แผ่นล่าง: สถิตินักรบคนที่แตะ */
 function fighterCardHTML(b, x, rank){
   const hs=houseOf(x.r.house), st=x.r.st||{};
-  const tags=[x.first?'<span class="chip red">🩸 FIRST BLOOD</span>':"", x.last?'<span class="chip red">💥 LAST HIT</span>':"", rank===1?'<span class="chip gold">🏆 MVP</span>':"", x.days>=3?`<span class="chip gold">ตีไม่หยุด ${x.days} วัน</span>`:""].join("");
+  const tags=[x.first?'<span class="chip red">🩸 FIRST BLOOD</span>':"", x.last?'<span class="chip red">💥 LAST HIT</span>':"", rank===1?'<span class="chip gold">🏆 MVP</span>':"", x.days>=3?`<span class="chip gold">ตีไม่หยุด ${x.days} วัน</span>`:"", x.crits?`<span class="chip gold">💥 คริ ${x.crits} ครั้ง · สูงสุด ×${x.bestCrit}</span>`:""].join("");
   return `<div class="fcTop">${sprite(avOf(x.r),3,"normal")}<div class="fcWho"><b>${x.r.name}</b><small style="color:${hs.color}">${hs.emoji} ${hs.name} · อันดับ ${rank} ของรอบนี้${roleOf(x.r)==="ta"?" · TA":""}</small></div><span class="fcDmg">${x.hits}<small>ดาเมจ</small></span></div>
     <div class="fcGrid"><div><b>${x.days||"–"}</b><span>วันที่ตี</span></div><div><b>${x.best||"–"}</b><span>หนักสุด/วัน</span></div><div><b>${st.contents||0}</b><span>ชิ้นทั้งหมด</span></div></div>
     ${tags?`<div class="fcTags">${tags}${x.at?`<span class="chip">ล่าสุด ${ago(x.at)}</span>`:""}</div>`:x.at?`<div class="fcTags"><span class="chip">ล่าสุด ${ago(x.at)}</span></div>`:""}
@@ -3659,7 +3664,7 @@ function bossRoomHTML(){
         :`<div class="noJoin">ยังไม่มีใครตีเลย ส่งงานชิ้นแรกก็ได้ FIRST BLOOD 🩸</div>`}
       ${pool>bd.length&&bd.length?`<div class="bhNote">ยังไม่ได้ตีอีก ${pool-bd.length} คน · ส่งงาน 1 ชิ้นก็ขึ้นกระดานแล้ว</div>`:""}
       ${rw.length?`<div class="bossLoot"><div class="lootHd">${dead?"💰 บอสทิ้งสมบัติไว้":"🎁 รางวัลเมื่อล้มบอส"} · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
-      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
+      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ · <b>มีโอกาสติด CRITICAL ×3 / ×5 / ×10 สุ่มฟรีทุกชิ้น</b> ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
     </div>`;
   }).join("");
 }
