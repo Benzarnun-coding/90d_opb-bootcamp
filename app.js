@@ -598,7 +598,7 @@ const DemoDB = (()=>{
       if(db.subs.some(s=>s.url.toLowerCase()===url.toLowerCase())) throw new Error("ลิงก์นี้ถูกส่งไปแล้ว");
       const s=spOf(db.today);
       if(!r.joined.includes(s)) throw new Error(`ไม่ได้ลงสปรินต์ ${s+1}`);
-      const roll=Math.random(), crit=(r.role==="coach"&&!r.house)?1:roll<0.005?10:roll<0.02?5:roll<0.06?3:1;
+      const roll=Math.random(), crit=(r.role==="coach"&&!r.house)?1:roll<0.001?10:roll<0.006?5:roll<0.026?3:1;
       db.subs.push({id:uid++, who:r.name, day:db.today, sp:s, plat:platform, url, ts:Date.now(), kind:kind||null, note:note||null, views:0, likes:0, crit});
       save(); onChange(); return {crit};
     },
@@ -3664,7 +3664,7 @@ function bossRoomHTML(){
         :`<div class="noJoin">ยังไม่มีใครตีเลย ส่งงานชิ้นแรกก็ได้ FIRST BLOOD 🩸</div>`}
       ${pool>bd.length&&bd.length?`<div class="bhNote">ยังไม่ได้ตีอีก ${pool-bd.length} คน · ส่งงาน 1 ชิ้นก็ขึ้นกระดานแล้ว</div>`:""}
       ${rw.length?`<div class="bossLoot"><div class="lootHd">${dead?"💰 บอสทิ้งสมบัติไว้":"🎁 รางวัลเมื่อล้มบอส"} · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
-      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ · <b>มีโอกาสติด CRITICAL ×3 / ×5 / ×10 สุ่มฟรีทุกชิ้น</b> ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
+      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ · <b>มีโอกาส (น้อยมาก) ติด CRITICAL ×3 / ×5 / ×10 สุ่มฟรีทุกชิ้น</b> ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
     </div>`;
   }).join("");
 }
