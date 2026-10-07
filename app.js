@@ -3466,8 +3466,10 @@ function curBosses(){
 }
 /* รางวัล: บรรทัดละรางวัล "ชื่อ — รายละเอียด" */
 const bossRewards = b => (b.reward||"").split("\n").map(x=>x.trim()).filter(Boolean);
-const rewardName  = x => x.split(" — ")[0];
-const lootHTML = rw => rw.map(x=>{ const [t,...d]=x.split(" — "); return `<div class="lootIt"><b>🎁 ${t}</b>${d.length?`<span>${d.join(" — ")}</span>`:""}</div>`; }).join("");
+const REW_IMG = /\s*\[img:([\w][\w.\-]*\.(?:jpg|jpeg|png|webp))\]/i;      // ชื่อไฟล์ล้วน ๆ ไม่มี / หรือ .. กันชี้ออกนอกเว็บ
+const rewardName  = x => x.replace(REW_IMG,"").split(" — ")[0];
+const lootHTML = rw => rw.map(x=>{ const im=(x.match(REW_IMG)||[])[1]; const [t,...d]=x.replace(REW_IMG,"").split(" — ");
+  return `<div class="lootIt"><b>🎁 ${t}</b>${d.length?`<span>${d.join(" — ")}</span>`:""}${im?`<img class="lootImg" src="${im}" alt="${t}" loading="lazy" decoding="async">`:""}</div>`; }).join("");
 
 /* กระดานดาเมจของบอสหนึ่งตัว เรียงจากตีหนักสุด (เสมอ = ใครถึงยอดนี้ก่อนอยู่บน)
    มาจาก v_boss_hits (050) · ถ้ายังไม่มี view นี้ ประมาณจากยอดสัปดาห์นี้ของแต่ละคน */
