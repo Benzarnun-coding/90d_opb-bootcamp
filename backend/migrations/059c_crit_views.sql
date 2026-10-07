@@ -1,4 +1,4 @@
--- 059b: Critical hit (ส่วน 2/2) — ดาเมจบอส = ผลรวมของตัวคูณ แทนการนับชิ้น (รันหลัง 059a)
+-- 059c: Critical hit (ส่วน 3/3) — ดาเมจบอส = ผลรวมของตัวคูณ แทนการนับชิ้น (รันหลัง 059b)
 -- hits ใน v_boss_hits ตอนนี้ = ดาเมจ (รวมคริ) · posts = จำนวนชิ้น · crits = จำนวนครั้งที่ติด · best_crit = ตัวคูณสูงสุด
 drop view if exists public.v_boss_kills;
 drop view if exists public.v_boss_hits;
