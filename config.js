@@ -95,7 +95,17 @@ window.CFG = {
   BGM_BOSS_HP: 200,
   /* เพลย์ลิสต์เพลงชิลเพิ่มเติม (นอกเหนือจาก bgm.mp3) — เล่นสุ่มลำดับ จบเพลงแล้วต่อเพลงถัดไปเอง
      รูปแบบ: { url:"ลิงก์หรือชื่อไฟล์", title:"ชื่อเพลง", credit:"ลิขสิทธิ์/ที่มา", gain:1 }  · ไฟล์ไหนเปิดไม่ได้จะถูกข้ามอัตโนมัติ */
-  BGM_PLAYLIST: [],
+  BGM_PLAYLIST: [
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/chill-b.mp3", title:"Chill B", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/chill-soft.mp3", title:"Chill Soft", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/chill-denoumont.mp3", title:"Chill Denoumont", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/electro-chill-d.mp3", title:"Electro Chill D", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/electro-chill-e.mp3", title:"Electro Chill E", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/ambient-j-thoughtful.mp3", title:"Ambient J Thoughtful", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/acoustic-shifter.mp3", title:"Acoustic Shifter", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/new-age-o-smoother.mp3", title:"New Age O Smoother", credit:"FreePD · CC0" },
+    { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@ab258c0e5c32ca662f62e3ac5527a5d3c2f6aa40/music/piano-etude.mp3", title:"Piano Etude", credit:"FreePD · CC0" },
+  ],
   BGM_VOLUME: 0.2,                              // ความดังเริ่มต้น (0–1) เบา ๆ ไม่หนวกหู · เพลงดวล/บอสถูกลดลงอีก 40% ให้เท่ากับเพลงชิล
   BGM_CREDIT: "Pixabay Content License",
 
