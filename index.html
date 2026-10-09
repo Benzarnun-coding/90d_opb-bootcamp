@@ -1176,6 +1176,30 @@
   .bdBox .btn.xs{margin:0; min-height:36px; padding:6px 10px; background:linear-gradient(180deg,#2a2468,#1a1444 60%,#130f33); border-color:#5a51b8 #0a0722 #0a0722 #5a51b8; color:#dcd6ff}
   .bdBox .btn.xs.gold{background:linear-gradient(180deg,#ffd76b,#c98a12 60%,#8a5a06); border-color:#fff0b3 #5a3a02 #5a3a02 #fff0b3; color:#2a1a00; text-shadow:none}
   .bdRow.inv{cursor:default}
+  .bdProf{margin:12px 0 0} .bdSub{font-family:var(--f-px); font-size:12px; color:#fff; margin-top:4px} .bdSub small{color:var(--dim); font-family:var(--f-th); font-weight:400}
+  .bdNone{font-size:12px; color:var(--dim); padding:2px 0 4px} .bdRow.past{opacity:.85} .bdProf .bdRow:hover{background:rgba(255,255,255,.06)}
+  /* 💥 สถิติคริติคอล */
+  .hallSum,.hallChips{position:relative; z-index:6}   /* ให้ชี้/แตะ "คริติคอล" ได้ ไม่ถูกแถวนักรบที่ซ้อนอยู่บังไว้ */
+  .critStat{cursor:help; border-bottom:1px dotted currentColor} .critStat:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+  .critTip{position:fixed; z-index:200; max-height:min(60vh,420px); overflow:auto; padding:10px 12px; background:linear-gradient(180deg,#2a2360,#141033); border:3px solid; border-color:#a79dff #0a0722 #0a0722 #a79dff; box-shadow:0 0 0 2px #0a0820,0 10px 0 rgba(0,0,0,.5); color:#ece9ff; font-size:12px; pointer-events:none; white-space:normal}
+  .critTip.pin{pointer-events:auto}
+  .ctHd{font-family:var(--f-px); font-weight:700; font-size:12px; color:var(--gold); margin-bottom:6px}
+  .crRow{display:grid; grid-template-columns:1fr auto; gap:0 10px; padding:5px 0; border-top:1px solid rgba(255,255,255,.08); cursor:pointer} .crRow:first-of-type{border-top:0}
+  .crRow.me{background:rgba(255,215,107,.1)} .crN{font-family:var(--f-px); font-size:12.5px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .crM{grid-column:1; font-size:11.5px; color:#cdc7ff} .crD{grid-row:1/3; grid-column:2; align-self:center; font-family:var(--f-px); font-size:12px; color:var(--gold); white-space:nowrap}
+  .crM b{font-family:var(--f-px)} .crM b.m3{color:#7fd6ff} .crM b.m5{color:#c58bff} .crM b.m10{color:#ffd23f; text-shadow:0 0 6px #ff8a00}
+  .crNone,.crMore{font-size:12px; color:var(--dim); padding:4px 0} .crBook{margin-top:8px; padding:6px 8px; border:2px dashed #ffd76b; color:#ffe9a8; font-size:11.5px; line-height:1.55}
+  .bCrit{margin:12px 0; padding:10px 12px; background:rgba(0,0,0,.25); border:2px solid #3a3280} .bCrit .bhHd{margin-top:0} .bCrit .crMine{margin-top:8px; display:grid; gap:6px}
+  /* ใบรางวัลหนังสือ ×10 */
+  .critSheet{max-width:400px; text-align:center; border-color:#ffd76b #5a3a02 #5a3a02 #ffd76b; background:radial-gradient(ellipse at 50% 22%, #6a3a12 0%, #2a1a52 50%, #141033 100%)}
+  .critSheet .body{display:flex; flex-direction:column; align-items:center; gap:8px; padding:26px 22px 6px}
+  .crtBook{font-size:96px; line-height:1; filter:drop-shadow(0 0 18px #ffb300); animation:crtFloat 1.6s ease-in-out infinite}
+  @keyframes crtFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+  .crtHd{font-family:var(--f-px); font-weight:700; font-size:26px; color:#ffd23f; text-shadow:0 3px 0 #000,0 0 14px #ff8a00}
+  .crtWho{font-family:var(--f-px); font-size:20px; color:#fff} .crtSub{font-size:13px; color:#cdc7ff}
+  .crtReward{margin-top:6px; padding:8px 16px; font-family:var(--f-px); font-size:16px; color:#2a1a00; background:linear-gradient(180deg,#ffd76b,#c98a12 60%,#8a5a06); border:3px solid; border-color:#fff0b3 #5a3a02 #5a3a02 #fff0b3}
+  .crtStamp{font-size:11.5px; color:var(--dim)} .crtCap{margin-top:4px; font-size:13px; color:#ffe9a8}
+  @media (prefers-reduced-motion:reduce){ .crtBook{animation:none} }
   .bdHint{margin-top:10px; font-size:12px; color:var(--dim); line-height:1.5} .bdHint b{color:#dcd6ff}
   .buddyAct{display:inline-flex; gap:6px; flex-wrap:wrap}
   .buddyBox b{color:var(--gold)} .buddyBox a{color:var(--dim)}
@@ -1607,6 +1631,7 @@
     </div>
     <div id="mCheer"></div>
     <div class="statGrid" style="grid-template-columns:repeat(4,1fr)" id="mStats"></div>
+    <div id="mBuddy"></div>
     <div style="margin-top:14px"><label>ป้ายรางวัล</label><div id="mBadges"></div></div>
     <div style="margin-top:22px">
       <label>SPRINT MAP</label>
@@ -1648,6 +1673,10 @@
 </div></div>
 
 <!-- ============ สถิติดวล (เปิดจากป้าย DUELIST) ============ -->
+<div class="modal" id="critModal"><div class="sheet bevel critSheet" role="dialog" aria-label="ใบรางวัลคริติคอล ×10">
+  <div class="body" id="critBody"></div>
+  <div class="heartBtns"><button class="btn" id="critOk">ปิด</button></div>
+</div></div>
 <div class="modal" id="heartModal"><div class="sheet bevel heartSheet" role="dialog" aria-label="กำลังใจจากอาจารย์">
   <div class="body" id="heartBody"></div>
   <div class="heartBtns"><button class="btn gold" id="heartOk">🙏 ขอบคุณครับ/ค่ะ</button></div>
@@ -1718,9 +1747,9 @@
     <ul>
       <li><b>เชียร์</b> คลิกตัวละครเพื่อน ส่ง 👏🔥💪❤️ ได้วันละครั้งต่อคน · ได้เชียร์ 10 ครั้งในสัปดาห์ = ป้าย POPULAR</li>
       <li><b>👉 สะกิด</b> เพื่อนที่วันนี้ยังไม่ส่งงาน กด "สะกิดให้ส่งงาน" ในโปรไฟล์เขา (วันละครั้งต่อคน สูงสุด 5 คน) เขาจะเห็นในกระดิ่ง</li>
-      <li><b>🤝 บัดดี้</b> แตะตัวละครเพื่อนแล้วกด "ชวนเป็นบัดดี้" (มีได้ 3 คน รวม TA) · วันไหนส่งงานทั้งคู่ = streak คู่ +1 ขาดคนใดคนหนึ่งนับใหม่ · ดูสถานะบัดดี้ได้ในการ์ดวันนี้ของฉัน · ครบ 7 วันได้ป้าย BUDDY</li>
+      <li><b>🤝 บัดดี้</b> แตะตัวละครเพื่อนแล้วกด "ชวนเป็นบัดดี้" (มีได้ 3 คน รวม TA) · วันไหนส่งงานทั้งคู่ = streak คู่ +1 ขาดคนใดคนหนึ่งนับใหม่ · ดูสถานะบัดดี้ได้ในการ์ดวันนี้ของฉัน · ครบ 7 วันได้ป้าย BUDDY · กดดูโปรไฟล์ใครก็เห็นว่าตอนนี้เขาเป็นบัดดี้กับใคร และเคยเป็นกับใครมาก่อน</li>
       <li><b>ดวล 7 วัน</b> ท้าเพื่อน ใครส่งมากกว่าชนะ ผู้แพ้ใส่หมวกที่ผู้ชนะเลือก 7 วัน</li>
-      <li><b>💥 CRITICAL</b> ทุกชิ้นที่ส่งตอนมีบอสมีโอกาส <b>น้อยมาก</b> ติดคริ ตีบอสแรงขึ้น <b>×3 / ×5 / ×10</b> สุ่มจริงฟรี ไม่ต้องทำอะไรเพิ่ม (เซิร์ฟเวอร์สุ่มให้ ลบแล้วส่งลิงก์เดิมซ้ำก็ได้ผลเดิม) · ดูว่าใครติดคริบ้างได้ในห้องบอส</li>
+      <li><b>💥 CRITICAL</b> ทุกชิ้นที่ส่งตอนมีบอสมีโอกาส <b>น้อยมาก</b> ติดคริ ตีบอสแรงขึ้น <b>×3 / ×5 / ×10</b> สุ่มจริงฟรี ไม่ต้องทำอะไรเพิ่ม (เซิร์ฟเวอร์สุ่มให้ ลบแล้วส่งลิงก์เดิมซ้ำก็ได้ผลเดิม) · ดูว่าใครติดคริบ้างได้ในห้องบอส (หรือเอาเมาส์ชี้ / แตะที่ "💥 คริติคอล" ตรงห้องโถงบอส) · <b>ติด ×10 ได้หนังสือ 1 เล่ม 📖</b> จะมีป๊อปอัปขึ้นมา Capture ส่งลงกลุ่ม Discord</li>
       <li><b>บอสประจำสัปดาห์</b> โค้ชปล่อยบอสให้บ้าน ทุกชิ้นที่ส่ง = 1 ดาเมจ HP หมด = ทั้งบ้านได้ป้าย BOSS SLAYER</li>
       <li><b>ห้องแต่งตัว</b> เปลี่ยนเพศ ผิว ผม แว่น เสื้อ กางเกง หมวก · ไอเทมพิเศษปลดล็อกที่ 30 / 60 / 90 ชิ้น</li>
       <li><b>ป้ายรางวัล</b> ดูได้ในโปรไฟล์ · <b>การ์ดแชร์</b> ที่ MY STATUS เซฟรูปไปโพสต์ได้เลย</li>

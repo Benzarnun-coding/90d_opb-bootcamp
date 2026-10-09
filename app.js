@@ -516,11 +516,15 @@ const DemoDB = (()=>{
           const cm=s.crit||1; cum+=cm; o.hits+=cm; if(cm>1) o.crits++; o.best_crit=Math.max(o.best_crit,cm); o.per[s.day]=(o.per[s.day]||0)+1; if(cum-cm<b.hp&&cum>=b.hp) o.last_hit=true; });
         Object.values(by).forEach(o=>{ o.days=Object.keys(o.per).length; o.best_day=Math.max(...Object.values(o.per)); bossHits.push(o); }); });
       const bossKills=[]; bosses.filter(b=>b.damage>=b.hp).forEach(b=>{ db.runners.filter(r=>r.house===b.house_id&&db.subs.some(s=>s.who===r.name&&weekOf(s.day)===cw)).forEach(r=>bossKills.push({boss_id:b.id, week_no:cw, name:b.name, profile_id:r.id})); });
+      const critLog=[]; bosses.forEach(b=>{ db.subs.filter(s=>weekOf(s.day)===cw&&(s.crit||1)>1).forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who);
+        if(r0&&r0.house&&(b.house_id==null||r0.house===b.house_id)) critLog.push({boss_id:b.id, profile_id:r0.id, crit:s.crit, created_at:new Date(s.ts||Date.now()).toISOString()}); }); });
+      const buddiesEnded=(db.buddies||[]).filter(b=>b.status==="ended").map(b=>({id:b.id, a:b.a, b:b.b,
+        accepted_at:new Date(Date.now()-Math.max(1,(db.today-(b.accepted_day||db.today))+1)*864e5).toISOString(), ended_at:new Date(b.ended_at||Date.now()).toISOString()}));
       const cheerWeeks=[]; (db.cheers||[]).forEach(c=>{ const w=weekOf(c.day_index); let row=cheerWeeks.find(x=>x.profile_id===c.to_id&&x.week_no===w); if(!row){ row={profile_id:c.to_id, week_no:w, n:0}; cheerWeeks.push(row);} row.n++; });
       const reach={}; db.subs.forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who); if(!r0) return; const o=reach[r0.id]=reach[r0.id]||{profile_id:r0.id,total_views:0,total_likes:0,best_views:0,pieces:0}; o.total_views+=s.views||0; o.total_likes+=s.likes||0; o.best_views=Math.max(o.best_views,s.views||0); o.pieces++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
               reach:Object.values(reach), kudos:[], sessions:[], myCheckins:[],
-              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills, bossHits,
+              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills, bossHits, critLog, buddiesEnded,
               buddies:(db.buddies||[]).filter(b=>b.status==="pending"||b.status==="active").map(b=>{
                 const nm=id=>(db.runners.find(x=>x.id===id)||{}).name, days=id=>new Set(db.subs.filter(s=>s.who===nm(id)).map(s=>s.day));
                 const da=days(b.a), dbb=days(b.b), both=d=>d>=(b.accepted_day||1)&&da.has(d)&&dbb.has(d);
@@ -559,7 +563,7 @@ const DemoDB = (()=>{
       db.buddies.push({id:uid++, a:me.id, b:toId, status:"active", accepted_day:db.today}); save(); onChange(); },
     async buddyRespond(id, accept){ const b=(db.buddies||[]).find(x=>x.id===id); if(!b) throw new Error("คำชวนนี้ไม่อยู่แล้ว"); b.status=accept?"active":"declined"; b.accepted_day=db.today; save(); onChange(); },
     async heartSeen(id){},
-    async buddyEnd(id){ const b=(db.buddies||[]).find(x=>x.id===id); if(b) b.status="ended"; save(); onChange(); },
+    async buddyEnd(id){ const b=(db.buddies||[]).find(x=>x.id===id); if(b){ b.status="ended"; b.ended_at=Date.now(); } save(); onChange(); },
     async nudge(toId){ db.nudges=db.nudges||[]; const me=db.runners.find(x=>x.name===db.me), to=db.runners.find(x=>x.id===toId);
       if(db.subs.some(s=>s.who===to.name&&s.day===db.today)) throw new Error("เขาส่งงานวันนี้แล้ว 🎉 ไปเชียร์แทนได้เลย");
       if(db.nudges.some(n=>n.from_id===me.id&&n.to_id===toId&&n.day_index===db.today)) throw new Error("วันนี้สะกิดคนนี้ไปแล้ว");
@@ -886,17 +890,19 @@ const LiveDB = (()=>{
         ()=>soft(()=>sb.from("v_boss_hits").select("*"), "v_boss_hits"),
         ()=>soft(()=>sb.from("v_buddies").select("*"), "v_buddies"),
         ()=>uidNow ? soft(()=>sb.from("coach_hearts").select("id,message,reason,created_at,from_id").eq("to_id",uidNow).is("seen_at",null).order("created_at"), "coach_hearts") : Promise.resolve({data:[]}),
-        ()=>soft(()=>sb.from("v_coach_heart_counts").select("profile_id,n"), "v_coach_heart_counts")
+        ()=>soft(()=>sb.from("v_coach_heart_counts").select("profile_id,n"), "v_coach_heart_counts"),
+        ()=>soft(()=>sb.from("v_crit_log").select("boss_id,profile_id,crit,created_at").order("created_at").limit(2000), "v_crit_log"),
+        ()=>soft(()=>sb.from("buddies").select("id,a,b,accepted_at,ended_at").eq("status","ended").limit(2000), "buddies_ended")
       ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
                    {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
-                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows},{data:buddyRows},{data:heartRows},{data:heartCountRows}])=>({
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows},{data:buddyRows},{data:heartRows},{data:heartCountRows},{data:critRows},{data:endedRows}])=>({
         cheerStats: cheerStatRows||[], nudges: nudgeRows||[],
         burnIds: (burn||[]).map(b=>b.profile_id),
         weakIds: (weakRows||[]).map(b=>b.profile_id),
         cups: cups||[],
         kings: (kingRows||[]).concat(taKingRows||[]),      // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[],
-        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[], buddies: buddyRows||[], hearts: heartRows||[], heartCounts: heartCountRows||[],
+        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[], buddies: buddyRows||[], hearts: heartRows||[], heartCounts: heartCountRows||[], critLog: critRows||[], buddiesEnded: endedRows||[],
         reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[],
         sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id)
       }));
@@ -1527,7 +1533,7 @@ function overtimeRow(r, byDay){
 /* ================= PROFILE ================= */
 async function openProfile(name){
   const r=S.runners.find(x=>x.name===name); if(!r) return;
-  $("pMap").innerHTML=`<div class="noJoin">กำลังโหลด…</div>`;
+  $("pMap").innerHTML=`<div class="noJoin">กำลังโหลด…</div>`; $("mBuddy").innerHTML="";
   $("modal").classList.add("on");
   const s=stats(r), h=houseOf(r.house);
   const role=roleOf(r);
@@ -1557,6 +1563,7 @@ async function openProfile(name){
   $("mLevel").innerHTML=levelHTML(r);
   S._profId=r.id;
   $("mCheer").innerHTML=profileActionsHTML(r);
+  $("mBuddy").innerHTML=buddyProfileHTML(r);
   $("mFeed").innerHTML=det.recent.slice(0,12)
     .map(f=>`<li><span class="plat">${f.plat}</span>${f.kind?`<span class="kd">${KIND_ICON[f.kind]}</span>`:""}
       <a href="${f.url}" target="_blank" rel="noopener">${f.url}</a>
@@ -2210,7 +2217,7 @@ $("pushBtn").onclick=async()=>{
     S.submitting=false;
     const after=stats(meR());
     sprintMe();
-    if(mult>1 && curBosses().length && bossFighter(meR())) setTimeout(()=>{ bigPop(`💥 CRITICAL ×${mult}!`, `ดาเมจใส่บอส +${mult} ในชิ้นเดียว · โชคดีมาก!`, "pass"); try{ SFX.fanfare(); }catch(e){} }, 450);
+    if(mult>1 && curBosses().length && bossFighter(meR())) setTimeout(()=>{ if(mult>=10) showCritCard(curBosses()[0], Date.now()); else bigPop(`💥 CRITICAL ×${mult}!`, `ดาเมจใส่บอส +${mult} ในชิ้นเดียว · โชคดีมาก!`, "pass"); try{ SFX.fanfare(); }catch(e){} }, 450);
     const todayN=Math.max(S.todayCount||0, (after.byDay||{})[S.today]||0);
     if(todayN>=2) setTimeout(()=>comboPop(todayN), 350);
     const passed=(S.lastPass&&S.lastPass.iPassed)||[];
@@ -3228,6 +3235,25 @@ function buddyBtnHTML(r){
 }
 const profileActionsHTML = r => cheerHTML(r)+nudgeHTML(r)+buddyBtnHTML(r)+duelBtnHTML(r);
 
+/* ประวัติบัดดี้ในหน้าโปรไฟล์ (ใครก็ดูได้): ตอนนี้เป็นบัดดี้กับใคร + เคยเป็นกับใครมาก่อน */
+function buddyProfileHTML(r){
+  if(!r) return "";
+  const nm=x=>String(x.name).replace(/"/g,"&quot;"), other=(b)=>S.runners.find(x=>x.id===(b.a===r.id?b.b:b.a));
+  const cur=(S.buddies||[]).filter(b=>b.status==="active" && (b.a===r.id||b.b===r.id)).map(b=>({b, o:other(b)})).filter(x=>x.o)
+    .sort((x,y)=>(+y.b.streak||0)-(+x.b.streak||0));
+  const past=(S.buddiesEnded||[]).filter(b=>b.accepted_at && (b.a===r.id||b.b===r.id)).map(b=>({b, o:other(b)})).filter(x=>x.o)
+    .sort((x,y)=>(Date.parse(y.b.ended_at)||0)-(Date.parse(x.b.ended_at)||0));
+  const dm=t=>new Date(t).toLocaleDateString("th-TH",{day:"numeric",month:"short"});
+  const nowRows=cur.map(({b,o})=>`<div class="bdRow" data-prof="${nm(o)}">${sprite(avOf(o),1,"normal")}<span class="bdWho"><b>${o.name}</b><small>${b.accepted_at?"เป็นบัดดี้กันตั้งแต่ "+dm(b.accepted_at):"เป็นบัดดี้กันอยู่"}${+b.best>+b.streak?" · streak สูงสุด ×"+b.best:""}</small></span><span class="bdN">🤝×${+b.streak||0}</span></div>`).join("");
+  const pastRows=past.map(({b,o})=>{ const a=Date.parse(b.accepted_at), e=Date.parse(b.ended_at)||a, d=Math.max(1,Math.round((e-a)/864e5));
+    return `<div class="bdRow past" data-prof="${nm(o)}">${sprite(avOf(o),1,"normal")}<span class="bdWho"><b>${o.name}</b><small>${dm(a)} – ${dm(e)} · เป็นบัดดี้กัน ${d} วัน</small></span></div>`; }).join("");
+  return `<div class="bdBox bdProf"><div class="bdHd">🤝 บัดดี้ของ ${r.name}</div>
+    <div class="bdSub">ตอนนี้เป็นบัดดี้กับ <small>${cur.length}/${BUDDY_MAX} คน</small></div>
+    ${nowRows||`<div class="bdNone">ตอนนี้ยังไม่มีบัดดี้</div>`}
+    <div class="bdSub">เคยเป็นบัดดี้กับ <small>${past.length} คน</small></div>
+    ${pastRows||`<div class="bdNone">ยังไม่เคยเลิกเป็นบัดดี้กับใคร</div>`}</div>`;
+}
+
 /* กล่องบัดดี้ในการ์ด "วันนี้ของฉัน" */
 function buddyTodayHTML(){
   const me=meR(); if(!me || !buddyOk(me)) return "";
@@ -3248,7 +3274,7 @@ function buddyTodayHTML(){
 }
 function refreshProfileActions(){
   if(!$("modal").classList.contains("on")) return;
-  const r=S.runners.find(x=>x.id===S._profId); if(r) $("mCheer").innerHTML=profileActionsHTML(r);
+  const r=S.runners.find(x=>x.id===S._profId); if(r){ $("mCheer").innerHTML=profileActionsHTML(r); $("mBuddy").innerHTML=buddyProfileHTML(r); }
 }
 document.addEventListener("click", async e=>{
   const t=e.target.closest("[data-buddy-invite],[data-buddy-accept],[data-buddy-decline],[data-buddy-end]"); if(!t || t.disabled) return;
@@ -3626,8 +3652,8 @@ function bossHTML(){
           <div class="hallName">${b.name}<small>${dead?"ทุกคนที่ตีได้ป้าย BOSS SLAYER":"ส่งงาน 1 ชิ้น = 1 ดาเมจ"}</small></div>
           <div class="hallHp"><i style="width:${pct}%"></i><span>${dead?"💥 ล้มแล้ว!":`HP ${left} / ${b.hp}`}</span></div>
           ${dead
-            ? `<div class="hallChips">${titles.map(t=>`<span class="chip ${t.k==="mvp"||t.k==="combo"?"gold":"red"}">${t.i} ${t.t.split(" · ")[0]} · ${t.n}</span>`).join("")}</div>`
-            : `<div class="hallSum"><span>โดนไปแล้ว <b>${b.damage}</b> ดาเมจ</span><span>นักรบ <b>${b.fighters}</b> คน</span>${+b.crits?`<span>💥 คริติคอล <b>${b.crits}</b> ครั้ง</span>`:""}${hurt?`<span class="hot">อีก <b>${left}</b> ชิ้นล้ม!</span>`:""}</div>`}
+            ? `<div class="hallChips">${titles.map(t=>`<span class="chip ${t.k==="mvp"||t.k==="combo"?"gold":"red"}">${t.i} ${t.t.split(" · ")[0]} · ${t.n}</span>`).join("")}${+b.crits?`<span class="chip gold critStat" data-crit-boss="${b.id}" tabindex="0">💥 คริ ${b.crits} ครั้ง ⓘ</span>`:""}</div>`
+            : `<div class="hallSum"><span>โดนไปแล้ว <b>${b.damage}</b> ดาเมจ</span><span>นักรบ <b>${b.fighters}</b> คน</span>${+b.crits?`<span class="critStat" data-crit-boss="${b.id}" tabindex="0">💥 คริติคอล <b>${b.crits}</b> ครั้ง ⓘ</span>`:""}${hurt?`<span class="hot">อีก <b>${left}</b> ชิ้นล้ม!</span>`:""}</div>`}
         </div>
         ${dead&&rw.length?`<div class="hallLoot bossLoot"><div class="lootHd">💰 บอสทิ้งสมบัติไว้ · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
         <div class="hallLine">${fighters||`<div class="hallEmpty">ยังไม่มีใครตีเลย — ส่งงานชิ้นแรกได้ FIRST BLOOD 🩸</div>`}</div>
@@ -3683,6 +3709,72 @@ if(window.matchMedia && matchMedia("(hover:hover)").matches){
   document.addEventListener("mouseout", e=>{ const hf=e.target.closest(".hf[data-fid]"); if(hf && !_hallPin && !hf.contains(e.relatedTarget)) closeFighterPop(); });
 }
 
+/* ---- 💥 สถิติคริติคอล: ใครติดอะไรไปกี่ครั้ง (v_crit_log · migration 060) · ยังไม่มี view = ใช้ยอดรวมจาก v_boss_hits แทน ---- */
+const CRIT_BOOK = "📖";      // ติด ×10 = รางวัลหนังสือ 1 เล่ม
+const critWhen = t => t ? new Date(t).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "";
+function critBoard(b){
+  const by={}, log=(S.critLog||[]).filter(x=>x.boss_id===b.id);
+  if(log.length) log.forEach(x=>{ const m=+x.crit||0; if(m<2) return; const t=Date.parse(x.created_at)||0;
+    const o=by[x.profile_id]=by[x.profile_id]||{c:{}, dmg:0, n:0, best:1, at:0, tens:[]};
+    o.c[m]=(o.c[m]||0)+1; o.dmg+=m; o.n++; o.best=Math.max(o.best,m); o.at=Math.max(o.at,t); if(m===10) o.tens.push(t); });
+  else bossBoard(b).filter(x=>x.crits>0).forEach(x=>{ by[x.r.id]={c:{}, dmg:0, n:x.crits, best:x.bestCrit, at:x.at, tens:x.bestCrit===10?[0]:[], approx:true}; });
+  return Object.keys(by).map(id=>Object.assign({r:S.runners.find(r=>r.id===id)}, by[id])).filter(x=>x.r)
+    .sort((a,c)=>c.best-a.best || c.dmg-a.dmg || a.at-c.at);
+}
+function critRowHTML(x, me){
+  const hs=houseOf(x.r.house);
+  const parts = x.approx ? `ติด ${x.n} ครั้ง · สูงสุด ×${x.best}`
+    : [10,5,3].filter(m=>x.c[m]).map(m=>`<b class="m${m}">×${m}</b> ${x.c[m]} ครั้ง`).join(" · ");
+  return `<div class="crRow${me&&x.r.id===me.id?" me":""}" data-prof="${String(x.r.name).replace(/"/g,"&quot;")}"><span class="crN">${hs.emoji} ${x.r.name}${x.best===10?" "+CRIT_BOOK:""}</span><span class="crM">${parts}</span>${x.approx?"":`<span class="crD">รวม ${x.dmg} ดาเมจ</span>`}</div>`;
+}
+function critListHTML(b, max){
+  const bd=critBoard(b), me=meR();
+  if(!bd.length) return `<div class="crNone">ยังไม่มีใครติดคริเลย · ทุกชิ้นที่ส่งมีโอกาส (น้อยมาก)</div>`;
+  const lim=max||999, tens=[]; bd.forEach(x=>x.tens.forEach(t=>tens.push({x,t}))); tens.sort((a,c)=>a.t-c.t);
+  return bd.slice(0,lim).map(x=>critRowHTML(x,me)).join("")
+    + (bd.length>lim?`<div class="crMore">+อีก ${bd.length-lim} คน · ดูทั้งหมดในห้องบอส</div>`:"")
+    + (tens.length?`<div class="crBook">${CRIT_BOOK} ติด ×10 = รางวัลหนังสือ 1 เล่ม<br>${tens.map(o=>o.x.r.name+(o.t?" · "+critWhen(o.t):"")).join("<br>")}</div>`:"");
+}
+let _critPin=null;
+function closeCritTip(){ document.querySelectorAll(".critTip").forEach(p=>p.remove()); _critPin=null; }
+function openCritTip(el, pin){
+  const b=curBosses().find(x=>String(x.id)===el.dataset.critBoss); if(!b) return;
+  closeCritTip(); _critPin=pin?el:null;
+  const tip=document.createElement("div"); tip.className="critTip"+(pin?" pin":"");
+  tip.innerHTML=`<div class="ctHd">💥 ใครติดคริบ้าง · ${b.name}</div>`+critListHTML(b,8);
+  document.body.appendChild(tip);
+  const r=el.getBoundingClientRect(), w=Math.min(330, innerWidth-24); tip.style.width=w+"px";
+  const h=tip.offsetHeight, left=Math.max(12, Math.min(innerWidth-w-12, r.left+r.width/2-w/2));
+  let top=r.bottom+8; if(top+h>innerHeight-8 && r.top-h-8>8) top=r.top-h-8;
+  tip.style.left=left+"px"; tip.style.top=Math.max(8,top)+"px";
+}
+document.addEventListener("click", e=>{
+  const cs=e.target.closest(".critStat[data-crit-boss]");
+  if(cs){ if(_critPin===cs) closeCritTip(); else openCritTip(cs,true); return; }
+  const cc=e.target.closest("[data-crit-card]");
+  if(cc){ const [id,t]=cc.dataset.critCard.split(":"); showCritCard(curBosses().find(x=>String(x.id)===id), +t||0); return; }
+  const a=e.target.closest(".critTip [data-prof]"); if(a){ closeCritTip(); openProfile(a.dataset.prof); return; }
+  if(!e.target.closest(".critTip")) closeCritTip();
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeCritTip(); });
+window.addEventListener("scroll", e=>{ if(!(e.target.closest && e.target.closest(".critTip"))) closeCritTip(); }, true);
+if(window.matchMedia && matchMedia("(hover:hover)").matches){
+  document.addEventListener("mouseover", e=>{ const c=e.target.closest(".critStat[data-crit-boss]"); if(c && !_critPin) openCritTip(c, false); });
+  document.addEventListener("mouseout", e=>{ const c=e.target.closest(".critStat[data-crit-boss]"); if(c && !_critPin && !c.contains(e.relatedTarget)) closeCritTip(); });
+}
+/* ใบรางวัล ×10: ป๊อปอัปให้ Capture ส่งลง Discord (เปิดซ้ำได้จากห้องบอส) */
+function showCritCard(b, at){
+  const me=meR(); if(!me || !b) return;
+  $("critBody").innerHTML=`<div class="crtBook">${CRIT_BOOK}</div><div class="crtHd">💥 CRITICAL ×10!</div>
+    <div class="crtWho">${me.name}</div>
+    <div class="crtSub">ติดคริติคอล ×10 ใส่ “${b.name}”</div>
+    <div class="crtReward">🎁 รางวัล: หนังสือ 1 เล่ม</div>
+    <div class="crtStamp">${at?critWhen(at)+" · ":""}${b.name} · สัปดาห์ ${b.week_no}</div>
+    <div class="crtCap">(Capture ภาพนี้ลงกลุ่ม Discord)</div>`;
+  $("critModal").classList.add("on");
+}
+$("critOk").onclick=()=>$("critModal").classList.remove("on");
+
 /* ห้องบอส: สถิติว่าใครตีไปกี่ดาเมจ + ฉายาประจำรอบ */
 function bossRoomHTML(){
   const list=curBosses(), me=meR();
@@ -3702,6 +3794,8 @@ function bossRoomHTML(){
         <div class="statBox"><b>${dead?"💥":left}</b><span>${dead?"บอสล้มแล้ว":"เลือดที่เหลือ"}</span></div>
       </div>
       <div class="bShare"><button class="btn gold sm" data-boss-share="save" data-boss-id="${b.id}">💾 เซฟรูปสถานะบอส</button>${navigator.share?`<button class="btn sm" data-boss-share="share" data-boss-id="${b.id}">📣 แชร์ผ่านแอป</button>`:""}</div>
+      ${(()=>{ const cb=critBoard(b), mine=me&&cb.find(x=>x.r.id===me.id);
+        return `<div class="bCrit"><div class="bhHd">💥 ตารางคริติคอล <small>· ติด ×3 / ×5 / ×10 · ×10 ได้หนังสือ 1 เล่ม ${CRIT_BOOK}</small></div>${critListHTML(b)}${mine&&mine.tens.length?`<div class="crMine">${mine.tens.map(t=>`<button class="btn gold sm" data-crit-card="${b.id}:${t}">${CRIT_BOOK} เปิดใบรางวัลหนังสือของฉัน${t?" · "+critWhen(t):""}</button>`).join("")}</div>`:""}</div>`; })()}
       ${titles.length?`<div class="bTitles">${titles.map(x=>`<div class="bTitle"><i>${x.i}</i><small>${x.t}</small><b>${x.n}</b><span>${x.v}</span></div>`).join("")}</div>`:""}
       <div class="bhHd">⚔️ ตารางดาเมจ${bd.some(x=>x.approx)?` <small>· นับจากยอดสัปดาห์นี้ของคนที่เลือกเป้าแล้ว</small>`:""}</div>
       ${bd.length?`<div class="bhList">${bd.map((x,i)=>{ const hs=houseOf(x.r.house);
@@ -3714,13 +3808,13 @@ function bossRoomHTML(){
         :`<div class="noJoin">ยังไม่มีใครตีเลย ส่งงานชิ้นแรกก็ได้ FIRST BLOOD 🩸</div>`}
       ${pool>bd.length&&bd.length?`<div class="bhNote">ยังไม่ได้ตีอีก ${pool-bd.length} คน · ส่งงาน 1 ชิ้นก็ขึ้นกระดานแล้ว</div>`:""}
       ${rw.length?`<div class="bossLoot"><div class="lootHd">${dead?"💰 บอสทิ้งสมบัติไว้":"🎁 รางวัลเมื่อล้มบอส"} · ${rw.length} รางวัล</div>${lootHTML(rw)}</div>`:""}
-      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ · <b>มีโอกาส (น้อยมาก) ติด CRITICAL ×3 / ×5 / ×10 สุ่มฟรีทุกชิ้น</b> ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
+      <div class="bhNote">ส่งงาน 1 ชิ้น = 1 ดาเมจ · <b>มีโอกาส (น้อยมาก) ติด CRITICAL ×3 / ×5 / ×10 สุ่มฟรีทุกชิ้น · ติด ×10 ได้หนังสือ 1 เล่ม 📖</b> ${S.maxPerDay?`(นับวันละไม่เกิน ${S.maxPerDay} ชิ้นเหมือนสนามแข่ง)`:"(ส่งกี่ชิ้นก็นับหมด)"} · นักเรียนและ TA ตีได้ (หัวหน้าโค้ชไม่นับ) · งานที่ส่งก่อนบอสโผล่นับเป็นสัปดาห์ก่อน · ล้มบอสได้ ทุกคนที่ตีได้ป้าย BOSS SLAYER</div>
     </div>`;
   }).join("");
 }
 function renderBoss(){
   const has=curBosses().length>0;
-  $("bossHero").hidden=!has; $("bossHero").innerHTML=has?bossHTML():""; if(typeof closeFighterPop==="function") closeFighterPop();
+  $("bossHero").hidden=!has; $("bossHero").innerHTML=has?bossHTML():""; if(typeof closeFighterPop==="function") closeFighterPop(); closeCritTip();
   $("stBoss").hidden=!has;
   if(has){
     $("bossRoom").innerHTML=bossRoomHTML();
@@ -3953,6 +4047,7 @@ function applyExtras(e){
   setTimeout(maybeShowHeart, 600);
   S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
   S.bosses=keep(e.bosses,S.bosses); S.bossKills=e.bossKills||[]; S.bossHits=keep(e.bossHits,S.bossHits);
+  S.critLog=keep(e.critLog,S.critLog); S.buddiesEnded=keep(e.buddiesEnded,S.buddiesEnded);
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
   S.kudos={};   (e.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
   S.holiday={}; (e.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });
