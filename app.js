@@ -482,18 +482,20 @@ const DemoDB = (()=>{
       if(!db) db=build({name:"YOU", color:COLORS[0], joined:ALL_SPRINTS, avatar:{}});   // โหมดคนดูใน DEMO ยังไม่ได้สร้างตัวละคร
       const postedToday = db.subs.some(s=>s.who===db.me && s.day===db.today);
       const todaySubs = db.subs.filter(s=>s.who===db.me && s.day===db.today).map(s=>s.ts);
-      /* ถ้วยบ้าน: บ้านที่เฉลี่ยต่อคนสูงสุดของแต่ละสัปดาห์ที่จบแล้ว */
-      const cups=[], cw=weekOf(db.today);
-      for(let w=1; w<cw; w++){
-        let best=null;
+      /* คะแนนบ้านรายสัปดาห์ (กติกาเดียวกับ v_house_week / 061): คนที่นับ = ส่งใน 3 สัปดาห์ล่าสุด · เป้าสมมติ 7 ชิ้น
+         คะแนน = 50% ค่าเฉลี่ย % ของเป้า + 50% สัดส่วนคนครบเป้า · แต้มสัปดาห์ 4/3/2/1 · ถ้วย = อันดับ 1 ของสัปดาห์ที่จบแล้ว */
+      const cw=weekOf(db.today), houseWeeks=[];
+      for(let w=1; w<=cw; w++){
+        const rows=[];
         HOUSES.forEach(hs=>{
-          const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id); if(!mem.length) return;
-          const n=db.subs.filter(s=>weekOf(s.day)===w && mem.some(m=>m.name===s.who)).length;
-          const avg=n/mem.length;
-          if(!best||avg>best.avg_pieces) best={week_no:w, house_id:hs.id, avg_pieces:+avg.toFixed(2), pieces:n, members:mem.length};
+          const mem=db.runners.filter(r=>r.role==="student"&&r.house===hs.id), cnt=(m,x)=>db.subs.filter(q=>q.who===m.name&&weekOf(q.day)===x).length;
+          const act=mem.filter(m=>[w-2,w-1,w].some(x=>x>=1&&cnt(m,x)>0)); if(!act.length) return;
+          const pcs=act.map(m=>cnt(m,w)), T=7, pct=pcs.reduce((a,p)=>a+Math.min(1,p/T),0)/act.length, hit=pcs.filter(p=>p>=T).length;
+          rows.push({week_no:w, house_id:hs.id, active:act.length, hit, pieces:pcs.reduce((a,b)=>a+b,0), pct:+(pct*100).toFixed(1), score:+(100*(0.5*pct+0.5*hit/act.length)).toFixed(1), is_final:w<cw});
         });
-        if(best) cups.push(best);
+        rows.sort((a,b)=>b.score-a.score||b.pieces-a.pieces).forEach((r,i)=>{ r.rk=i+1; r.points=Math.max(0,4-i); houseWeeks.push(r); });
       }
+      const cups=houseWeeks.filter(r=>r.is_final&&r.rk===1).map(r=>({week_no:r.week_no, house_id:r.house_id, avg_pieces:+(r.pieces/r.active).toFixed(2), pieces:r.pieces, members:r.active, score:r.score}));
       /* ประวัติ King of the Week: ที่ 1 ของบ้านในแต่ละสัปดาห์ที่จบแล้ว */
       const kings=[];
       for(let w=1; w<cw; w++){
@@ -524,7 +526,7 @@ const DemoDB = (()=>{
       const reach={}; db.subs.forEach(s=>{ const r0=db.runners.find(x=>x.name===s.who); if(!r0) return; const o=reach[r0.id]=reach[r0.id]||{profile_id:r0.id,total_views:0,total_likes:0,best_views:0,pieces:0}; o.total_views+=s.views||0; o.total_likes+=s.likes||0; o.best_views=Math.max(o.best_views,s.views||0); o.pieces++; });
       return {today:db.today, me:db.me, runners:db.runners, subs:db.subs, postedToday, todayCount:todaySubs.length, todaySubs, cups, kings,
               reach:Object.values(reach), kudos:[], sessions:[], myCheckins:[],
-              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills, bossHits, critLog, buddiesEnded,
+              cheers:db.cheers||[], nudges:db.nudges||[], cheerWeeks, duels, bosses, bossKills, bossHits, critLog, buddiesEnded, houseWeeks,
               buddies:(db.buddies||[]).filter(b=>b.status==="pending"||b.status==="active").map(b=>{
                 const nm=id=>(db.runners.find(x=>x.id===id)||{}).name, days=id=>new Set(db.subs.filter(s=>s.who===nm(id)).map(s=>s.day));
                 const da=days(b.a), dbb=days(b.b), both=d=>d>=(b.accepted_day||1)&&da.has(d)&&dbb.has(d);
@@ -892,17 +894,18 @@ const LiveDB = (()=>{
         ()=>uidNow ? soft(()=>sb.from("coach_hearts").select("id,message,reason,created_at,from_id").eq("to_id",uidNow).is("seen_at",null).order("created_at"), "coach_hearts") : Promise.resolve({data:[]}),
         ()=>soft(()=>sb.from("v_coach_heart_counts").select("profile_id,n"), "v_coach_heart_counts"),
         ()=>soft(()=>sb.from("v_crit_log").select("boss_id,profile_id,crit,created_at").order("created_at").limit(2000), "v_crit_log"),
-        ()=>soft(()=>sb.from("buddies").select("id,a,b,accepted_at,ended_at").eq("status","ended").limit(2000), "buddies_ended")
+        ()=>soft(()=>sb.from("buddies").select("id,a,b,accepted_at,ended_at").eq("status","ended").limit(2000), "buddies_ended"),
+        ()=>soft(()=>sb.from("v_house_week").select("*"), "v_house_week")
       ], 3).then(([{data:burn},{data:weakRows},{data:cups},{data:kingRows},{data:taKingRows},{data:cheerRows},
                    {data:cheerWeeks},{data:duelRows},{data:bossRows},{data:killRows},{data:reachRows},
-                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows},{data:buddyRows},{data:heartRows},{data:heartCountRows},{data:critRows},{data:endedRows}])=>({
+                   {data:kudosRows},{data:sessRows},{data:ckRows},{data:holRows},{data:cheerStatRows},{data:nudgeRows},{data:hitRows},{data:buddyRows},{data:heartRows},{data:heartCountRows},{data:critRows},{data:endedRows},{data:hwRows}])=>({
         cheerStats: cheerStatRows||[], nudges: nudgeRows||[],
         burnIds: (burn||[]).map(b=>b.profile_id),
         weakIds: (weakRows||[]).map(b=>b.profile_id),
         cups: cups||[],
         kings: (kingRows||[]).concat(taKingRows||[]),      // King ของบ้าน + King of TA (TA มีรางวัลของตัวเอง)
         cheers: cheerRows||[], cheerWeeks: cheerWeeks||[], duels: duelRows||[],
-        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[], buddies: buddyRows||[], hearts: heartRows||[], heartCounts: heartCountRows||[], critLog: critRows||[], buddiesEnded: endedRows||[],
+        bosses: bossRows||[], bossKills: killRows||[], bossHits: hitRows||[], buddies: buddyRows||[], hearts: heartRows||[], heartCounts: heartCountRows||[], critLog: critRows||[], buddiesEnded: endedRows||[], houseWeeks: hwRows||[],
         reach: reachRows||[], kudos: kudosRows||[], holiday: holRows||[],
         sessions: sessRows||[], myCheckins: (ckRows||[]).map(c=>c.session_id)
       }));
@@ -1407,7 +1410,17 @@ function renderHouses(){
     const behind = sts.filter(s=>s.pace<-3).length;
     const laser = sts.filter(s=>s.style==="red"||s.style==="flame").length;
     return {h, mem:mem.length, avg, rate, behind, laser};
-  }).sort((a,b)=>b.rate-a.rate || b.avg-a.avg);
+  });
+  /* กติกาแฟร์ (061): ตัดสินรายสัปดาห์ · คะแนนบ้าน = 50% ค่าเฉลี่ย % ของเป้าตัวเอง (ไม่เกิน 100) + 50% สัดส่วนคนครบเป้า · คิดเฉพาะสมาชิกที่ยังอยู่ในเกม
+     แต้มสัปดาห์ 4/3/2/1 สะสมทั้งซีซัน · ยังไม่มีข้อมูลสัปดาห์ (SQL ยังไม่รัน) = เรียงแบบเดิม */
+  const hw=S.houseWeeks||[], haveHW=hw.length>0;
+  rows.forEach(x=>{
+    const mine=hw.filter(w=>w.house_id===x.h.id);
+    x.pts=mine.filter(w=>w.is_final).reduce((a,w)=>a+(+w.points||0),0);
+    x.sum=mine.filter(w=>w.is_final).reduce((a,w)=>a+(+w.score||0),0);
+    x.live=mine.filter(w=>!w.is_final).sort((a,b)=>b.week_no-a.week_no)[0]||null;
+  });
+  rows.sort(haveHW ? (a,b)=>b.pts-a.pts || b.sum-a.sum || b.rate-a.rate : (a,b)=>b.rate-a.rate || b.avg-a.avg);
 
   /* ประวัติถ้วยรายสัปดาห์ */
   let hist=$("cupHist");
@@ -1422,12 +1435,18 @@ function renderHouses(){
       <div class="hr">${x.h.emoji}</div>
       <div class="hn" style="color:${x.h.color}">${x.h.id===champHouse()?"🏆 ":""}${x.h.name}${cupsOf(x.h.id)?` <small style="font-size:11px;color:var(--gold)">ถ้วย ×${cupsOf(x.h.id)}</small>`:""}</div>
       <div class="hth">${x.h.th} · ${x.mem} คน</div>
-      <div class="hv">${x.avg.toFixed(1)}</div>
-      <div class="hl">คอนเทนต์เฉลี่ยต่อคน · ทำได้ ${Math.round(x.rate)}% ของเป้า</div>
+      ${haveHW ? `<div class="hv">${x.pts}<small> แต้ม</small></div>
+      <div class="hl">${x.live ? `สัปดาห์นี้ (สด) <b>${x.live.score}</b> คะแนน · ครบเป้า ${x.live.hit}/${x.live.active} คน` : "สัปดาห์นี้ยังไม่มีคะแนน"}</div>
+      <div class="hl">สะสม: เฉลี่ย ${x.avg.toFixed(1)} ชิ้น/คน · ทำได้ ${Math.round(x.rate)}% ของเป้า</div>`
+      : `<div class="hv">${x.avg.toFixed(1)}</div>
+      <div class="hl">คอนเทนต์เฉลี่ยต่อคน · ทำได้ ${Math.round(x.rate)}% ของเป้า</div>`}
       <div class="hl" style="margin-top:8px">
         🔥 โหมดเร่ง ${x.laser} คน · ⚠ ตามหลัง ${x.behind} คน
       </div>
     </div>`).join("");
+  let rule=$("houseRule");
+  if(!rule){ rule=document.createElement("div"); rule.id="houseRule"; $("houseGrid").parentNode.insertBefore(rule,$("houseGrid").nextSibling); }
+  rule.innerHTML = haveHW ? `<b>🏆 ตัดสินรายสัปดาห์ แต้ม 4/3/2/1 สะสมทั้งซีซัน</b> · คะแนนบ้านของสัปดาห์ = ครึ่งหนึ่งมาจาก % ที่ทำได้เทียบเป้าที่ตัวเองเลือก (เต็มไม่เกิน 100% ต่อคน) อีกครึ่งมาจากสัดส่วนคนที่ครบเป้า · นับเฉพาะนักเรียนที่ยังอยู่ในเกม (เลือกเป้าหรือส่งงานใน 3 สัปดาห์ล่าสุด) บ้านเล็กบ้านใหญ่จึงสู้กันได้ · สัปดาห์ปิดเทอมไม่นับ` : "";
 }
 function boardList(){
   let all=ranked();
@@ -4047,7 +4066,7 @@ function applyExtras(e){
   setTimeout(maybeShowHeart, 600);
   S.cheerStats=null; if(Array.isArray(e.cheerStats) && e.cheerStats.length){ S.cheerStats={}; e.cheerStats.forEach(x=>{ S.cheerStats[x.profile_id]=x; }); }
   S.bosses=keep(e.bosses,S.bosses); S.bossKills=e.bossKills||[]; S.bossHits=keep(e.bossHits,S.bossHits);
-  S.critLog=keep(e.critLog,S.critLog); S.buddiesEnded=keep(e.buddiesEnded,S.buddiesEnded);
+  S.houseWeeks=keep(e.houseWeeks,S.houseWeeks); S.critLog=keep(e.critLog,S.critLog); S.buddiesEnded=keep(e.buddiesEnded,S.buddiesEnded);
   S.reach={};   (e.reach||[]).forEach(r=>{ S.reach[r.profile_id]=r; });
   S.kudos={};   (e.kudos||[]).forEach(k=>{ S.kudos[k.profile_id]=+k.n; });
   S.holiday={}; (e.holiday||[]).forEach(k=>{ S.holiday[k.profile_id]=+k.n; });

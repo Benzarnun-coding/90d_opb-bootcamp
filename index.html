@@ -416,7 +416,9 @@
   .houseCard .hth{font-size:12px; color:var(--dim); margin-top:2px}
   .houseCard .hv{font-family:var(--f-px); font-weight:700; font-size:30px; color:#fff;
     text-shadow:0 3px 0 #000; margin-top:10px}
-  .houseCard .hl{font-size:11px; color:var(--dim)}
+  .houseCard .hv small{font-size:13px; color:var(--dim); font-weight:400}
+  .houseCard .hl{font-size:11px; color:var(--dim)} .houseCard .hl b{color:var(--gold)}
+  #houseRule{margin:10px 2px 0; padding:8px 10px; font-size:11.5px; line-height:1.55; color:var(--dim); border:2px dashed #3a3280} #houseRule b{color:var(--gold)}
   .houseCard .hr{position:absolute; top:12px; right:14px; font-size:26px; opacity:.85}
 
   /* ---------- FEED ---------- */
@@ -1456,7 +1458,7 @@
   <div class="page" id="pgBoard">
     <a class="backLink" href="#" data-back>← กลับสนามแข่ง</a>
     <section class="panel bevel">
-      <div class="titlebar"><h2>HOUSE STANDINGS</h2><span>เฉลี่ยต่อคน ไม่ใช่ผลรวม ห้องคนน้อยไม่เสียเปรียบ</span></div>
+      <div class="titlebar"><h2>HOUSE STANDINGS</h2><span>ตัดสินรายสัปดาห์ · แต้ม 4/3/2/1 สะสม · ห้องคนน้อยไม่เสียเปรียบ</span></div>
       <div class="houseGrid" id="houseGrid"></div>
     </section>
     <section class="panel bevel">
@@ -1740,8 +1742,8 @@
     </ul>
     <h3>🏠 บ้าน · 👑 King · 🏆 ถ้วย</h3>
     <ul>
-      <li>4 บ้าน WISDOM · JUSTICE · COURAGE · DISCIPLINE แข่งกันด้วย <b>ค่าเฉลี่ยต่อคน</b> บ้านเล็กไม่เสียเปรียบ</li>
-      <li><b>ถ้วยบ้าน</b> ให้ทุกสัปดาห์กับบ้านที่เฉลี่ยสูงสุด · <b>King of the Week</b> = ที่ 1 ของแต่ละบ้าน ได้ใส่มงกุฎราชา 1 สัปดาห์</li>
+      <li>4 บ้าน WISDOM · JUSTICE · COURAGE · DISCIPLINE แข่งกันรายสัปดาห์ ให้แต้ม <b>4/3/2/1</b> ตามอันดับ สะสมทั้งซีซัน · คะแนนบ้านของสัปดาห์ = ครึ่งหนึ่งจาก <b>% ที่ทำได้เทียบเป้าของตัวเอง</b> (เต็มไม่เกิน 100% ต่อคน) อีกครึ่งจาก <b>สัดส่วนคนที่ครบเป้า</b> · นับเฉพาะคนที่ยังอยู่ในเกม (เลือกเป้าหรือส่งงานใน 3 สัปดาห์ล่าสุด) บ้านเล็กไม่เสียเปรียบ บ้านที่มีคนเงียบหายไปนานก็ไม่โดนหักคะแนน</li>
+      <li><b>ถ้วยบ้าน</b> ให้ทุกสัปดาห์กับบ้านที่ได้คะแนนสูงสุด · <b>King of the Week</b> = ที่ 1 ของแต่ละบ้าน ได้ใส่มงกุฎราชา 1 สัปดาห์</li>
     </ul>
     <h3>⚔️ ของเล่นในสนาม</h3>
     <ul>
