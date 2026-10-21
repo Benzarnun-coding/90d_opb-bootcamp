@@ -135,13 +135,13 @@ function palette(av, style){
     return Object.assign({O:"#1a1622", H:shift(hc[0],-30), h:shift(hc[1],-40), S:"#e6dfd2", s:"#b9ad9a", E:"#2a2230",
       C:dull, c:shift(dull,-40), l:shift(dull,30), P:shift(pc[0],-50), p:shift(pc[1],-50), B:"#c9c6d4", b:"#8f8ba3"}, acc, {D:"#5a4a5a"});
   }
-  const suit = style==="red" ? "#ff2436" : style==="flame" ? "#ffb324" : av.color;
+  const suit = style==="red" ? "#ff2436" : style==="flame" ? "#2fd36a" : av.color;
   const p=Object.assign({O:"#140d2e", H:hc[0], h:hc[1], S:skin[0], s:skin[1], E:"#140d2e",
     C:suit, c:shift(suit,-62), l:shift(suit,58), P:pc[0], p:pc[1], B:"#eceaf6", b:"#a8a4c4"}, acc);
   if(style==="boost"){ p.E="#39e5ff"; }
   if(style==="green"){ p.E="#0f4a28"; }                      // ไฟเขียว Green Go Go: สีชุดเดิม + ออร่าเขียวเล็ก ๆ                      // ตาเรืองแสงฟ้า
   if(style==="red"){ p.E="#fff2f2"; }                        // ตาขาวร้อน ต้นทางเลเซอร์
-  if(style==="flame"){ p.H="#ffd23a"; p.h="#fff8c4"; p.l="#fff3a0"; p.P="#c85a10"; p.p="#8a3606"; p.O="#3a1a05"; p.E="#ff1f1f"; }
+  if(style==="flame"){ p.H="#6dff5a"; p.h="#d8ffb8"; p.l="#b6ffc8"; p.P="#0f8a5a"; p.p="#07533a"; p.O="#04301f"; p.E="#7ff6ff"; }   // PRO MAX = ไฟเขียวสไตล์ Discord: ผมเขียวสว่าง ชุดเขียว ตาฟ้าเรืองแสง
   return p;
 }
 /* ประกอบตัวละครลงตาราง — frame = ท่าขา 0-3 */
@@ -226,7 +226,7 @@ function buildGrid(av, style, frame){
     if(mo===3){ for(let x=5;x<=9;x++){ set(7,x,"M");set(8,x,"M"); } for(let x=6;x<=8;x++) set(7,x,"W"); }
     if(mo===4){ for(let x=5;x<=9;x++) set(7,x,"H"); set(8,4,"H");set(8,10,"H"); }
     if(mo===5){ for(let x=5;x<=9;x++) set(7,x,"H"); for(let x=3;x<=12;x++){ set(8,x,"H");set(9,x,"H"); } set(10,4,"H");set(10,11,"H"); for(let x=5;x<=10;x++) set(10,x,"H"); }
-    if(style==="flame"){ set(5,4,"E");set(5,9,"E"); }       // PRO MAX: ตาแดงโตเรืองแสง
+    if(style==="flame"){ set(5,4,"E");set(5,9,"E"); }       // PRO MAX: ตาโตเรืองแสง (ฟ้าอมเขียว)
     if(weak){ /* ตาคล้ำ ปากคว่ำ เหงื่อตก */
       set(7,4,"D");set(7,9,"D");
       for(let x=6;x<=8;x++) set(8,x,"S"); set(8,6,"M");set(8,7,"M");set(8,8,"M");set(9,5,"M");set(9,9,"M");
@@ -293,7 +293,7 @@ function spriteTop(av, style){
   for(let y=0;y<ROWS;y++) if(g[y].some(c=>c!==".")) return y;
   return HR;
 }
-/* ไฟรอบตัว: red = ไฟแดง (LASER FOCUS)  flame = ไฟทอง (PRO MAX) */
+/* ไฟรอบตัว: red = ไฟแดง (LASER FOCUS)  flame = ไฟเขียวสไตล์ Discord (PRO MAX) */
 const hasAura = style => style==="red" || style==="flame" || style==="green";
 const aura = (style="flame") => `<span class="aura ${style}">${"<i></i>".repeat(style==="flame"?5:3)}</span>`;
 function runnerBox(av, px, style="normal"){
@@ -1244,7 +1244,7 @@ function renderPledge(){
   const o=optOf(st.weekTarget);
   const pct=Math.min(100, st.weekDone/st.weekTarget*100);
   const dash=2*Math.PI*44;
-  const ringColor = o.style==="flame" ? "#ffb020" : o.style==="red" ? "#ff2436" : o.style==="boost" ? "#39e5ff" : o.style==="green" ? "#5ef08c" : r.color;
+  const ringColor = o.style==="flame" ? "#4ee86a" : o.style==="red" ? "#ff2436" : o.style==="boost" ? "#39e5ff" : o.style==="green" ? "#5ef08c" : r.color;
   /* เซิร์ฟเวอร์ตัดรอบพุธ 19:30 ไม่ใช่เที่ยงคืนวันที่ 7 — ใช้เวลาตัดจริงถ้ามี ไม่งั้นเช้าวันพุธจะโชว์ "เหลือ 0 วัน" ทั้งที่ยังส่งได้ */
   const dayLeft = S.weekEndsAt ? Math.max(1, Math.ceil((S.weekEndsAt-Date.now())/864e5)) : weekEnd(cw)-S.today+1;
   /* เตือนว่าวันนี้ยังไม่ได้ส่งงาน — ตัวเดียวที่ทำงานได้โดยไม่ต้องพึ่งบริการภายนอก */
@@ -1464,7 +1464,7 @@ function renderBoard(){
     const i=list.indexOf(r);                                   // เลขเรียงตามแถวที่เห็น 1..N · เหรียญเฉพาะ 3 อันดับแรก
     const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":String(i+1).padStart(2,"0");
     const o=s.weekTarget?optOf(s.weekTarget):null;
-    const wk = o ? `<span class="wkTag ${s.weekDone>=s.weekTarget?"hit":o.style}">${s.weekDone}/${s.weekTarget}${o.style==="red"?" 🔴":o.style==="flame"?" 🔥":""}</span>`
+    const wk = o ? `<span class="wkTag ${s.weekDone>=s.weekTarget?"hit":o.style}">${s.weekDone}/${s.weekTarget}${o.style==="red"?" 🔴":o.style==="flame"?" 💚":""}</span>`
                  : `<span class="wkTag normal" style="opacity:.5">—</span>`;
     const pc = s.pace>0?"var(--green)":s.pace<0?"var(--orange)":"var(--cyan)";
     return `<tr class="${r.name===S.me?"me":""}" data-n="${r.name}" id="row-${r.name}">
@@ -1602,7 +1602,7 @@ function formLabel(r, s){
   if(s.style==="weak")
     return `<b>😵 ร่างหมดแรง · ผอมแห้ง</b><br>สัปดาห์ที่แล้วรับเป้า ${r.weakTarget||"4/7"} ชิ้นแล้วทำไม่ถึง ผิวซีด ตาคล้ำ ตัวลีบทั้งสัปดาห์<br><span style="color:var(--dim)">ทำครบสัปดาห์นี้ = กลับมาร่างปกติสัปดาห์หน้า</span>`+fin;
   if(s.style==="flame")
-    return `<b>🔥 LASER FOCUS PRO MAX</b><br>รับ 14 ชิ้น/สัปดาห์ — ไฟทองท่วมตัว ตาแดง ผมทอง<br><span style="color:var(--dim)">พลาดเป้า = สัปดาห์หน้ากลายเป็นร่างกระโหลก</span>`+fin;
+    return `<b>💚 LASER FOCUS PRO MAX</b><br>รับ 14 ชิ้น/สัปดาห์ — ไฟเขียวท่วมตัว ตาเรืองแสง ผมเขียวสว่าง<br><span style="color:var(--dim)">พลาดเป้า = สัปดาห์หน้ากลายเป็นร่างกระโหลก</span>`+fin;
   if(s.style==="red")
     return `<b>🔴 LASER FOCUS</b><br>รับ 10 ชิ้น/สัปดาห์ — ไฟแดงลุกทั้งตัว<br><span style="color:var(--dim)">พลาดเป้า = สัปดาห์หน้ากลายเป็นร่างกระโหลก</span>`+fin;
   if(s.style==="boost")
@@ -1617,8 +1617,8 @@ function drawSpriteCanvas(ctx, x, y, px, av, style){
   const pal=palette(av,style), g=buildGrid(av,style,1);
   if(style==="flame"){
     const gr=ctx.createRadialGradient(x+8*px, y+24*px, 3*px, x+8*px, y+18*px, 24*px);
-    gr.addColorStop(0,"rgba(255,240,150,1)"); gr.addColorStop(.3,"rgba(255,200,50,.85)");
-    gr.addColorStop(.6,"rgba(255,130,20,.45)"); gr.addColorStop(1,"rgba(255,80,10,0)");
+    gr.addColorStop(0,"rgba(215,255,255,1)"); gr.addColorStop(.18,"rgba(90,230,255,.9)");
+    gr.addColorStop(.4,"rgba(80,235,110,.8)"); gr.addColorStop(.65,"rgba(40,190,70,.4)"); gr.addColorStop(1,"rgba(20,150,60,0)");
     ctx.fillStyle=gr; ctx.fillRect(x-18*px, y-12*px, 52*px, 46*px);
   }
   if(style==="red"){
@@ -1702,7 +1702,7 @@ function drawCard(){
                        : `${h.emoji} ${h.name}${isStu?"":" · TA"} · Lv${lv} ${lvTitle}`, W/2, 782);
 
   ctx.font="700 170px 'PxSeven','Pixelify Sans', monospace";
-  ctx.fillStyle=s.style==="flame"?"#ffc24d":s.style==="red"?"#ff6b85":"#ffcc4d";
+  ctx.fillStyle=s.style==="flame"?"#6dfa8a":s.style==="red"?"#ff6b85":"#ffcc4d";
   ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=40;
   ctx.fillText(String(s.contents), W/2, 935);
   ctx.shadowBlur=0;
@@ -1734,8 +1734,8 @@ function drawCard(){
   if(["boost","red","flame","green"].includes(s.style)){
     const o=optOf(s.weekTarget);
     ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace";
-    ctx.fillStyle=s.style==="flame"?"#ffb020":s.style==="red"?"#ff4d6d":s.style==="green"?"#5ef08c":"#39e5ff";
-    ctx.fillText(`${s.style==="flame"?"🔥":s.style==="red"?"🔥":s.style==="green"?"🟢":"🔵"} ${o.name} MODE`, W/2, 178);
+    ctx.fillStyle=s.style==="flame"?"#4ee86a":s.style==="red"?"#ff4d6d":s.style==="green"?"#5ef08c":"#39e5ff";
+    ctx.fillText(`${s.style==="flame"?"💚":s.style==="red"?"🔥":s.style==="green"?"🟢":"🔵"} ${o.name} MODE`, W/2, 178);
   } else if(s.style==="burnout" || s.style==="weak"){
     ctx.font="700 34px 'PxSeven','Pixelify Sans', monospace";
     ctx.fillStyle=s.style==="burnout"?"#c8c4b8":"#b9ad9a";
@@ -2061,7 +2061,7 @@ function drawPledgePick(){
       <div class="nm">${o.name}</div>
       <div class="th">${o.th}</div>
       <div class="wk">${o.style==="red"?"🔥 ไฟแดงลุกทั้งตัวทั้งสัปดาห์"
-        : o.style==="flame"?"🔥 ตัวละครติดไฟ โหมดซูเปอร์ไซย่า"
+        : o.style==="flame"?"💚 ตัวละครติดไฟเขียว โหมดซูเปอร์ไซย่า"
         : o.style==="boost"?"🔵 ตาเรืองแสงสีฟ้าทั้งสัปดาห์"
         : o.style==="green"?"🟢 ไฟเขียว Green Go Go! ทั้งสัปดาห์"
         : "เฉลี่ย "+(o.target/7).toFixed(1)+" ชิ้นต่อวัน"}</div>
@@ -2274,7 +2274,7 @@ $("plSave").onclick=async()=>{
     await refresh();
     closeModal($("pledgeModal"));
     const o=optOf(pickPledge);
-    toast(o.style==="flame" ? `🔥 ${o.name}<br>ตัวละครติดไฟแล้ว`
+    toast(o.style==="flame" ? `💚 ${o.name}<br>ตัวละครติดไฟเขียวแล้ว`
         : o.style==="red" ? `🔥 ${o.name}<br>ไฟแดงลุกทั้งตัวสัปดาห์นี้`
         : o.style==="boost" ? `🔵 ${o.name}<br>ตาเรืองแสงฟ้าสัปดาห์นี้`
         : o.style==="green" ? `🟢 ${o.name}<br>ไฟเขียว Green Go Go!`

@@ -138,17 +138,18 @@
   .opChar{position:absolute; right:12px; bottom:14px; width:32px; height:56px}
   .opChar svg{position:relative; z-index:2}
   .opChar .aura{left:50%; bottom:-6px; width:84px; height:104px; margin-left:-42px}
+  .opChar .aura.flame{width:120px; height:150px; margin-left:-60px; bottom:-10px}
   .opChar .aura.red{width:52px; height:64px; margin-left:-26px; bottom:-4px}
   .opChar .aura.green{width:48px; height:58px; margin-left:-24px; bottom:-4px}
   .optCard.red .opChar{filter:drop-shadow(0 0 6px rgba(255,40,70,.9))}
-  .optCard.flame .opChar{filter:drop-shadow(0 0 14px rgba(255,200,60,1))}
+  .optCard.flame .opChar{filter:drop-shadow(0 0 14px rgba(80,240,120,1))}
   .optCard.locked{opacity:.5; cursor:not-allowed}
   .optCard.locked:hover{transform:none}
   .optCard.red.on{border-color:#ff8fa3 #8a1730 #8a1730 #ff8fa3; box-shadow:0 0 20px rgba(255,77,109,.45)}
   .optCard.red.on .no,.optCard.red.on .tick{color:#ff8fa3; text-shadow:0 2px 0 #000,0 0 12px rgba(255,77,109,.9)}
-  .optCard.flame.on{border-color:#ffe38a #a85a00 #a85a00 #ffe38a;
-    background:linear-gradient(180deg,#6b3a12,#2b1608); box-shadow:0 0 26px rgba(255,160,40,.55)}
-  .optCard.flame.on .no,.optCard.flame.on .tick{color:#ffd24d; text-shadow:0 2px 0 #000,0 0 14px rgba(255,180,40,1)}
+  .optCard.flame.on{border-color:#a8ffb8 #0f6a3a #0f6a3a #a8ffb8;
+    background:linear-gradient(180deg,#14583a,#082a22); box-shadow:0 0 26px rgba(70,235,120,.55)}
+  .optCard.flame.on .no,.optCard.flame.on .tick{color:#7dffa0; text-shadow:0 2px 0 #000,0 0 14px rgba(70,235,120,1)}
   .lockTag{display:inline-block; margin-top:9px; font-size:10px; padding:2px 7px; letter-spacing:.5px;
     background:#150f36; border:2px solid #3a3288; color:#8f87cc}
   .optCard.done .lockTag{border-color:#2c6b45; color:var(--green)}
@@ -204,7 +205,7 @@
   .pledgeTxt .big{font-family:var(--f-px); font-size:19px; text-shadow:0 2px 0 #000}
   .pledgeTxt .big.normal{color:var(--gold)}
   .pledgeTxt .big.red{color:#ff6b85; text-shadow:0 2px 0 #000,0 0 14px rgba(255,77,109,.8)}
-  .pledgeTxt .big.flame{color:#ffc24d; text-shadow:0 2px 0 #000,0 0 16px rgba(255,160,40,1)}
+  .pledgeTxt .big.flame{color:#6dfa8a; text-shadow:0 2px 0 #000,0 0 16px rgba(70,235,120,1)}
   .paceNum{font-family:var(--f-px); font-weight:700; font-size:34px; text-shadow:0 3px 0 #000}
   .paceNum.ahead{color:var(--green)} .paceNum.behind{color:var(--orange)} .paceNum.on{color:var(--cyan)}
 
@@ -299,8 +300,13 @@
   .aura i:nth-child(3){margin-left:8px;  animation-delay:-.33s; height:11px}
   .aura i:nth-child(4){margin-left:-28px; animation-delay:-.09s; height:16px; bottom:60%}
   .aura i:nth-child(5){margin-left:20px;  animation-delay:-.41s; height:18px; bottom:62%}
-  /* ไฟแดงของ LASER FOCUS เล็กกว่าไฟทอง PRO MAX */
+  /* ไฟแดงของ LASER FOCUS เล็กกว่าไฟเขียว PRO MAX */
   .aura.red{width:62px; height:76px; margin-left:-31px; bottom:-6px}
+  /* ไฟเขียวของ PRO MAX (เป้า 14): เปลวไฟเขียวไล่เป็นแกนฟ้าสไตล์ Discord ยืนอยู่หลังตัวละคร */
+  .aura.flame{width:152px; height:190px; margin-left:-76px; bottom:-16px; background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150'><defs><linearGradient id='o' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='150'><stop offset='0' stop-color='%2370f83a'/><stop offset='.55' stop-color='%2336d46a'/><stop offset='1' stop-color='%2330c4c8'/></linearGradient><linearGradient id='n' gradientUnits='userSpaceOnUse' x1='0' y1='44' x2='0' y2='132'><stop offset='0' stop-color='%23c8ff80'/><stop offset='.6' stop-color='%2388f2b4'/><stop offset='1' stop-color='%2394eeff'/></linearGradient><radialGradient id='c' cx='.5' cy='.5' r='.5'><stop offset='0' stop-color='%23ffffff'/><stop offset='.5' stop-color='%23b8f8ff' stop-opacity='.9'/><stop offset='1' stop-color='%2360e0ff' stop-opacity='0'/></radialGradient></defs><g fill='url(%23o)'><path d='M60 0C70 30 86 50 86 90C86 120 74 142 60 142C46 142 34 120 34 90C34 50 50 30 60 0Z'/><path d='M18 30C28 56 46 70 44 104C42 130 26 138 20 130C8 116 6 90 12 66C14 52 16 42 18 30Z'/><path d='M102 30C92 56 74 70 76 104C78 130 94 138 100 130C112 116 114 90 108 66C106 52 104 42 102 30Z'/><path d='M6 66C14 82 22 98 18 118C16 130 8 130 6 124C2 108 2 88 6 66Z'/><path d='M114 66C106 82 98 98 102 118C104 130 112 130 114 124C118 108 118 88 114 66Z'/></g><path d='M60 44C66 62 76 74 76 100C76 120 68 132 60 132C52 132 44 120 44 100C44 74 54 62 60 44Z' fill='url(%23n)' opacity='.92'/><ellipse cx='60' cy='118' rx='22' ry='18' fill='url(%23c)'/></svg>") center bottom/100% 100% no-repeat,
+      radial-gradient(ellipse at 50% 80%,rgba(120,255,160,.35) 0%,rgba(60,220,90,.18) 40%,transparent 72%);
+    filter:drop-shadow(0 0 5px rgba(80,240,120,.8))}
+  .aura.flame i{background:linear-gradient(180deg,#eaffd0,#4cdc6a)}
   .aura.red i:nth-child(n+4){display:none}
   @keyframes spark{from{transform:translateY(0) scale(1); opacity:.95}
                    to{transform:translateY(-16px) scale(.3); opacity:0}}
@@ -310,7 +316,7 @@
   .aura.green i{background:linear-gradient(180deg,#d9ffe6,#2ecc71)}
   .aura.green i:nth-child(n+4){display:none}
   .runner.green .body{filter:drop-shadow(0 0 6px rgba(94,240,140,.85))}
-  .runner.flame .body{filter:drop-shadow(0 0 16px rgba(255,200,60,1)) drop-shadow(0 0 4px rgba(255,80,0,.9))}
+  .runner.flame .body{filter:drop-shadow(0 0 16px rgba(80,240,120,1)) drop-shadow(0 0 4px rgba(60,220,255,.9))}
   .aura.red{background:radial-gradient(ellipse at 50% 78%,rgba(255,150,150,.95) 0%,rgba(255,40,70,.75) 30%,
                rgba(200,0,40,.4) 52%,transparent 72%)}
   .aura.red i{background:linear-gradient(180deg,#ffd0d0,#ff2436)}
@@ -392,7 +398,7 @@
     border:2px solid; text-shadow:0 2px 0 #000}
   .wkTag.normal{color:#cdc7ff; border-color:var(--line)}
   .wkTag.red{color:#ff8fa3; border-color:#a8324c; box-shadow:0 0 8px rgba(255,77,109,.4)}
-  .wkTag.flame{color:#ffd24d; border-color:#a85a00; box-shadow:0 0 10px rgba(255,160,40,.55)}
+  .wkTag.flame{color:#7dffa0; border-color:#0f8a4a; box-shadow:0 0 10px rgba(70,235,120,.55)}
   .wkTag.hit{background:linear-gradient(180deg,#1d7040,#0d3a20); color:#8affb0; border-color:#2fbf6a}
   @media(max-width:900px){.hideMd{display:none}}
   @media(max-width:700px){.hideSm{display:none}}
@@ -589,7 +595,7 @@
   .pForm b{font-family:var(--f-px); font-size:15px; letter-spacing:.5px}
   .pForm.burnout{border-color:#8a8a95} .pForm.burnout b{color:#d8d4c8}
   .pForm.red{border-color:#ff4d6d} .pForm.red b{color:#ff8fa3; text-shadow:0 0 10px rgba(255,77,109,.8)}
-  .pForm.flame{border-color:#ffb020} .pForm.flame b{color:#ffd24d; text-shadow:0 0 12px rgba(255,180,40,.9)}
+  .pForm.flame{border-color:#4ee86a} .pForm.flame b{color:#7dffa0; text-shadow:0 0 12px rgba(70,235,120,.9)}
   .pForm.boost{border-color:#1d7f9a} .pForm.boost b{color:#9af0ff; text-shadow:0 0 10px rgba(57,229,255,.8)}
   .pForm.normal b{color:var(--gold)}
   .pWeek{margin-top:10px; font-size:12px; color:var(--dim)}
@@ -1709,7 +1715,7 @@
     <div class="obSlide" data-ob="1" hidden>
       <div class="obIcon">🎯</div>
       <h3>เลือกเป้าทุกต้นสัปดาห์</h3>
-      <p>4 / 7 / 10 / 14 ชิ้นต่อสัปดาห์ เลือกตามที่ไหวจริง ทำครบได้ร่างพิเศษ (ไฟแดง / ไฟทอง) พลาดเป้าจะกลายเป็นร่างหมดแรง ไม่ส่งเลยทั้งสัปดาห์เป็นร่างกระโหลก แต่ฟื้นได้เสมอเมื่อกลับมาทำครบ</p>
+      <p>4 / 7 / 10 / 14 ชิ้นต่อสัปดาห์ เลือกตามที่ไหวจริง ทำครบได้ร่างพิเศษ (ไฟแดง / ไฟเขียว) พลาดเป้าจะกลายเป็นร่างหมดแรง ไม่ส่งเลยทั้งสัปดาห์เป็นร่างกระโหลก แต่ฟื้นได้เสมอเมื่อกลับมาทำครบ</p>
     </div>
     <div class="obSlide" data-ob="2" hidden>
       <div class="obIcon">⏰</div>
@@ -1736,7 +1742,7 @@
     </ul>
     <h3>🧍 ร่างของตัวละคร</h3>
     <ul>
-      <li><b>ปกติ</b> เป้า 4 หรือ 7 ชิ้น · <b>LASER FOCUS</b> เป้า 10 ตัวลุกเป็นไฟแดง · <b>PRO MAX</b> เป้า 14 ไฟทองท่วมตัว</li>
+      <li><b>ปกติ</b> เป้า 4 หรือ 7 ชิ้น · <b>LASER FOCUS</b> เป้า 10 ตัวลุกเป็นไฟแดง · <b>PRO MAX</b> เป้า 14 ไฟเขียวท่วมตัว</li>
       <li><b>ร่างหมดแรง 😵</b> พลาดเป้า 4/7 ของสัปดาห์ที่แล้ว · <b>ร่างกระโหลก 💀</b> ไม่ส่งเลยทั้งสัปดาห์ — ทำครบเป้าสัปดาห์นี้แล้วฟื้นเป็นปกติ</li>
       <li><b>ไฟที่เท้า 🔥</b> ส่งติดต่อกัน 7 วัน · ใหญ่ขึ้นเมื่อครบ 14 วัน</li>
     </ul>
