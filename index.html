@@ -138,7 +138,7 @@
   .opChar{position:absolute; right:12px; bottom:14px; width:32px; height:56px}
   .opChar svg{position:relative; z-index:2}
   .opChar .aura{left:50%; bottom:-6px; width:84px; height:104px; margin-left:-42px}
-  .opChar .aura.flame{width:120px; height:150px; margin-left:-60px; bottom:-10px}
+  .opChar .aura.flame{width:140px; height:175px; margin-left:-70px; bottom:-14px}
   .opChar .aura.red{width:52px; height:64px; margin-left:-26px; bottom:-4px}
   .opChar .aura.green{width:48px; height:58px; margin-left:-24px; bottom:-4px}
   .optCard.red .opChar{filter:drop-shadow(0 0 6px rgba(255,40,70,.9))}
@@ -303,9 +303,18 @@
   /* ไฟแดงของ LASER FOCUS เล็กกว่าไฟเขียว PRO MAX */
   .aura.red{width:62px; height:76px; margin-left:-31px; bottom:-6px}
   /* ไฟเขียวของ PRO MAX (เป้า 14): เปลวไฟเขียวไล่เป็นแกนฟ้าสไตล์ Discord ยืนอยู่หลังตัวละคร */
-  .aura.flame{width:152px; height:190px; margin-left:-76px; bottom:-16px; background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 150'><defs><linearGradient id='o' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='150'><stop offset='0' stop-color='%2370f83a'/><stop offset='.55' stop-color='%2336d46a'/><stop offset='1' stop-color='%2330c4c8'/></linearGradient><linearGradient id='n' gradientUnits='userSpaceOnUse' x1='0' y1='44' x2='0' y2='132'><stop offset='0' stop-color='%23c8ff80'/><stop offset='.6' stop-color='%2388f2b4'/><stop offset='1' stop-color='%2394eeff'/></linearGradient><radialGradient id='c' cx='.5' cy='.5' r='.5'><stop offset='0' stop-color='%23ffffff'/><stop offset='.5' stop-color='%23b8f8ff' stop-opacity='.9'/><stop offset='1' stop-color='%2360e0ff' stop-opacity='0'/></radialGradient></defs><g fill='url(%23o)'><path d='M60 0C70 30 86 50 86 90C86 120 74 142 60 142C46 142 34 120 34 90C34 50 50 30 60 0Z'/><path d='M18 30C28 56 46 70 44 104C42 130 26 138 20 130C8 116 6 90 12 66C14 52 16 42 18 30Z'/><path d='M102 30C92 56 74 70 76 104C78 130 94 138 100 130C112 116 114 90 108 66C106 52 104 42 102 30Z'/><path d='M6 66C14 82 22 98 18 118C16 130 8 130 6 124C2 108 2 88 6 66Z'/><path d='M114 66C106 82 98 98 102 118C104 130 112 130 114 124C118 108 118 88 114 66Z'/></g><path d='M60 44C66 62 76 74 76 100C76 120 68 132 60 132C52 132 44 120 44 100C44 74 54 62 60 44Z' fill='url(%23n)' opacity='.92'/><ellipse cx='60' cy='118' rx='22' ry='18' fill='url(%23c)'/></svg>") center bottom/100% 100% no-repeat,
-      radial-gradient(ellipse at 50% 80%,rgba(120,255,160,.35) 0%,rgba(60,220,90,.18) 40%,transparent 72%);
-    filter:drop-shadow(0 0 5px rgba(80,240,120,.8))}
+  .aura.flame{--fl:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 200'><defs><linearGradient id='o' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='200'><stop offset='0' stop-color='%2376ff3a'/><stop offset='.5' stop-color='%2338dc6a'/><stop offset='1' stop-color='%2326c2c8'/></linearGradient><linearGradient id='n' gradientUnits='userSpaceOnUse' x1='0' y1='52' x2='0' y2='170'><stop offset='0' stop-color='%23d4ff8a'/><stop offset='.55' stop-color='%2392f6b8'/><stop offset='1' stop-color='%2398f0ff'/></linearGradient><radialGradient id='c' cx='.5' cy='.5' r='.5'><stop offset='0' stop-color='%23ffffff'/><stop offset='.5' stop-color='%23bdfaff' stop-opacity='.92'/><stop offset='1' stop-color='%2360e4ff' stop-opacity='0'/></radialGradient></defs><g fill='url(%23o)'><ellipse cx='80' cy='162' rx='66' ry='30'/><path d='M82 0C80 26 108 46 112 84C115 118 102 160 80 178C58 160 45 118 48 84C52 46 78 30 82 0Z'/><path d='M32 34C34 62 62 82 58 118C55 146 40 164 28 152C10 136 6 100 16 74C22 58 30 52 32 34Z'/><path d='M128 34C126 62 98 82 102 118C105 146 120 164 132 152C150 136 154 100 144 74C138 58 130 52 128 34Z'/><path d='M10 90C18 108 26 126 20 146C16 160 6 158 4 148C0 134 2 110 10 90Z'/><path d='M150 90C142 108 134 126 140 146C144 160 154 158 156 148C160 134 158 110 150 90Z'/></g><path d='M80 50C84 74 104 90 104 122C104 152 92 170 80 170C68 170 56 152 56 122C56 90 76 74 80 50Z' fill='url(%23n)' opacity='.93'/><ellipse cx='80' cy='150' rx='27' ry='22' fill='url(%23c)'/></svg>");
+    width:184px; height:230px; margin-left:-92px; bottom:-24px; transform-origin:50% 100%;
+    background:var(--fl) center bottom/100% 100% no-repeat,
+      radial-gradient(ellipse at 50% 78%,rgba(120,255,160,.4) 0%,rgba(60,220,90,.2) 42%,transparent 74%);
+    filter:drop-shadow(0 0 7px rgba(70,240,120,.9)) drop-shadow(0 0 18px rgba(40,220,110,.55));
+    animation:flameFlick .75s ease-in-out infinite alternate}
+  /* เปลวชั้นในสว่างกว่า กะพริบคนละจังหวะ ให้เปลวไฟดูมีชีวิต */
+  .aura.flame::before{content:""; position:absolute; left:20%; right:20%; top:30%; bottom:3%;
+    background:var(--fl) center bottom/100% 100% no-repeat; filter:hue-rotate(-38deg) brightness(1.3) saturate(.9); opacity:.8;
+    transform-origin:50% 100%; animation:flameFlick2 .5s ease-in-out infinite alternate}
+  @keyframes flameFlick{from{transform:scale(1,1) skewX(0)} 50%{transform:scale(.97,1.05) skewX(1.6deg)} to{transform:scale(1.03,.97) skewX(-1.6deg)}}
+  @keyframes flameFlick2{from{transform:scale(1,1.04)} to{transform:scale(.92,.94)}}
   .aura.flame i{background:linear-gradient(180deg,#eaffd0,#4cdc6a)}
   .aura.red i:nth-child(n+4){display:none}
   @keyframes spark{from{transform:translateY(0) scale(1); opacity:.95}
