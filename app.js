@@ -1498,7 +1498,7 @@ function boardColor(r,s){
   if(role==="head") return "#ff4d6d";
   if(role==="ta")   return "#5ef08c";
   if(s.contents>=FINISH) return "#ffcc4d";
-  if(s.style==="flame")  return "#ffcc4d";
+  if(s.style==="flame")  return "#a6ff6b";
   if(s.style==="red")    return "#ff8a00";
   if(s.burnout)          return "#8a8a9a";
   if(s.weak)             return "#9fb3e6";
@@ -2862,7 +2862,7 @@ const BADGES=[
   {k:"hit3",    e:"🎯", n:"HAT-TRICK",    th:"ครบเป้า 3 สัปดาห์ซ้อน",              test:c=>c.maxHit>=3},
   {k:"early",   e:"🌅", n:"EARLY BIRD",   th:"ส่งงานก่อน 6 โมงเช้า",                test:c=>c.early},
   {k:"laser",   e:"🔴", n:"LASER",        th:"เคยรับเป้า 10 ชิ้น",                  test:c=>c.weeks.some(w=>w.target>=10&&w.target<14)},
-  {k:"promax",  e:"🔥", n:"PRO MAX",      th:"เคยรับเป้า 14 ชิ้น",                  test:c=>c.weeks.some(w=>w.target>=14)},
+  {k:"promax",  e:"💚", n:"PRO MAX",      th:"เคยรับเป้า 14 ชิ้น",                  test:c=>c.weeks.some(w=>w.target>=14)},
   {k:"revive",  e:"💀", n:"REVIVED",      th:"พลาดเป้าหนักจนเป็นกระโหลก แล้วกลับมาทำครบ", test:c=>c.revived},
   {k:"c30",     e:"🥉", n:"30 CONTENTS",  th:"ปล่อยครบ 30 ชิ้น",                    test:c=>c.st.contents>=30},
   {k:"c60",     e:"🥈", n:"60 CONTENTS",  th:"ปล่อยครบ 60 ชิ้น",                    test:c=>c.st.contents>=60},

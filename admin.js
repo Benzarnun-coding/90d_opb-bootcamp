@@ -102,7 +102,7 @@ $("lsRows").onclick = async e=>{
 };
 
 /* ---- ภาพรวมรุ่น: บ้าน / เป้า ---- */
-const TARGET_TH = {4:["COMPROMISE","#8a86c9"], 7:["RECOMMENDED","#39e5ff"], 10:["LASER FOCUS","#ff2436"], 14:["PRO MAX","#ffb324"]};
+const TARGET_TH = {4:["COMPROMISE","#8a86c9"], 7:["RECOMMENDED","#39e5ff"], 10:["LASER FOCUS","#ff2436"], 14:["💚 PRO MAX","#4ee86a"]};
 async function loadCohortStats(){
   $("csSum").textContent = "กำลังโหลด…";
   const {data, error} = await sb.rpc("admin_cohort_stats");
