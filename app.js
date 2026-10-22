@@ -4207,3 +4207,22 @@ function bootWithRetry(){
   });
 }
 bootWithRetry();
+
+/* ---- 🎁 WRAPPED (พรีวิว) — นักเรียนห้ามเห็นจนกว่า Benz สั่งเปิด ----
+   ไม่มีปุ่ม/เมนูไหนในเว็บเรียกมัน: ใช้ได้ทางเดียวคือเปิด /?demo&wrapped (โหมดทดลองในเครื่อง) แล้วกดปุ่มลอยมุมซ้ายล่าง
+   wrapped.js ถูกโหลดตอนกดเท่านั้น · ของจริงยังไม่เชื่อมฐานข้อมูล (WRAP.open จะปฏิเสธนอกโหมด demo) */
+window.openWrapped = function(who){
+  return new Promise((res,rej)=>{
+    const go=()=>window.WRAP.open(who).then(res,rej);
+    if(window.WRAP) return go();
+    const s=document.createElement("script"); s.src="wrapped.js?v=1"; s.onload=go; s.onerror=()=>rej(new Error("โหลด wrapped.js ไม่ได้"));
+    document.head.appendChild(s);
+  }).catch(e=>{ console.warn(e); toast("Wrapped ยังไม่เปิด"); });
+};
+if(/[?&]demo\b/.test(location.search) && /[?&]wrapped\b/.test(location.search)){
+  addEventListener("load",()=>{
+    const b=document.createElement("button"); b.textContent="🎁 Wrapped (พรีวิว)";
+    b.style.cssText="position:fixed;left:10px;bottom:10px;z-index:350;padding:10px 14px;font:700 13px var(--f-px,monospace);background:#ffd76b;color:#3a2400;border:3px solid #fff0b3;border-radius:8px;cursor:pointer";
+    b.onclick=()=>openWrapped(); document.body.appendChild(b);
+  });
+}
