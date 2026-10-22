@@ -1313,9 +1313,12 @@ function togglePledge(){
 }
 
 /* ================= TRACK ================= */
+/* แท็บ 💚 PRO MAX: เฉพาะคนที่เลือกเป้า 14 ชิ้น (LASER FOCUS PRO MAX) ของสัปดาห์นี้ */
+const isProMax = r => stats(r).style==="flame";
 function raceList(){
   const all=ranked();
   if(S.raceFilter==="all") return all;
+  if(S.raceFilter==="promax") return all.filter(isProMax);
   if(S.raceFilter==="ta") return all.filter(r=>roleOf(r)!=="student");
   if(S.raceFilter!=="near") return all.filter(r=>r.house===+S.raceFilter || roleOf(r)==="head");
   const i=all.findIndex(r=>r.name===S.me);
@@ -1323,6 +1326,7 @@ function raceList(){
   return all.slice(Math.max(0,i-NEAR), i+NEAR+1);
 }
 function renderFilters(){
+  const proMaxN=S.runners.filter(isProMax).length;
   const mk=(cur,pfx)=>[(S.spectator || pfx==="b") ? "" : `<button class="fBtn ${cur==="near"?"on":""}" data-f="near"
       style="${cur==="near"?"background:linear-gradient(180deg,#5b51c4,#332a80)":""}">ใกล้ฉัน</button>`,
     `<button class="fBtn ${cur==="all"?"on":""}" data-f="all"
@@ -1331,7 +1335,9 @@ function renderFilters(){
       style="${cur===String(h.id)?`background:linear-gradient(180deg,${h.color},${shift(h.color,-90)});color:#0d0a22`:""}">
       ${h.id===champHouse()?"🏆 ":""}${h.emoji} ${h.name}</button>`))
     .concat(S.runners.some(r=>roleOf(r)!=="student") ? [`<button class="fBtn ${cur==="ta"?"on":""}" data-f="ta"
-      style="${cur==="ta"?"background:linear-gradient(180deg,#5ef08c,#1f8a4a);color:#0d0a22":"color:#5ef08c"}">🎓 เฉพาะโค้ช</button>`] : []).join("");
+      style="${cur==="ta"?"background:linear-gradient(180deg,#5ef08c,#1f8a4a);color:#0d0a22":"color:#5ef08c"}">🎓 เฉพาะโค้ช</button>`] : [])
+    .concat([`<button class="fBtn ${cur==="promax"?"on":""}" data-f="promax"
+      style="${cur==="promax"?"background:linear-gradient(180deg,#8dffa8,#1f9a52);color:#07301a":"color:#6dfa8a"}">💚 PRO MAX <small>${proMaxN}</small></button>`]).join("");
   const meBtn = S.spectator ? "" : `<button class="fBtn goMe" data-me="1">📍 ตัวฉัน</button>`;
   $("raceFilters").innerHTML=mk(S.raceFilter,"r")+meBtn;
   $("boardFilters").innerHTML=mk(S.boardFilter,"b");
@@ -1364,7 +1370,7 @@ function renderTrack(){
           ${s.dayStreak?'<span class="dust"></span><span class="dust b"></span>':''}</div>
         <div class="shadow"></div>
       </div></div>`;
-  }).join("") : `<div class="noJoin">ยังไม่มีใครในกลุ่มนี้</div>`;
+  }).join("") : `<div class="noJoin">${S.raceFilter==="promax"?"💚 ยังไม่มีใครเลือก LASER FOCUS PRO MAX (14 ชิ้น) ในสัปดาห์นี้":"ยังไม่มีใครในกลุ่มนี้"}</div>`;
 
   renderTaRoom();
   renderDuelRoom();
@@ -1452,6 +1458,7 @@ function boardList(){
   let all=ranked();
   if(S.boardMode==="reach"){ const v=r=>((S.reach||{})[r.id]||{}).total_views||0; all=[...all].sort((a,b)=>v(b)-v(a)); }
   if(S.boardFilter==="ta") return all.filter(r=>roleOf(r)!=="student");
+  if(S.boardFilter==="promax") return all.filter(isProMax);
   return S.boardFilter==="all"||S.boardFilter==="near" ? all : all.filter(r=>r.house===+S.boardFilter || roleOf(r)==="head");
 }
 function renderBoard(){
@@ -2178,7 +2185,7 @@ $("raceFilters").onclick=e=>{
   if(b.dataset.me){ scrollToMe(); return; }
   S.raceFilter=b.dataset.f; renderFilters(); renderTrack();
   /* เปลี่ยนเป็นทั้งรุ่น/บ้าน แล้วพาไปหาตัวเองเลย จะได้รู้ว่าอยู่ตรงไหนของแถว */
-  if(S.raceFilter!=="near" && !S.spectator) setTimeout(scrollToMe, 60);
+  if(S.raceFilter!=="near" && S.raceFilter!=="promax" && !S.spectator) setTimeout(scrollToMe, 60);
 };
 $("boardFilters").onclick=e=>{ const b=e.target.closest(".fBtn"); if(b){ S.boardFilter=b.dataset.f; renderFilters(); renderBoard(); } };
 $("lanes").onclick=e=>{ const l=e.target.closest(".lane"); if(l) openProfile(l.dataset.n); };
