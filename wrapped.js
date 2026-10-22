@@ -9,11 +9,9 @@
 "use strict";
 const N = v => Number(v)||0;
 const sum = a => a.reduce((x,y)=>x+y,0);
-const days0 = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์"];
+
 const fN = v => (typeof fmtN==="function") ? fmtN(v) : String(v);
 const wk = d => (typeof weekOf==="function") ? weekOf(d) : Math.max(1,Math.floor((d-1)/7)+1);
-const SEC = {intro:["#2a1a6e","#0b0626"], vol:["#ff4d6d","#5a0f2e"], path:["#2d7dff","#0b1a52"], streak:["#ff9a1f","#6b2a00"], rhythm:["#7b5cff","#1c0f5a"], goal:["#22d3a0","#053f3a"], boss:["#ff3d3d","#3a0710"],
-  pvp:["#ffd23f","#5a3a00"], social:["#ff6bd6","#4a0a45"], house:["#4ee1ff","#06324a"], badge:["#ffd76b","#4a2f00"], rec:["#ffe27a","#7a4a00"], style:["#a78bfa","#26104d"], cohort:["#34d399","#05302a"], final:["#2a1a6e","#080421"]};
 
 /* ---------------------------------------------------------------- RAW จาก DEMO */
 function seeded(seed){ let s=(seed>>>0)||1; return ()=>{ s=(Math.imul(s,1664525)+1013904223)>>>0; return s/4294967296; }; }
@@ -143,9 +141,9 @@ const RECS=[
  {k:"lastMin",cat:"time",e:"🚨",t:"ตัดหน้าไฟแดง",g:m=>m.c.lastMin,min:2,u:"ชิ้นที่ส่งในสิบนาทีสุดท้ายก่อนตัดรอบ",w:8},
  {k:"bestDay",cat:"time",e:"⚡",t:"วันเดียวแหลก",g:m=>m.bestDay.n,min:4,u:"ชิ้นในวันเดียว",w:7},
  {k:"bestWeek",cat:"time",e:"🚀",t:"สัปดาห์สายฟ้า",g:m=>m.bestWeek.n,min:10,u:"ชิ้นในสัปดาห์เดียว",w:7},
- {k:"firstPost",cat:"time",e:"🥇",t:"คนแรกที่ลงมือ",g:m=>m.firstTs?-m.firstTs:null,min:-Infinity,u:"โพสต์แรกของรุ่น",w:9,fmt:m=>new Date(m.firstTs).toLocaleDateString("th-TH",{day:"numeric",month:"short"})},
- {k:"first30",cat:"time",e:"🏃",t:"ถึง 30 ชิ้นก่อนใคร",g:m=>m.t30?-m.t30:null,min:-Infinity,u:"ถึง 30 ชิ้น",w:8,fmt:m=>new Date(m.t30).toLocaleDateString("th-TH",{day:"numeric",month:"short"})},
- {k:"first90",cat:"time",e:"🏁",t:"เส้นชัยคนแรก ๆ",g:m=>m.t90?-m.t90:null,min:-Infinity,u:"ถึงเส้นชัย 90 ชิ้น",w:10,fmt:m=>new Date(m.t90).toLocaleDateString("th-TH",{day:"numeric",month:"short"})},
+ {k:"firstPost",cat:"time",e:"🥇",t:"คนแรกที่ลงมือ",g:m=>m.firstTs?-m.firstTs:null,min:-Infinity,u:"โพสต์แรกของรุ่น",w:9,fmt:(m,L)=>fd(m.firstTs,L)},
+ {k:"first30",cat:"time",e:"🏃",t:"ถึง 30 ชิ้นก่อนใคร",g:m=>m.t30?-m.t30:null,min:-Infinity,u:"ถึง 30 ชิ้น",w:8,fmt:(m,L)=>fd(m.t30,L)},
+ {k:"first90",cat:"time",e:"🏁",t:"เส้นชัยคนแรก ๆ",g:m=>m.t90?-m.t90:null,min:-Infinity,u:"ถึงเส้นชัย 90 ชิ้น",w:10,fmt:(m,L)=>fd(m.t90,L)},
  /* 🗡️ บอส/ดวงชะตา */
  {k:"damage",cat:"boss",e:"🗡️",t:"ดาเมจรวมสูงสุด",g:m=>m.damage,min:1,u:"ดาเมจที่ใส่บอส",w:8},
  {k:"firstBlood",cat:"boss",e:"🩸",t:"นักล่าเลือดแรก",g:m=>m.fb,min:1,u:"บอสที่คุณเป็นคนตีแรก",w:8},
@@ -187,7 +185,7 @@ function computeRecords(stu){
     vals.sort((a,b)=>b.v-a.v);
     vals.forEach(x=>{ x.rank=vals.filter(y=>y.v>x.v).length+1; });
     vals.filter(x=>x.rank<=3).forEach(x=>{ const same=vals.filter(y=>y.v===x.v).length;
-      (out[x.m.id]=out[x.m.id]||[]).push({def, value:x.v, rank:x.rank, same, cat:def.cat, text:def.fmt?def.fmt(x.m):fN(Math.abs(x.v)), score:(4-x.rank)*100+def.w*10-Math.min(same,9)}); });
+      (out[x.m.id]=out[x.m.id]||[]).push({def, value:x.v, rank:x.rank, same, cat:def.cat, m:x.m, score:(4-x.rank)*100+def.w*10-Math.min(same,9)}); });
   });
   Object.keys(out).forEach(id=>{ const arr=out[id].sort((a,b)=>b.score-a.score), pick=[], cats={};
     arr.forEach(r=>{ if(pick.length>=3) return; if((cats[r.cat]||0)>=2) return; cats[r.cat]=(cats[r.cat]||0)+1; pick.push(r); }); out[id]=pick; });
@@ -211,146 +209,229 @@ function pickTier(m){
   return [{k:"legend",e:"👑",n:"LEGEND"},{k:"gold",e:"🥇",n:"GOLD"},{k:"silver",e:"🥈",n:"SILVER"},{k:"bronze",e:"🥉",n:"BRONZE"},{k:"starter",e:"🌱",n:"STARTER"}][t];
 }
 
-/* ---------------------------------------------------------------- สร้างสไลด์ (ใช้ชุดเดียวกันทั้งหน้าจอและรูปแชร์) */
+/* ================================================================ ชั้นแสดงผล: 2 ภาษา (ไทย/English) + ดีไซน์สไตล์ Wrapped ================================================================ */
+const DOW={th:["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์"], en:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]};
+function fd(ts,L,long){ if(!ts) return "—"; const d=new Date(ts); return L==="en"?d.toLocaleDateString("en-GB",{day:"numeric",month:long?"long":"short"}):d.toLocaleDateString("th-TH",{day:"numeric",month:long?"long":"short"}); }
+const RECS_EN={duelWins:["Duel Champion","duels won"],duelFought:["Duel Addict","duels fought"],challenged:["Most Wanted","times you were challenged"],margin:["Landslide Victory","pieces — your biggest winning margin"],rival:["Arch Rival","duels against the same person"],lostHat:["The Brave Loser","losses — and you never ran away"],
+ night:["Night Owl","posts between 10 PM and 4 AM"],earlyBird:["Early Bird","posts before 6 AM"],lastMin:["Beat the Buzzer","posts in the last 10 minutes before the weekly cut"],bestDay:["One-Day Wonder","pieces in a single day"],bestWeek:["Lightning Week","pieces in a single week"],firstPost:["First One In","your first post of the cohort"],first30:["First to 30","you reached 30 pieces"],first90:["First to the Finish","you reached 90 pieces"],
+ damage:["Top Damage Dealer","damage dealt to bosses"],firstBlood:["First Blood Hunter","bosses you hit first"],lastHit:["The Closer","bosses you finished off"],critN:["Crit King","critical hits"],x10:["×10 Legend","×10 crits (a free book!)"],luck:["Lucky Charm","% of your posts were crits"],
+ cheerleader:["Cohort Cheerleader","cheers you sent"],darling:["Cohort Darling","cheers you received"],nudger:["The Nudger","nudges you sent"],nudged:["Most Chased","nudges you received"],buddy:["Buddy for Life","day buddy streak"],hearts:["Teacher's Pet","Coach's Hearts received"],polyglot:["Platform Hopper","platforms used"],
+ streak:["Unstoppable","days in a row"],weeksHit:["On Target","weeks you hit your goal"],holiday:["Holiday Hero","pieces posted during the break"],kudos:["Quality Work","times a TA gave you “good work”"],perfect:["Perfect Weeks","weeks with a post every single day"],
+ threeAM:["The 3 AM Club","posts between 2 and 4 AM"],midnight:["Midnight Sharp","posts right at midnight"],lunch:["Lunch Break Poster","posts at noon"],pretty:["Lucky Numbers (12:12, 21:33, 14:44…)","posts at a “pretty” time"],sunday:["No Days Off","posts on Sundays"],monday:["Monday? No Problem","posts on Mondays"],exact:["Spot On","weeks you hit your goal exactly"],over:["Overachiever","× your goal in your biggest week"],coaster:["Rollercoaster","pieces — your wildest week-to-week swing"],triple:["Exactly Three","days with exactly 3 posts"]};
+RECS.forEach(r=>{ const x=RECS_EN[r.k]; r.te=x?x[0]:r.t; r.ue=x?x[1]:r.u; });
+const CATS={pvp:["สายนักสู้","THE FIGHTER"],time:["จังหวะเวลา","TIMING"],boss:["บอส & ดวงชะตา","BOSSES & LUCK"],social:["สายสังคม","SOCIAL"],grit:["ไม่ยอมแพ้","GRIT"],wacky:["หมวดปั่น ๆ","WACKY"]};
+const STYLE_EN={early:"You start creating while the rest of us are still asleep.",night:"Your best ideas arrive after dark.",sprinter:"You go in bursts and leave everyone behind.",marathon:"Not flashy — but you never disappeared.",boss:"You can't see a boss without swinging.",social:"You gave this cohort its heartbeat.",crusher:"You set the goal. You hit the goal.",comeback:"You fell. You got back up. That's the real thing.",explorer:"Just getting started — every piece is learning."};
+const STYLE_TH={early:"ตื่นมาสร้างตั้งแต่ฟ้าสาง ใครว่าเช้าไม่ดี",night:"ไอเดียมาตอนดึก มือไวตอนคนอื่นหลับ",sprinter:"พุ่งเป็นช่วง ๆ แล้วทิ้งห่างทุกคน",marathon:"ไม่หวือหวา แต่ไม่เคยหายไปไหน",boss:"เห็นบอสเมื่อไร มือก็ไวเมื่อนั้น",social:"คุณคือคนที่ทำให้รุ่นนี้มีชีวิตชีวา",crusher:"บอกเป้าไว้เท่าไร ทำได้เท่านั้น",comeback:"ล้มแล้วลุกได้ นั่นแหละตัวจริง",explorer:"เพิ่งเริ่มก้าวแรก ทุกชิ้นคือการเรียนรู้"};
+const PAL={
+ intro:{bg:"#121212",fg:"#ffffff",ac:"#1ed760",s1:"#1ed760",s2:"#7b2ff7"},
+ vol:{bg:"#1ed760",fg:"#0a0a0a",ac:"#ffffff",s1:"#7af0a0",s2:"#12b455"},
+ path:{bg:"#509bf5",fg:"#08142e",ac:"#ffffff",s1:"#a9d0ff",s2:"#7fb3f5"},
+ streak:{bg:"#ff6437",fg:"#1a0800",ac:"#ffffff",s1:"#ffcd3c",s2:"#ff8a5e"},
+ rhythm:{bg:"#b49bc8",fg:"#1a0f2a",ac:"#ffffff",s1:"#e3d3f0",s2:"#9a7fb3"},
+ goal:{bg:"#ffcd3c",fg:"#1a1200",ac:"#ffffff",s1:"#ffe27a",s2:"#ffb400"},
+ boss:{bg:"#e8115b",fg:"#ffffff",ac:"#ffcd3c",s1:"#7a0030",s2:"#ff5c93"},
+ pvp:{bg:"#121212",fg:"#ffffff",ac:"#ffcd3c",s1:"#e8115b",s2:"#ffcd3c"},
+ social:{bg:"#f037a5",fg:"#1a0013",ac:"#ffffff",s1:"#ff8fd0",s2:"#ff6bbd"},
+ house:{bg:"#1e3264",fg:"#ffffff",ac:"#4ce1ff",s1:"#509bf5",s2:"#0d1b3d"},
+ badge:{bg:"#af2896",fg:"#ffffff",ac:"#ffcd3c",s1:"#6b0f5a",s2:"#ff6bd6"},
+ rec:{bg:"#ffcd3c",fg:"#121212",ac:"#ffffff",s1:"#ffa51f",s2:"#fff2b0"},
+ style:{bg:"#7b2ff7",fg:"#ffffff",ac:"#ffcd3c",s1:"#f107a3",s2:"#3a0c8f"},
+ cohort:{bg:"#1ed760",fg:"#0a0a0a",ac:"#ffffff",s1:"#509bf5",s2:"#7af0a0"},
+ final:{bg:"#121212",fg:"#ffffff",ac:"#1ed760",s1:"#7b2ff7",s2:"#f037a5"}
+};
+/* รูปทรงพื้นหลัง (หน่วย u = 1% ของความกว้าง): [กว้าง, x, y, สี, มุมโค้ง, หมุน] */
+const SHAPES=[
+ [[92,48,-14,"s1","50%",0],[50,-22,128,"s2","50%",0],[26,70,120,"ac","22%",18]],
+ [[70,-24,-10,"s2","50%",0],[100,36,112,"s1","50%",0],[22,76,28,"ac","50%",0]],
+ [[58,56,-16,"ac","26%",16],[90,-34,120,"s1","50%",0],[40,60,128,"s2","50%",0]],
+ [[84,30,-34,"s1","50%",0],[34,-10,120,"ac","30%",-14],[64,62,118,"s2","50%",0]]
+];
+const tr=(L,th,en)=>L==="en"?en:th;
+
+/* ---------------------------------------------------------------- สร้างสไลด์ (โครงเดียวกันทั้งหน้าจอและรูปแชร์) */
 function badgeMeta(k){ return (typeof BADGES!=="undefined"?BADGES:[]).find(b=>b.k===k)||{e:"🏅",n:k,th:""}; }
-function slides(W){
-  const m=W.m, raw=W.raw, role=m.p.role, hs=(typeof houseOf==="function")?houseOf(m.p.house):{name:"",emoji:"",color:"#fff"}, S=[];
-  const add=(id,sec,o)=>S.push(Object.assign({id,c:SEC[sec]||SEC.intro,sec},o));
-  const roleTxt=role==="student"?"":(role==="ta"?" · TA":" · หัวหน้าโค้ช");
-  add("intro","intro",{kicker:`WRAPPED${roleTxt}`,big:m.p.name,bigSmall:true,sub:`${hs.emoji} บ้าน ${hs.name}`,lines:["90 วันที่ผ่านมา คุณทำอะไรไว้บ้าง","ไปดูกัน 👉"],viz:{t:"sprite"}});
+function slides(W,L){
+  L=L||"th"; const m=W.m, raw=W.raw, role=m.p.role, hs=(typeof houseOf==="function")?houseOf(m.p.house):{name:"",emoji:"",color:"#fff"}, S=[], T=(a,b)=>tr(L,a,b);
+  const add=(id,sec,o)=>S.push(Object.assign({id,sec},o));
+  const rl=role==="student"?"":(role==="ta"?" · TA":T(" · หัวหน้าโค้ช"," · HEAD COACH"));
+  add("intro","intro",{kick:"WRAPPED"+rl,head:T(`90 วันของ\n${m.p.name}`,`${m.p.name}'s\n90 days`),unit:T(`บ้าน ${hs.name} ${hs.emoji}`,`House ${hs.name} ${hs.emoji}`),lines:[["👉",T("ไปดูกันว่าคุณสร้างอะไรไว้บ้าง","Let's see what you built.")]],viz:{t:"sprite"}});
   if(m.n>0){
-    const low=m.n<30, lines=[`ใน ${m.activeDays} วัน จาก 90 วัน`];
-    if(role==="student" && m.topPct<=50) lines.push(`🏆 Top ${m.topPct}% ของรุ่น`);
-    if(m.n>=90) lines.push("🏁 ถึงเส้นชัย 90 ชิ้นแล้ว!");
-    if(low) lines.push("ทุกชิ้นคือก้าวที่คนส่วนใหญ่ไม่เคยเริ่ม");
-    add("vol","vol",{kicker:"คุณปล่อยคอนเทนต์ไปทั้งหมด",big:m.n,sub:"ชิ้น",lines,emoji:"📤"});
-    add("path","path",{kicker:"เส้นทางของคุณ",big:m.bestWeek.n,sub:`ชิ้นในสัปดาห์ที่ ${m.bestWeek.w} (สัปดาห์ที่แรงที่สุด)`,lines:[`วันที่ส่งมากสุด: ${m.bestDay.n} ชิ้น (วันที่ ${m.bestDay.d})`,`โพสต์แรกเมื่อ ${new Date(m.firstTs).toLocaleDateString("th-TH",{day:"numeric",month:"long"})}`],viz:{t:"strip"}});
+    const lines=[["🗓️",T(`ใน ${m.activeDays} วัน จาก 90 วัน`,`across ${m.activeDays} of 90 days`)]];
+    if(role==="student"&&m.topPct<=50) lines.push(["🏆",T(`Top ${m.topPct}% ของรุ่น`,`Top ${m.topPct}% of the cohort`)]);
+    if(m.n>=90) lines.push(["🏁",T("ถึงเส้นชัย 90 ชิ้นแล้ว!","You crossed the 90-piece finish line!")]);
+    if(m.n<30) lines.push(["🌱",T("ทุกชิ้นคือก้าวที่คนส่วนใหญ่ไม่เคยเริ่ม","Every piece is a step most people never take.")]);
+    add("vol","vol",{kick:T("ปริมาณ","YOUR OUTPUT"),head:T("คุณปล่อยคอนเทนต์ไป","You published"),big:m.n,unit:T("ชิ้น","pieces"),lines,sticker:"📤"});
+    add("path","path",{kick:T("เส้นทาง","YOUR JOURNEY"),head:T("สัปดาห์ที่แรงที่สุดของคุณ","Your biggest week"),big:m.bestWeek.n,unit:T(`ชิ้น · สัปดาห์ที่ ${m.bestWeek.w}`,`pieces · week ${m.bestWeek.w}`),viz:{t:"strip"},
+      lines:[["⚡",T(`วันที่ส่งมากสุด: ${m.bestDay.n} ชิ้น (วันที่ ${m.bestDay.d})`,`Biggest day: ${m.bestDay.n} pieces (day ${m.bestDay.d})`)],["🎬",T(`โพสต์แรกเมื่อ ${fd(m.firstTs,L,true)}`,`First post on ${fd(m.firstTs,L,true)}`)]]});
     if(m.longestStreak>=2||m.weeksTotal>0){
-      const l=[]; if(m.weeksTotal) l.push(`ครบเป้า ${m.weeksHit}/${m.weeksTotal} สัปดาห์`); if(m.maxHitRun>=3) l.push(`ครบเป้าติดกัน ${m.maxHitRun} สัปดาห์ 🎯`); if(m.perfectWeeks) l.push(`ส่งครบทั้ง 7 วัน ${m.perfectWeeks} สัปดาห์ 📅`);
-      add("streak","streak",{kicker:"ความสม่ำเสมอ",big:m.longestStreak,sub:"วันติดต่อกันที่ยาวที่สุด 🔥",lines:l,emoji:"🔥"});
+      const l=[]; if(m.weeksTotal) l.push(["🎯",T(`ครบเป้า ${m.weeksHit} จาก ${m.weeksTotal} สัปดาห์`,`Hit your goal in ${m.weeksHit} of ${m.weeksTotal} weeks`)]);
+      if(m.maxHitRun>=3) l.push(["🔥",T(`ครบเป้าติดกัน ${m.maxHitRun} สัปดาห์`,`${m.maxHitRun} goal weeks in a row`)]); if(m.perfectWeeks) l.push(["📅",T(`ส่งครบทั้ง 7 วัน ${m.perfectWeeks} สัปดาห์`,`${m.perfectWeeks} perfect weeks (a post every day)`)]);
+      add("streak","streak",{kick:T("ความสม่ำเสมอ","CONSISTENCY"),head:T("ส่งติดต่อกันนานที่สุด","Your longest streak"),big:m.longestStreak,unit:T("วันติดต่อกัน","days in a row"),lines:l,sticker:"🔥"});
     }
-    const ph=m.topHour, phTxt=String(ph).padStart(2,"0")+":00", lt=[`วัน${days0[m.topDow]}คือวันของคุณ`]; if(m.topPlat) lt.push(`แพลตฟอร์มโปรด: ${m.topPlat.k} (${Math.round(m.topPlat.n/m.n*100)}%)`);
-    add("rhythm","rhythm",{kicker:"จังหวะการสร้างของคุณ",big:phTxt,sub:"ช่วงเวลาที่คุณส่งงานบ่อยที่สุด",lines:lt,viz:{t:"hours"}});
+    const l5=[["📆",T(`วัน${DOW.th[m.topDow]}คือวันของคุณ`,`${DOW.en[m.topDow]} is your day`)]]; if(m.topPlat) l5.push(["📲",T(`แพลตฟอร์มโปรด: ${m.topPlat.k} (${Math.round(m.topPlat.n/m.n*100)}%)`,`Favorite platform: ${m.topPlat.k} (${Math.round(m.topPlat.n/m.n*100)}%)`)]);
+    add("rhythm","rhythm",{kick:T("จังหวะ","YOUR RHYTHM"),head:T("คุณส่งงานบ่อยที่สุดตอน","You post most around"),big:String(m.topHour).padStart(2,"0")+":00",unit:"",viz:{t:"hours"},lines:l5});
     if(m.weeksTotal>0){
-      const l=[]; if(m.promax) l.push(`💚 รับเป้า PRO MAX 14 ชิ้น ${m.promax} สัปดาห์`); if(m.laser) l.push(`🔴 รับเป้า LASER FOCUS ${m.laser} สัปดาห์`); if(m.revived) l.push("💀→✅ ล้มเป็นกระโหลกแล้วลุกกลับมาทำครบ"); if(!l.length) l.push("เลือกเป้าที่ไหวแล้วทำให้ได้ คือสุดยอดแล้ว");
-      add("goal","goal",{kicker:"เป้าที่คุณเลือกบ่อยที่สุด",big:m.favTarget,sub:"ชิ้นต่อสัปดาห์",lines:l,viz:{t:"weeks"}});
+      const l=[]; if(m.promax) l.push(["💚",T(`รับเป้า PRO MAX 14 ชิ้น ${m.promax} สัปดาห์`,`PRO MAX (14 a week) for ${m.promax} weeks`)]); if(m.laser) l.push(["🔴",T(`รับเป้า LASER FOCUS ${m.laser} สัปดาห์`,`LASER FOCUS for ${m.laser} weeks`)]);
+      if(m.revived) l.push(["💀",T("ล้มเป็นกระโหลกแล้วลุกกลับมาทำครบ","Went skull, came back and hit the goal")]); if(!l.length) l.push(["✅",T("เลือกเป้าที่ไหวแล้วทำให้ได้ คือสุดยอดแล้ว","Pick what's doable and do it — that's a win.")]);
+      add("goal","goal",{kick:T("เป้าหมาย","YOUR GOALS"),head:T("เป้าที่คุณเลือกบ่อยที่สุด","The goal you picked most"),big:m.favTarget,unit:T("ชิ้นต่อสัปดาห์","pieces a week"),viz:{t:"weeks"},lines:l});
     }
     if(m.damage>0){
-      const l=[]; if(m.slain) l.push(`ร่วมล้มบอส ${m.slain} ตัว 🗡️`); if(m.fb) l.push(`FIRST BLOOD ×${m.fb} 🩸`); if(m.lh) l.push(`LAST HIT ×${m.lh} 💥`);
-      const cr=m.c3+m.c5+m.c10; if(cr) l.push(`ติดคริติคอล ${cr} ครั้ง (×3: ${m.c3} · ×5: ${m.c5} · ×10: ${m.c10})`);
-      add("boss","boss",{kicker:"สนามบอส",big:m.damage,sub:"ดาเมจรวมที่คุณใส่บอส",lines:l,emoji:"🗡️"});
+      const l=[]; if(m.slain) l.push(["🗡️",T(`ร่วมล้มบอส ${m.slain} ตัว`,`Helped slay ${m.slain} bosses`)]); if(m.fb) l.push(["🩸",`FIRST BLOOD ×${m.fb}`]); if(m.lh) l.push(["💥",`LAST HIT ×${m.lh}`]);
+      const cr=m.c3+m.c5+m.c10; if(cr) l.push(["🎰",T(`ติดคริติคอล ${cr} ครั้ง (×3: ${m.c3} · ×5: ${m.c5} · ×10: ${m.c10})`,`${cr} critical hits (×3: ${m.c3} · ×5: ${m.c5} · ×10: ${m.c10})`)]);
+      add("boss","boss",{kick:T("สนามบอส","BOSS ARENA"),head:T("ดาเมจที่คุณใส่บอส","Damage you dealt"),big:m.damage,unit:T("ดาเมจ","damage"),lines:l,sticker:"🗡️"});
     }
     if(m.duel.fought>0){
       const d=m.duel, rv=Object.entries(d.rivals).sort((a,b)=>b[1]-a[1])[0], rvName=rv&&W.P[rv[0]]?W.P[rv[0]].p.name:null, l=[];
-      if(rvName&&rv[1]>=2) l.push(`คู่ปรับตลอดกาล: ${rvName} (${rv[1]} ครั้ง)`); if(d.margin>0) l.push(`ชนะห่างสุด ${d.margin} ชิ้น`); l.push(`ลงดวลทั้งหมด ${d.fought} ครั้ง`);
-      add("pvp","pvp",{kicker:"สังเวียนดวล ⚔️",big:`${d.won}-${d.lost}`+(d.draw?`-${d.draw}`:""),sub:d.draw?"ชนะ-แพ้-เสมอ":"ชนะ-แพ้",lines:l,emoji:"⚔️",hideName:!!W.hideNames});
+      if(rvName&&rv[1]>=2) l.push(["🦊",T(`คู่ปรับตลอดกาล: ${rvName} (${rv[1]} ครั้ง)`,`Arch rival: ${rvName} (${rv[1]} duels)`)]); if(d.margin>0) l.push(["💥",T(`ชนะห่างสุด ${d.margin} ชิ้น`,`Biggest win: by ${d.margin} pieces`)]); l.push(["⚔️",T(`ลงดวลทั้งหมด ${d.fought} ครั้ง`,`${d.fought} duels in total`)]);
+      add("pvp","pvp",{kick:T("สังเวียนดวล","THE ARENA"),head:T("สถิติดวลของคุณ","Your duel record"),big:`${d.won}-${d.lost}`+(d.draw?`-${d.draw}`:""),unit:T(d.draw?"ชนะ – แพ้ – เสมอ":"ชนะ – แพ้",d.draw?"wins – losses – draws":"wins – losses"),lines:l,sticker:"⚔️"});
     }
     if(m.given+m.recv+m.hearts>0||m.buddies.length){
-      const l=[`คุณเชียร์เพื่อน ${m.given} ครั้ง 📣`]; if(m.buddies.length&&!W.hideNames) l.push(`บัดดี้: ${m.buddies.slice(0,3).map(b=>b.name).join(", ")} 🤝`); else if(m.buddies.length) l.push(`มีบัดดี้ ${m.buddies.length} คน · streak คู่สูงสุด ${m.buddyBest} วัน 🤝`);
-      if(m.hearts) l.push(`ได้กำลังใจจากอาจารย์ ${m.hearts} ครั้ง 💛`); if(m.nSent) l.push(`สะกิดเพื่อนให้ลุก ${m.nSent} ครั้ง 👉`);
-      add("social","social",{kicker:"เพื่อนร่วมทาง",big:m.recv,sub:"ครั้งที่มีคนเชียร์คุณ 💖",lines:l,emoji:"🤝"});
+      const l=[["📣",T(`คุณเชียร์เพื่อน ${m.given} ครั้ง`,`You cheered friends ${m.given} times`)]]; if(m.buddies.length) l.push(["🤝",T(`บัดดี้: ${m.buddies.slice(0,3).map(b=>b.name).join(", ")}`,`Buddies: ${m.buddies.slice(0,3).map(b=>b.name).join(", ")}`)]);
+      if(m.hearts) l.push(["💛",T(`ได้กำลังใจจากอาจารย์ ${m.hearts} ครั้ง`,`${m.hearts} Coach's Hearts received`)]); if(m.nSent) l.push(["👉",T(`สะกิดเพื่อนให้ลุก ${m.nSent} ครั้ง`,`You nudged friends ${m.nSent} times`)]);
+      add("social","social",{kick:T("เพื่อนร่วมทาง","YOUR PEOPLE"),head:T("มีคนเชียร์คุณ","People cheered for you"),big:m.recv,unit:T("ครั้ง","times"),lines:l,sticker:"💖"});
     }
     if(m.p.house){
-      const l=[]; if(m.houseCups) l.push(`บ้านคุณได้ถ้วย ${m.houseCups} สัปดาห์ 🏆`); if(m.kingWeeks.length) l.push(`คุณเป็น King of the Week ${m.kingWeeks.length} สัปดาห์ 👑`);
-      const th=raw.cohort.topHouse; if(th&&th.house===m.p.house) l.push("🏆 บ้านของคุณคือแชมป์รุ่นนี้"); if(role==="student") l.push(`คุณมีส่วนในชิ้นงานของบ้าน ${m.houseShare}%`);
-      add("house","house",{kicker:`บ้าน ${hs.name}`,big:`${hs.emoji}`,bigEmoji:true,sub:hs.name,lines:l});
+      const l=[]; if(m.houseCups) l.push(["🏆",T(`บ้านคุณได้ถ้วย ${m.houseCups} สัปดาห์`,`Your house won the cup ${m.houseCups} times`)]); if(m.kingWeeks.length) l.push(["👑",T(`คุณเป็น King of the Week ${m.kingWeeks.length} สัปดาห์`,`King of the Week × ${m.kingWeeks.length}`)]);
+      const th=raw.cohort.topHouse; if(th&&th.house===m.p.house) l.push(["🥇",T("บ้านของคุณคือแชมป์รุ่นนี้","Your house is the cohort champion")]);
+      add("house","house",{kick:T(`บ้าน ${hs.name}`,`HOUSE ${hs.name}`),head:role==="student"?T("ส่วนที่คุณมีในบ้าน","Your share of the house"):T("บ้านของคุณ","Your house"),big:role==="student"?`${m.houseShare}%`:hs.emoji,unit:role==="student"?T("ของชิ้นงานทั้งบ้านมาจากคุณ","of the house's output came from you"):hs.name,lines:l,sticker:hs.emoji});
     }
     const bs=m.badges.map(k=>({k,...badgeMeta(k)}));
     if(bs.length>1){
       const rare=bs.map(b=>({b,pct:Math.round((raw._holders[b.k]||0)/Math.max(1,raw._students)*100)})).sort((a,b)=>a.pct-b.pct)[0];
-      add("badge","badge",{kicker:"ป้ายที่คุณปลดล็อก",big:bs.length,sub:`จาก ${(typeof BADGES!=="undefined"?BADGES.length:21)} ป้าย`,lines:rare?[`ป้ายที่หายากที่สุดของคุณ: ${rare.b.e} ${rare.b.n}`,`มีแค่ ${Math.max(1,rare.pct)}% ของรุ่นที่ได้`]:[],viz:{t:"badges",data:bs}});
+      add("badge","badge",{kick:T("ป้ายรางวัล","YOUR BADGES"),head:T("ป้ายที่คุณปลดล็อก","Badges unlocked"),big:bs.length,unit:T(`จาก ${(typeof BADGES!=="undefined"?BADGES.length:21)} ป้าย`,`of ${(typeof BADGES!=="undefined"?BADGES.length:21)}`),viz:{t:"badges",data:bs},
+        lines:rare?[["💎",T(`หายากที่สุดของคุณ: ${rare.b.n}`,`Your rarest: ${rare.b.n}`)],["📊",T(`มีแค่ ${Math.max(1,rare.pct)}% ของรุ่นที่ได้`,`Only ${Math.max(1,rare.pct)}% of the cohort has it`)]]:[]});
     }
     if(role==="student") m.records.forEach(r=>{
-      const rk=r.rank===1?"#1":`#${r.rank}`, tie=r.same>1?`ร่วมกับอีก ${r.same-1} คน`:null;
-      add("rec_"+r.def.k,"rec",{kicker:`🏅 สถิติเด็ดของรุ่น · ${({pvp:"สายนักสู้",time:"สายจังหวะเวลา",boss:"สายบอส/ดวงชะตา",social:"สายสังคม",grit:"สายไม่ยอมแพ้",wacky:"หมวดปั่น ๆ"})[r.cat]}`,big:rk,sub:`${r.def.e} ${r.def.t}`,
-        lines:[r.def.fmt?`${r.def.u}: ${r.text}`:`${r.text} ${r.def.u}`,tie].filter(Boolean),emoji:r.def.e,rec:true});
+      const tie=r.same>1?T(`ร่วมกับอีก ${r.same-1} คน`,`shared with ${r.same-1} other${r.same-1>1?"s":""}`):null, title=L==="en"?r.def.te:r.def.t, val=r.def.fmt?r.def.fmt(r.m,L):fN(Math.abs(r.value)), unit=L==="en"?r.def.ue:r.def.u;
+      add("rec_"+r.def.k,"rec",{kick:T(`สถิติเด็ดของรุ่น · ${CATS[r.cat][0]}`,`COHORT RECORD · ${CATS[r.cat][1]}`),head:T("คุณคือ","You are"),big:"#"+r.rank,unit:title,sticker:r.def.e,rec:true,
+        lines:[[r.def.e,r.def.fmt?`${unit}: ${val}`:`${val} ${unit}`]].concat(tie?[["🤝",tie]]:[])});
     });
-    if(m.style&&role==="student") add("style","style",{kicker:"สไตล์นักสร้างของคุณคือ",big:m.style.e,bigEmoji:true,sub:m.style.n,lines:[m.style.th]});
+    if(m.style&&role==="student") add("style","style",{kick:T("สไตล์ของคุณ","YOUR STYLE"),head:T("คุณคือสาย","You are a"),big:m.style.e,bigEmoji:true,unit:m.style.n,lines:[["✨",(L==="en"?STYLE_EN:STYLE_TH)[m.style.k]||m.style.th]]});
   }
-  const co=raw.cohort; { const l=[`${co.students} คนร่วมเดินทาง`]; if(co.slain) l.push(`ล้มบอสไปทั้งหมด ${co.slain} ตัว`); if(co.duels) l.push(`ดวลกัน ${co.duels} ครั้ง`); if(co.crit10) l.push(`ติดคริ ×10 ไป ${co.crit10} ครั้ง 📖`);
-    add("cohort","cohort",{kicker:"รุ่นของเราร่วมกัน",big:co.pieces,sub:"ชิ้นที่ทั้งรุ่นปล่อยออกมา",lines:l,emoji:"🌏"}); }
-  add("final","final",{kicker:`สรุป 90 วัน${roleTxt}`,big:m.tier&&role==="student"?`${m.tier.e} ${m.tier.n}`:m.p.name,bigSmall:true,sub:role==="student"&&m.tier?"ระดับของคุณ":"ขอบคุณที่อยู่ด้วยกัน",lines:[],viz:{t:"summary"},final:true});
+  const co=raw.cohort, lc=[["👥",T(`${co.students} คนร่วมเดินทาง`,`${co.students} people on the journey`)]]; if(co.slain) lc.push(["🗡️",T(`ล้มบอสไปทั้งหมด ${co.slain} ตัว`,`${co.slain} bosses slain`)]); if(co.duels) lc.push(["⚔️",T(`ดวลกัน ${co.duels} ครั้ง`,`${co.duels} duels fought`)]); if(co.crit10) lc.push(["📖",T(`ติดคริ ×10 ไป ${co.crit10} ครั้ง`,`${co.crit10} ×10 crits landed`)]);
+  add("cohort","cohort",{kick:T("ทั้งรุ่น","THE COHORT"),head:T("ทั้งรุ่นร่วมกันปล่อย","Together we published"),big:co.pieces,unit:T("ชิ้น","pieces"),lines:lc,sticker:"🌏"});
+  add("final","final",{kick:T("สรุป 90 วัน","YOUR 90 DAYS")+rl,head:m.p.name,big:m.tier&&role==="student"?`${m.tier.e} ${m.tier.n}`:"",unit:role==="student"&&m.tier?T("ระดับของคุณ","your tier"):"",lines:[["💚",T("ขอบคุณที่ร่วมเดินทางด้วยกัน 90 วัน","Thanks for the 90 days together.")]],viz:{t:"summary"},final:true});
   return S;
 }
 
-/* ---------------------------------------------------------------- Viewer */
-const CSS=`#wrapOv{position:fixed;inset:0;z-index:400;background:#04020c;display:flex;align-items:center;justify-content:center;font-family:var(--f-th,"Noto Sans Thai",sans-serif)}
+/* ---------------------------------------------------------------- Viewer (สไตล์สตอรี่ เต็มจอแนวตั้ง) */
+const CSS=`#wrapOv{position:fixed;inset:0;z-index:400;background:#000;display:flex;align-items:center;justify-content:center}
 #wrapOv *{box-sizing:border-box}
-.wrapStage{--u:min(1vw,.5625vh);position:relative;width:calc(var(--u)*100);height:calc(var(--u)*177.78);max-width:100vw;max-height:100vh;overflow:hidden;color:#fff;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:#111}
-.wrapBars{position:absolute;left:calc(var(--u)*3);right:calc(var(--u)*3);top:calc(var(--u)*2.2);display:flex;gap:calc(var(--u)*1);z-index:5}
-.wrapBars i{flex:1;height:calc(var(--u)*.9);background:rgba(255,255,255,.28);border-radius:9px;overflow:hidden;position:relative}
+.wrapStage{--u:min(1vw,.5625vh);position:relative;width:calc(var(--u)*100);height:calc(var(--u)*177.78);max-width:100vw;max-height:100vh;overflow:hidden;color:#fff;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:#121212;font-weight:500;font-family:"Prompt","IBM Plex Sans Thai",system-ui,sans-serif}
+.wrapBars{position:absolute;left:calc(var(--u)*4);right:calc(var(--u)*4);top:calc(var(--u)*3);display:flex;gap:calc(var(--u)*1.1);z-index:8}
+.wrapBars i{flex:1;height:calc(var(--u)*1);background:rgba(255,255,255,.35);border-radius:9px;overflow:hidden;position:relative;mix-blend-mode:normal}
 .wrapBars i b{position:absolute;inset:0;background:#fff;transform-origin:0 50%;transform:scaleX(0)}
 .wrapBars i.done b{transform:scaleX(1)}
 .wrapBars i.cur b{animation:wrapFill var(--dur,7s) linear forwards}
 .wrapStage.paused .wrapBars i.cur b{animation-play-state:paused}
 @keyframes wrapFill{to{transform:scaleX(1)}}
-.wrapX{position:absolute;right:calc(var(--u)*3);top:calc(var(--u)*5);z-index:6;background:rgba(0,0,0,.35);border:0;color:#fff;font-size:calc(var(--u)*4.4);width:calc(var(--u)*9);height:calc(var(--u)*9);border-radius:50%;cursor:pointer}
-.wrapPrev{position:absolute;left:calc(var(--u)*3);top:calc(var(--u)*5);z-index:6;background:rgba(0,0,0,.35);border:0;color:#fff;font-size:calc(var(--u)*3.4);padding:0 calc(var(--u)*3);height:calc(var(--u)*9);border-radius:99px;cursor:pointer;font-family:inherit}
-.wrapSlide{position:absolute;inset:0;padding:calc(var(--u)*17) calc(var(--u)*8) calc(var(--u)*16);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:calc(var(--u)*3);animation:wrapIn .5s ease both}
-@keyframes wrapIn{from{opacity:0;transform:translateY(calc(var(--u)*4)) scale(.97)}to{opacity:1;transform:none}}
-.wrapSlide:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 28%,rgba(255,255,255,.22),transparent 55%);pointer-events:none}
-.wKick{font-family:var(--f-px,monospace);font-weight:700;font-size:calc(var(--u)*3.6);letter-spacing:.04em;opacity:.92;text-shadow:0 2px 0 rgba(0,0,0,.4);position:relative}
-.wBig{font-family:var(--f-px,monospace);font-weight:700;font-size:calc(var(--u)*22);line-height:1.02;text-shadow:0 calc(var(--u)*.9) 0 rgba(0,0,0,.45),0 0 calc(var(--u)*6) rgba(255,255,255,.35);position:relative;word-break:break-word}
-.wBig.small{font-size:calc(var(--u)*10.5)} .wBig.emo{font-size:calc(var(--u)*26)}
-.wSub{font-family:var(--f-px,monospace);font-size:calc(var(--u)*4.6);font-weight:700;position:relative;text-shadow:0 2px 0 rgba(0,0,0,.4)}
-.wLines{display:grid;gap:calc(var(--u)*1.6);font-size:calc(var(--u)*4);line-height:1.45;position:relative;max-width:100%}
-.wLines div{background:rgba(0,0,0,.28);padding:calc(var(--u)*1.4) calc(var(--u)*3.4);border-radius:calc(var(--u)*2)}
-.wEmoji{font-size:calc(var(--u)*20);filter:drop-shadow(0 0 calc(var(--u)*4) rgba(255,255,255,.6));animation:wrapPop .9s ease both;position:relative}
-@keyframes wrapPop{0%{transform:scale(.3) rotate(-14deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:none}}
-.wRec .wBig{color:#fff3a8}.wRec .wSub{background:rgba(0,0,0,.35);padding:calc(var(--u)*1.4) calc(var(--u)*3);border-radius:99px}
-.wRec{border:calc(var(--u)*1.2) solid #ffe27a;box-shadow:inset 0 0 calc(var(--u)*10) rgba(255,226,122,.55)}
-.wViz{position:relative;display:flex;justify-content:center;align-items:flex-end}
-.wSprite{margin:calc(var(--u)*2) 0} .wSprite .runner{position:relative!important;transform:none!important;width:auto!important} .wSprite svg{width:calc(var(--u)*34)!important;height:auto!important;image-rendering:pixelated}
-.wStrip{display:grid;grid-template-columns:repeat(15,1fr);gap:calc(var(--u)*.9);width:calc(var(--u)*80)}
-.wStrip i{aspect-ratio:1;border-radius:calc(var(--u)*.6);background:rgba(255,255,255,.14)} .wStrip i.on{background:#fff;box-shadow:0 0 calc(var(--u)*2) #fff} .wStrip i.on2{background:#ffe27a} .wStrip i.on3{background:#ff9a1f}
-.wHours{display:flex;align-items:flex-end;gap:calc(var(--u)*.8);height:calc(var(--u)*22);width:calc(var(--u)*80)} .wHours i{flex:1;background:rgba(255,255,255,.3);border-radius:calc(var(--u)*.6) calc(var(--u)*.6) 0 0;min-height:calc(var(--u)*.8)} .wHours i.top{background:#fff}
-.wWeeks{display:flex;align-items:flex-end;gap:calc(var(--u)*1.6);height:calc(var(--u)*24);width:calc(var(--u)*80);justify-content:center} .wWeeks div{flex:1;display:flex;align-items:flex-end;gap:calc(var(--u)*.4);height:100%} .wWeeks i{flex:1;border-radius:calc(var(--u)*.6) calc(var(--u)*.6) 0 0;background:rgba(255,255,255,.3)} .wWeeks i.d{background:#fff} .wWeeks i.d.hit{background:#7dffa0}
-.wBadges{display:grid;grid-template-columns:repeat(6,1fr);gap:calc(var(--u)*2);width:calc(var(--u)*80);font-size:calc(var(--u)*7.4)}
-.wSum{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2);width:calc(var(--u)*82)} .wSum div{background:rgba(0,0,0,.32);border-radius:calc(var(--u)*2);padding:calc(var(--u)*2);font-size:calc(var(--u)*3.2)} .wSum b{display:block;font-family:var(--f-px,monospace);font-size:calc(var(--u)*7.4)}
-.wBtns{position:absolute;left:0;right:0;bottom:calc(var(--u)*5);display:flex;gap:calc(var(--u)*2);justify-content:center;z-index:6}
-.wBtns button{font-family:var(--f-px,monospace);font-weight:700;font-size:calc(var(--u)*3.4);padding:calc(var(--u)*2.2) calc(var(--u)*5);border:0;border-radius:99px;cursor:pointer;background:#fff;color:#1a0f4a}
-.wBtns button.g{background:#ffd76b;color:#3a2400}
-.wPrev{position:absolute;left:calc(var(--u)*2);bottom:calc(var(--u)*13);z-index:7;font-size:calc(var(--u)*2.8);background:rgba(0,0,0,.55);padding:calc(var(--u)*1.4) calc(var(--u)*2.4);border-radius:calc(var(--u)*1.6);display:flex;gap:calc(var(--u)*1.4);align-items:center;max-width:calc(var(--u)*96)}
-.wPrev select{font-size:calc(var(--u)*2.8);max-width:calc(var(--u)*52);background:#1c1440;color:#fff;border:1px solid #6a5cff;border-radius:6px}
-@media (prefers-reduced-motion:reduce){.wrapSlide,.wEmoji{animation:none}.wrapBars i.cur b{animation-duration:0s}}`;
+.wCtl{position:absolute;top:calc(var(--u)*6.4);left:calc(var(--u)*4);right:calc(var(--u)*4);display:flex;justify-content:space-between;align-items:center;z-index:9}
+.wCtl button,.wLang{border:0;cursor:pointer;color:#fff;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);font-family:inherit;font-weight:700;border-radius:99px;height:calc(var(--u)*8);font-size:calc(var(--u)*3.2);padding:0 calc(var(--u)*3.4)}
+.wCtl .x{width:calc(var(--u)*8);padding:0;font-size:calc(var(--u)*3.8)}
+.wCtl .r{display:flex;gap:calc(var(--u)*2)}
+.wCtl .on{background:#fff;color:#000}
+.wrapSlide{position:absolute;inset:0;background:var(--bg);color:var(--fg);overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--u)*20) calc(var(--u)*8) calc(var(--u)*20);animation:wFade .35s ease both}
+@keyframes wFade{from{opacity:0}to{opacity:1}}
+.wShapes i{position:absolute;display:block;animation:wDrift 9s ease-in-out infinite alternate}
+.wShapes i:nth-child(2){animation-duration:12s;animation-delay:-3s}.wShapes i:nth-child(3){animation-duration:7s;animation-delay:-1s}
+@keyframes wDrift{from{transform:translate(0,0) rotate(var(--rot,0deg)) scale(1)}to{transform:translate(calc(var(--u)*-3),calc(var(--u)*4)) rotate(calc(var(--rot,0deg) + 14deg)) scale(1.06)}}
+.wRays{position:absolute;left:calc(var(--u)*-30);top:calc(var(--u)*-8);width:calc(var(--u)*160);height:calc(var(--u)*160);border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.55) 0 7deg,transparent 7deg 18deg);animation:wSpin 38s linear infinite;opacity:.55;-webkit-mask-image:radial-gradient(circle,#000 0,transparent 62%);mask-image:radial-gradient(circle,#000 0,transparent 62%)}
+@keyframes wSpin{to{transform:rotate(360deg)}}
+.wSticker{position:absolute;right:calc(var(--u)*6);top:calc(var(--u)*26);font-size:calc(var(--u)*17);transform:rotate(10deg);filter:drop-shadow(0 calc(var(--u)*1) 0 rgba(0,0,0,.25));animation:wPop .8s cubic-bezier(.2,1.5,.4,1) .15s both;z-index:3}
+@keyframes wPop{from{transform:scale(.2) rotate(-30deg);opacity:0}to{transform:rotate(10deg)}}
+.wInner{position:relative;z-index:4;display:flex;flex-direction:column;gap:calc(var(--u)*3.2);text-align:left}
+.wTag{align-self:flex-start;background:var(--fg);color:var(--bg);font-weight:800;font-size:calc(var(--u)*3);letter-spacing:.08em;text-transform:uppercase;padding:calc(var(--u)*1.2) calc(var(--u)*3.2);border-radius:99px;animation:wUp .6s both}
+.wHead{margin:0;font-weight:800;font-size:calc(var(--u)*7.6);line-height:1.32;white-space:pre-line;animation:wUp .7s .08s both;word-break:break-word}
+.wBigRow{display:flex;flex-direction:column;gap:calc(var(--u)*.6)}
+.wBig{font-weight:800;font-size:calc(var(--u)*36);line-height:1.02;letter-spacing:-.02em;animation:wPopBig .8s .18s cubic-bezier(.2,1.4,.4,1) both;word-break:break-word;font-feature-settings:"tnum"}
+.wBig.l4{font-size:calc(var(--u)*28)}.wBig.l5{font-size:calc(var(--u)*23)}.wBig.l7{font-size:calc(var(--u)*13.5)}.wBig.emo{font-size:calc(var(--u)*30)}
+.wUnit{font-weight:700;font-size:calc(var(--u)*5.6);line-height:1.35;animation:wUp .7s .3s both}
+@keyframes wUp{from{opacity:0;transform:translateY(calc(var(--u)*4))}to{opacity:1;transform:none}}
+@keyframes wPopBig{from{opacity:0;transform:scale(.6) translateY(calc(var(--u)*3))}to{opacity:1;transform:none}}
+.wList{list-style:none;margin:calc(var(--u)*1) 0 0;padding:0;animation:wUp .8s .42s both}
+.wList li{display:flex;gap:calc(var(--u)*3);align-items:flex-start;padding:calc(var(--u)*2.1) 0;border-top:calc(var(--u)*.35) solid color-mix(in srgb,var(--fg) 24%,transparent);font-size:calc(var(--u)*4.4);line-height:1.5;font-weight:600}
+.wList li b{flex:0 0 calc(var(--u)*6.5);font-weight:400;text-align:center}
+.wViz{animation:wUp .8s .3s both}
+.wStrip{display:grid;grid-template-columns:repeat(15,1fr);gap:calc(var(--u)*.9);width:100%}
+.wStrip i{aspect-ratio:1;border-radius:calc(var(--u)*.7);background:color-mix(in srgb,var(--fg) 16%,transparent)}.wStrip i.on{background:var(--fg);opacity:.55}.wStrip i.on2{background:var(--fg);opacity:.8}.wStrip i.on3{background:var(--fg)}
+.wHours{display:flex;align-items:flex-end;gap:calc(var(--u)*.7);height:calc(var(--u)*22);width:100%}.wHours i{flex:1;background:color-mix(in srgb,var(--fg) 32%,transparent);border-radius:calc(var(--u)*.8) calc(var(--u)*.8) 0 0;min-height:calc(var(--u)*.9)}.wHours i.top{background:var(--fg)}
+.wWeeks{display:flex;align-items:flex-end;gap:calc(var(--u)*1.8);height:calc(var(--u)*24);width:100%}.wWeeks div{flex:1;display:flex;align-items:flex-end;gap:calc(var(--u)*.5);height:100%}.wWeeks i{flex:1;border-radius:calc(var(--u)*.8) calc(var(--u)*.8) 0 0;background:color-mix(in srgb,var(--fg) 28%,transparent)}.wWeeks i.d{background:var(--fg)}.wWeeks i.d.hit{background:var(--ac);box-shadow:0 0 0 calc(var(--u)*.4) var(--fg)}
+.wBadges{display:grid;grid-template-columns:repeat(6,1fr);gap:calc(var(--u)*2);font-size:calc(var(--u)*8);text-align:center}
+.wSum{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.2)}.wSum div{background:color-mix(in srgb,var(--fg) 12%,transparent);border-radius:calc(var(--u)*3);padding:calc(var(--u)*2.6) calc(var(--u)*3);font-size:calc(var(--u)*3.4);font-weight:600}.wSum b{display:block;font-weight:800;font-size:calc(var(--u)*9);line-height:1.15}
+.wSprite{display:flex;justify-content:flex-start;margin:calc(var(--u)*-2) 0}.wSprite .runner{position:relative!important;transform:none!important;width:auto!important}.wSprite svg{width:calc(var(--u)*36)!important;height:auto!important;image-rendering:pixelated;filter:drop-shadow(0 calc(var(--u)*1.4) 0 rgba(0,0,0,.35))}
+.wSlide-final .wHead{font-size:calc(var(--u)*11)}.wSlide-intro .wHead{font-size:calc(var(--u)*12);line-height:1.2}.wSlide-intro .wUnit{font-size:calc(var(--u)*6)}
+.wBtns{position:absolute;left:calc(var(--u)*8);right:calc(var(--u)*8);bottom:calc(var(--u)*7);display:flex;gap:calc(var(--u)*2.4);z-index:9}
+.wBtns button{flex:1;font-family:inherit;font-weight:800;font-size:calc(var(--u)*3.8);padding:calc(var(--u)*3) calc(var(--u)*2);border:0;border-radius:99px;cursor:pointer;background:#fff;color:#000}
+.wBtns button.g{background:#000;color:#fff}
+.wLangScr{position:absolute;inset:0;z-index:10;background:#121212;display:flex;flex-direction:column;justify-content:center;gap:calc(var(--u)*5);padding:0 calc(var(--u)*9);overflow:hidden;animation:wFade .4s both}
+.wLangScr .t{font-weight:800;font-size:calc(var(--u)*17);line-height:1.02;letter-spacing:-.03em;background:linear-gradient(90deg,#1ed760,#509bf5 45%,#f037a5);-webkit-background-clip:text;background-clip:text;color:transparent;position:relative;z-index:2}
+.wLangScr .s{font-size:calc(var(--u)*4.6);font-weight:600;line-height:1.5;opacity:.9;position:relative;z-index:2}
+.wLangScr button{position:relative;z-index:2;font-family:inherit;font-weight:800;font-size:calc(var(--u)*7);padding:calc(var(--u)*5) calc(var(--u)*6);border:0;border-radius:calc(var(--u)*5);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;color:#000}
+.wLangScr button small{font-size:calc(var(--u)*3.4);font-weight:700;opacity:.7}
+.wLangScr .th{background:#1ed760}.wLangScr .en{background:#ffcd3c}
+.wLangScr .sh i{position:absolute;display:block;border-radius:50%}
+.wPrev{position:absolute;left:calc(var(--u)*2);bottom:calc(var(--u)*-0.5);z-index:11;font-size:calc(var(--u)*2.7);background:rgba(0,0,0,.72);padding:calc(var(--u)*1.2) calc(var(--u)*2.2);border-radius:calc(var(--u)*1.6) calc(var(--u)*1.6) 0 0;display:flex;gap:calc(var(--u)*1.4);align-items:center;max-width:calc(var(--u)*96)}
+.wPrev select{font-size:calc(var(--u)*2.7);max-width:calc(var(--u)*50);background:#222;color:#fff;border:1px solid #555;border-radius:6px}
+@media (prefers-reduced-motion:reduce){.wrapSlide *,.wShapes i,.wRays,.wSticker{animation:none!important}.wrapBars i.cur b{animation-duration:0s}}`;
 let ST=null;
-function injectCss(){ if(document.getElementById("wrapCss")) return; const s=document.createElement("style"); s.id="wrapCss"; s.textContent=CSS; document.head.appendChild(s); }
+function injectCss(){
+  if(!document.getElementById("wrapFont")){ const l=document.createElement("link"); l.id="wrapFont"; l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap"; document.head.appendChild(l); }
+  if(document.getElementById("wrapCss")) return; const s=document.createElement("style"); s.id="wrapCss"; s.textContent=CSS; document.head.appendChild(s);
+}
 function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function bigCls(b){ const n=String(b).length; return n<=3?"":n===4?"l4":n===5?"l5":"l7"; }
 function vizHTML(sl,W){
   const m=W.m, v=sl.viz; if(!v) return "";
-  if(v.t==="sprite"){ const r=(typeof S!=="undefined"?S.runners:[]).find(x=>x.id===m.id); if(r&&typeof runnerBox==="function") return `<div class="wViz wSprite">${runnerBox(avOf(r),6,"normal")}</div>`; return `<div class="wEmoji">🧑‍🚀</div>`; }
+  if(v.t==="sprite"){ const r=(typeof S!=="undefined"?S.runners:[]).find(x=>x.id===m.id); if(r&&typeof runnerBox==="function") return `<div class="wSprite">${runnerBox(avOf(r),6,"normal")}</div>`; return ""; }
   if(v.t==="strip"){ const t=W.raw.today, cells=[]; for(let d=1; d<=90; d++){ const n=m.days[d]||0; cells.push(`<i class="${d>t?"":n>=3?"on3":n===2?"on2":n?"on":""}"></i>`); } return `<div class="wViz"><div class="wStrip">${cells.join("")}</div></div>`; }
   if(v.t==="hours"){ const mx=Math.max(1,...m.hours); return `<div class="wViz"><div class="wHours">${m.hours.map((h,i)=>`<i class="${i===m.topHour?"top":""}" style="height:${Math.max(4,h/mx*100)}%"></i>`).join("")}</div></div>`; }
   if(v.t==="weeks"){ const mx=Math.max(1,...m.wk.map(x=>Math.max(x.t,x.done))); return `<div class="wViz"><div class="wWeeks">${m.wk.map(x=>`<div><i style="height:${x.t/mx*100}%"></i><i class="d ${x.hit?"hit":""}" style="height:${Math.max(3,x.done/mx*100)}%"></i></div>`).join("")}</div></div>`; }
-  if(v.t==="badges") return `<div class="wViz"><div class="wBadges">${v.data.slice(0,18).map(b=>`<span title="${esc(b.n)}">${b.e}</span>`).join("")}</div></div>`;
-  if(v.t==="summary"){ const tcs=[["ชิ้นรวม",m.n],["วันที่ส่ง",m.activeDays],["streak สูงสุด",m.longestStreak],["ครบเป้า",m.weeksTotal?`${m.weeksHit}/${m.weeksTotal}`:"—"]];
-    return `<div class="wViz" style="flex-direction:column;gap:calc(var(--u)*3);align-items:center"><div class="wSum">${tcs.map(([l,x])=>`<div><b>${x}</b>${l}</div>`).join("")}</div><div class="wBadges" style="grid-template-columns:repeat(8,1fr);font-size:calc(var(--u)*5.6)">${m.badges.slice(0,16).map(k=>`<span>${badgeMeta(k).e}</span>`).join("")}</div>${m.style?`<div class="wSub">${m.style.e} ${m.style.n}</div>`:""}${m.records.length?`<div class="wLines"><div>${m.records.map(r=>r.def.e+" "+r.def.t.split(" (")[0]+" #"+r.rank).join(" · ")}</div></div>`:""}</div>`; }
+  if(v.t==="badges") return `<div class="wViz"><div class="wBadges">${v.data.slice(0,18).map(b=>`<span>${b.e}</span>`).join("")}</div></div>`;
+  if(v.t==="summary"){ const L=W.L, cells=[[tr(L,"ชิ้นรวม","pieces"),m.n],[tr(L,"วันที่ส่ง","active days"),m.activeDays],[tr(L,"streak สูงสุด","best streak"),m.longestStreak],[tr(L,"ครบเป้า","goals hit"),m.weeksTotal?`${m.weeksHit}/${m.weeksTotal}`:"—"]];
+    return `<div class="wViz"><div class="wSum">${cells.map(([l,x])=>`<div><b>${x}</b>${l}</div>`).join("")}</div><div class="wBadges" style="grid-template-columns:repeat(8,1fr);font-size:calc(var(--u)*5.6);margin-top:calc(var(--u)*3)">${m.badges.slice(0,16).map(k=>`<span>${badgeMeta(k).e}</span>`).join("")}</div></div>`; }
   return "";
 }
-function slideHTML(sl,W){
-  const c=sl.c, bg=`background:radial-gradient(ellipse at 50% 20%,${c[0]},${c[1]} 75%)`;
-  return `<div class="wrapSlide ${sl.rec?"wRec":""}" style="${bg}">
-    <div class="wKick">${esc(sl.kicker||"")}</div>
-    ${sl.emoji&&!sl.bigEmoji?`<div class="wEmoji">${sl.emoji}</div>`:""}
-    ${sl.viz&&sl.viz.t==="sprite"?vizHTML(sl,W):""}
-    <div class="wBig ${sl.bigSmall?"small":""} ${sl.bigEmoji?"emo":""}" data-count="${typeof sl.big==="number"?sl.big:""}">${esc(sl.big)}</div>
-    ${sl.sub?`<div class="wSub">${esc(sl.sub)}</div>`:""}
-    ${sl.viz&&sl.viz.t!=="sprite"?vizHTML(sl,W):""}
-    ${sl.lines&&sl.lines.length?`<div class="wLines">${sl.lines.map(l=>`<div>${esc(l)}</div>`).join("")}</div>`:""}
+function shapesHTML(sl,idx){
+  const p=PAL[sl.sec]||PAL.intro, pre=SHAPES[idx%SHAPES.length];
+  return (sl.rec?`<div class="wRays"></div>`:"")+`<div class="wShapes">${pre.map(([w,x,y,c,r,rot])=>`<i style="--rot:${rot}deg;width:calc(var(--u)*${w});height:calc(var(--u)*${w});left:calc(var(--u)*${x});top:calc(var(--u)*${y});border-radius:${r};background:${p[c]};opacity:${c==="ac"?.9:1};transform:rotate(${rot}deg)"></i>`).join("")}</div>`;
+}
+function slideHTML(sl,W,idx){
+  const p=PAL[sl.sec]||PAL.intro, vz=vizHTML(sl,W), bigIsSprite=sl.viz&&sl.viz.t==="sprite";
+  const big=(sl.big!==undefined&&sl.big!=="")?`<div class="wBig ${sl.bigEmoji?"emo":bigCls(sl.big)}" data-count="${typeof sl.big==="number"?sl.big:""}">${esc(sl.big)}</div>`:"";
+  return `<div class="wrapSlide wSlide-${sl.sec}${sl.final?" wSlide-final":""}" style="--bg:${p.bg};--fg:${p.fg};--ac:${p.ac}">
+    ${shapesHTML(sl,idx)}${sl.sticker?`<div class="wSticker">${sl.sticker}</div>`:""}
+    <div class="wInner">
+      <div class="wTag">${esc(sl.kick||"")}</div>
+      ${bigIsSprite?vz:""}
+      <h2 class="wHead">${esc(sl.head||"")}</h2>
+      ${(big||sl.unit)?`<div class="wBigRow">${big}${sl.unit?`<div class="wUnit">${esc(sl.unit)}</div>`:""}</div>`:""}
+      ${bigIsSprite?"":vz}
+      ${sl.lines&&sl.lines.length?`<ul class="wList">${sl.lines.map(([e,t])=>`<li><b>${e}</b><span>${esc(t)}</span></li>`).join("")}</ul>`:""}
+    </div>
   </div>`;
 }
-function countUp(el){ const to=+el.dataset.count; if(!to||to<10||matchMedia("(prefers-reduced-motion:reduce)").matches) return; const t0=performance.now(), dur=900; const f=t=>{ const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3); el.textContent=Math.round(to*e).toLocaleString("en-US"); if(k<1&&ST&&el.isConnected) requestAnimationFrame(f); else el.textContent=to; }; requestAnimationFrame(f); }
+function countUp(el){ const to=+el.dataset.count; if(!to||to<10||matchMedia("(prefers-reduced-motion:reduce)").matches) return; const t0=performance.now(), dur=900; const f=t=>{ const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3); el.textContent=Math.round(to*e).toLocaleString("en-US"); if(k<1&&ST&&el.isConnected) requestAnimationFrame(f); else el.textContent=to.toLocaleString("en-US"); }; requestAnimationFrame(f); }
+function ctlHTML(){ return `<div class="wCtl"><button data-w="prev">‹ ${tr(ST.lang||"th","ย้อน","Back")}</button><div class="r"><button class="wl ${ST.lang==="th"?"on":""}" data-w="lang" data-l="th">TH</button><button class="wl ${ST.lang==="en"?"on":""}" data-w="lang" data-l="en">EN</button><button class="x" data-w="close" aria-label="close">✕</button></div></div>`; }
+function langScreen(){
+  const dots=[["#1ed760",90,48,-14],["#7b2ff7",52,-22,122],["#f037a5",24,70,112]].map(([c,w,x,y])=>`<i style="background:${c};width:calc(var(--u)*${w});height:calc(var(--u)*${w});left:calc(var(--u)*${x});top:calc(var(--u)*${y});opacity:.95"></i>`).join("");
+  return `<div class="wLangScr"><div class="sh">${dots}</div><div class="t">YOUR 90<br>DAYS,<br>WRAPPED.</div><div class="s">เลือกเวอร์ชันที่อยากดู<br>Choose your version</div><button class="th" data-w="pick" data-l="th"><span>ภาษาไทย</span><small>TH</small></button><button class="en" data-w="pick" data-l="en"><span>English</span><small>EN</small></button></div>`;
+}
 function show(i){
-  if(!ST) return; ST.i=Math.max(0,Math.min(ST.slides.length-1,i)); const stage=ST.stage, sl=ST.slides[ST.i];
-  stage.querySelectorAll(".wrapSlide").forEach(e=>e.remove()); stage.insertAdjacentHTML("afterbegin",slideHTML(sl,ST.W));
+  if(!ST||!ST.lang) return; ST.i=Math.max(0,Math.min(ST.slides.length-1,i)); const stage=ST.stage, sl=ST.slides[ST.i];
+  stage.querySelectorAll(".wrapSlide").forEach(e=>e.remove()); stage.insertAdjacentHTML("afterbegin",slideHTML(sl,ST.W,ST.i));
   stage.querySelectorAll(".wBig[data-count]").forEach(countUp);
   const bars=stage.querySelectorAll(".wrapBars i"); bars.forEach((b,k)=>{ b.className=k<ST.i?"done":k===ST.i?"cur":""; const cur=b.querySelector("b"); if(k===ST.i){ cur.style.animation="none"; void cur.offsetWidth; cur.style.animation=""; } });
   stage.style.setProperty("--dur",(sl.final?3600:7)+"s"); clearTimeout(ST.timer); ST.timer=null;
   if(!sl.final) ST.timer=setTimeout(()=>{ if(!ST.hold) show(ST.i+1); },7000);
-  stage.querySelector(".wBtns").innerHTML=`<button class="g" data-w="share">📸 แชร์สไลด์นี้</button>`+(sl.final?`<button data-w="shareAll">💾 เซฟการ์ดสรุป</button>`:"");
+  stage.querySelector(".wBtns").innerHTML=sl.final?`<button class="g" data-w="share">${tr(ST.lang,"📸 แชร์สไลด์นี้","📸 Share this slide")}</button><button data-w="shareAll">${tr(ST.lang,"💾 เซฟการ์ดสรุป","💾 Save summary card")}</button>`:`<button class="g" data-w="share">${tr(ST.lang,"📸 แชร์สไลด์นี้","📸 Share this slide")}</button>`;
+}
+function setLang(L,keep){
+  ST.lang=L; ST.W.L=L; ST.slides=slides(ST.W,L); const stage=ST.stage; const ls=stage.querySelector(".wLangScr"); if(ls) ls.remove();
+  stage.querySelector(".wCtl").outerHTML=ctlHTML(); stage.querySelector(".wrapBars").innerHTML=ST.slides.map(()=>`<i><b></b></i>`).join(""); stage.querySelector(".wrapBars").style.display="";
+  show(keep?ST.i:0);
 }
 function open(who){
-  injectCss(); const W=ST&&ST.all?ST.all:null;
+  injectCss();
   return ensureAll().then(all=>{
     const ppl=all.M.slice().sort((a,b)=>b.n-a.n); let m=all.P[who]||ppl.find(x=>x.p.name===who);
     if(!m){ const me=(typeof meId==="function")?meId():null; m=(me&&all.P[me]&&all.P[me].n>0)?all.P[me]:ppl.find(x=>x.p.role==="student"&&x.records.length>=2)||ppl[0]; }
@@ -363,58 +444,79 @@ function ensureAll(){ if(ALL) return Promise.resolve(ALL);
   if(DB.mode==="demo") return DB.fetchAll().then(d=>{ ALL=build(rawFromDemo(d)); return ALL; });
   return Promise.reject(new Error("Wrapped ของจริงยังไม่เปิด"));
 }
-function mount(all,m){
+function mount(all,m,lang){
   close(); const ov=document.createElement("div"); ov.id="wrapOv";
-  ov.innerHTML=`<div class="wrapStage"><div class="wrapBars"></div><button class="wrapPrev" data-w="prev">‹ ย้อน</button><button class="wrapX" data-w="close" aria-label="ปิด">✕</button><div class="wBtns"></div></div>`;
+  ov.innerHTML=`<div class="wrapStage"><div class="wrapBars" style="display:none"></div><div class="wCtl"></div><div class="wBtns"></div></div>`;
   document.body.appendChild(ov);
-  const W={m,P:all.P,raw:all.raw,hideNames:false}; const sl=slides(W); ST={W,slides:sl,i:0,stage:ov.querySelector(".wrapStage"),all,timer:null,hold:false};
-  ST.stage.querySelector(".wrapBars").innerHTML=sl.map(()=>`<i><b></b></i>`).join("");
+  const W={m,P:all.P,raw:all.raw,hideNames:false,L:"th"}; ST={W,slides:[],i:0,lang:null,stage:ov.querySelector(".wrapStage"),all,timer:null,hold:false};
   if(all.raw.preview){ const sel=all.M.slice().sort((a,b)=>b.n-a.n).map(x=>`<option value="${esc(x.id)}" ${x.id===m.id?"selected":""}>${esc(x.p.name)} · ${x.p.role==="student"?"นักเรียน":x.p.role==="ta"?"TA":"โค้ช"} · ${x.n} ชิ้น · สถิติเด็ด ${x.records.length}</option>`).join("");
     ST.stage.insertAdjacentHTML("beforeend",`<div class="wPrev">👁 พรีวิว${all.raw.synthetic?" (ข้อมูลตัวอย่าง)":""} ดูในมุมของ <select data-w="who">${sel}</select></div>`); }
-  ov.addEventListener("pointerdown",e=>{ if(e.target.closest("button,select")) return; ST.down=Date.now(); ST.x=e.clientX; ST.hold=false; ST.holdT=setTimeout(()=>{ ST.hold=true; ST.stage.classList.add("paused"); },220); });
-  ov.addEventListener("pointerup",e=>{ if(!ST) return; clearTimeout(ST.holdT); const held=ST.hold; ST.hold=false; ST.stage.classList.remove("paused"); if(e.target.closest("button,select")) return; if(held){ show(ST.i); return; }
+  ST.stage.insertAdjacentHTML("beforeend",langScreen());
+  ov.addEventListener("pointerdown",e=>{ if(!ST||!ST.lang||e.target.closest("button,select")) return; ST.hold=false; ST.holdT=setTimeout(()=>{ ST.hold=true; ST.stage.classList.add("paused"); },220); });
+  ov.addEventListener("pointerup",e=>{ if(!ST||!ST.lang) return; clearTimeout(ST.holdT); const held=ST.hold; ST.hold=false; ST.stage.classList.remove("paused"); if(e.target.closest("button,select")) return; if(held){ show(ST.i); return; }
     const r=ST.stage.getBoundingClientRect(); (e.clientX-r.left)<r.width*0.3 ? show(ST.i-1) : (ST.i<ST.slides.length-1?show(ST.i+1):null); });
-  ov.addEventListener("click",e=>{ const b=e.target.closest("[data-w]"); if(!b) return; const a=b.dataset.w; if(a==="close") close(); else if(a==="prev") show(ST.i-1); else if(a==="share") shareSlide(false); else if(a==="shareAll") shareSlide(true); });
-  ov.addEventListener("change",e=>{ if(e.target.dataset&&e.target.dataset.w==="who"){ const mm=all.P[e.target.value]; if(mm) mount(all,mm); } });
-  document.addEventListener("keydown",keys); show(0);
+  ov.addEventListener("click",e=>{ const b=e.target.closest("[data-w]"); if(!b||!ST) return; const a=b.dataset.w;
+    if(a==="close") close(); else if(a==="prev"){ if(ST.lang) show(ST.i-1); } else if(a==="share") shareSlide(false); else if(a==="shareAll") shareSlide(true); else if(a==="pick") setLang(b.dataset.l,false); else if(a==="lang"){ if(ST.lang!==b.dataset.l) setLang(b.dataset.l,true); } });
+  ov.addEventListener("change",e=>{ if(e.target.dataset&&e.target.dataset.w==="who"){ const mm=all.P[e.target.value]; if(mm){ const L=ST.lang; mount(all,mm); if(L) setLang(L,false); } } });
+  document.addEventListener("keydown",keys);
+  if(lang) setLang(lang,false);
 }
-function keys(e){ if(!ST) return; if(e.key==="Escape") close(); else if(e.key==="ArrowRight"||e.key===" ") show(ST.i+1); else if(e.key==="ArrowLeft") show(ST.i-1); }
+function keys(e){ if(!ST) return; if(e.key==="Escape") close(); else if(ST.lang&&(e.key==="ArrowRight"||e.key===" ")) show(ST.i+1); else if(ST.lang&&e.key==="ArrowLeft") show(ST.i-1); }
 function close(){ const o=document.getElementById("wrapOv"); if(o) o.remove(); if(ST&&ST.timer) clearTimeout(ST.timer); ST=null; document.removeEventListener("keydown",keys); }
 
-/* ---------------------------------------------------------------- การ์ดแชร์รูป (canvas) */
-function wrapText(ctx,text,x,y,maxW,lh){ const words=String(text).split(/(\s+)/); let line="",yy=y; words.forEach(w=>{ const t=line+w; if(ctx.measureText(t).width>maxW&&line){ ctx.fillText(line.trim(),x,yy); line=w.trimStart(); yy+=lh; } else line=t; }); if(line.trim()) ctx.fillText(line.trim(),x,yy); return yy+lh; }
-function drawCard(sl,W,all){
-  const cv=document.createElement("canvas"), fin=!!all, Wd=1080, Hd=fin?1350:1920; cv.width=Wd; cv.height=Hd; const ctx=cv.getContext("2d"), c=sl.c, m=W.m;
-  const g=ctx.createRadialGradient(Wd/2,Hd*0.2,40,Wd/2,Hd*0.45,Hd*0.9); g.addColorStop(0,c[0]); g.addColorStop(1,c[1]); ctx.fillStyle=g; ctx.fillRect(0,0,Wd,Hd);
-  ctx.fillStyle="rgba(255,255,255,.07)"; for(let y=0;y<Hd;y+=24) ctx.fillRect(0,y,Wd,2);
-  ctx.textAlign="center"; ctx.textBaseline="alphabetic"; ctx.shadowColor="rgba(0,0,0,.45)"; ctx.shadowBlur=0;
-  const PX="'PxSeven','Pixelify Sans',monospace", TH="'Noto Sans Thai','Sarabun',sans-serif";
-  let y=fin?120:230; ctx.fillStyle="#fff"; ctx.font=`700 46px ${PX}`; ctx.fillText(sl.kicker||"",Wd/2,y); y+=fin?60:110;
-  if(sl.viz&&sl.viz.t==="sprite"&&typeof drawSpriteCanvas==="function"){ const r=(typeof S!=="undefined"?S.runners:[]).find(x=>x.id===m.id); if(r){ drawSpriteCanvas(ctx,Wd/2-8*16,y,16,avOf(r),"normal"); y+=16*26+20; } }
-  else if(sl.emoji&&!sl.bigEmoji){ const es=sl.rec?190:230; ctx.font=es+"px sans-serif"; ctx.fillText(sl.emoji,Wd/2,y+es*0.9); y+=es*1.15; }
-  const big=String(sl.big); ctx.fillStyle=sl.rec?"#fff3a8":"#fff"; ctx.shadowColor="rgba(0,0,0,.55)"; ctx.shadowOffsetY=8;
-  const bs=sl.bigEmoji?260:sl.bigSmall?(big.length>10?96:130):big.length>5?190:260; ctx.font=`700 ${bs}px ${PX}`; ctx.fillText(big,Wd/2,y+bs*0.82); ctx.shadowOffsetY=0; y+=bs*1.02+34;
-  if(sl.sub){ ctx.fillStyle="#fff"; let fs2=54; ctx.font=`700 ${fs2}px ${PX}`; while(ctx.measureText(sl.sub).width>Wd-140&&fs2>36){ fs2-=2; ctx.font=`700 ${fs2}px ${PX}`; } y=wrapText(ctx,sl.sub,Wd/2,y+fs2*0.7,Wd-140,fs2*1.3)+14; }
-  if(sl.viz&&sl.viz.t==="strip"){ const t=W.raw.today, cell=52, gap=8, cols=15, x0=(Wd-(cols*cell+(cols-1)*gap))/2; for(let d=1; d<=90; d++){ const n=m.days[d]||0, cx=x0+((d-1)%cols)*(cell+gap), cy=y+Math.floor((d-1)/cols)*(cell+gap); ctx.fillStyle=d>t?"rgba(255,255,255,.12)":n>=3?"#ff9a1f":n===2?"#ffe27a":n?"#ffffff":"rgba(255,255,255,.16)"; ctx.fillRect(cx,cy,cell,cell); } y+=6*(cell+gap)+30; }
-  if(sl.viz&&sl.viz.t==="hours"){ const mx=Math.max(1,...m.hours), bw=34, gap=8, x0=(Wd-(24*bw+23*gap))/2; m.hours.forEach((h,i)=>{ const hh=Math.max(8,h/mx*220); ctx.fillStyle=i===m.topHour?"#fff":"rgba(255,255,255,.4)"; ctx.fillRect(x0+i*(bw+gap),y+220-hh,bw,hh); }); y+=260; }
-  if(sl.viz&&sl.viz.t==="badges"){ ctx.font="86px sans-serif"; sl.viz.data.slice(0,18).forEach((b,i)=>{ ctx.fillText(b.e,150+(i%6)*156,y+90+Math.floor(i/6)*120); }); y+=380; }
-  if(sl.viz&&sl.viz.t==="summary"){ const cells=[["ชิ้นรวม",m.n],["วันที่ส่ง",m.activeDays],["streak สูงสุด",m.longestStreak],["ครบเป้า",m.weeksTotal?`${m.weeksHit}/${m.weeksTotal}`:"—"]];
-    cells.forEach(([l,v],i)=>{ const bx=90+(i%2)*450, by=y+Math.floor(i/2)*150; ctx.fillStyle="rgba(0,0,0,.32)"; ctx.fillRect(bx,by,420,130); ctx.fillStyle="#fff"; ctx.font=`700 64px ${PX}`; ctx.fillText(String(v),bx+210,by+68); ctx.font=`30px ${TH}`; ctx.fillText(l,bx+210,by+112); }); y+=330;
-    ctx.font="70px sans-serif"; m.badges.slice(0,10).forEach((k,i)=>ctx.fillText(badgeMeta(k).e,150+i*86,y)); y+=40; if(m.style){ ctx.font=`700 46px ${PX}`; ctx.fillText(`${m.style.e} ${m.style.n}`,Wd/2,y+50); y+=90; } }
-  (sl.lines||[]).forEach(l=>{ let f=40; ctx.font=`${f}px ${TH}`; while(ctx.measureText(l).width>Wd-190&&f>26){ f-=2; ctx.font=`${f}px ${TH}`; } ctx.fillStyle="rgba(0,0,0,.3)"; const w=Math.min(Wd-100,ctx.measureText(l).width+70); ctx.fillRect((Wd-w)/2,y-44,w,70); ctx.fillStyle="#fff"; ctx.fillText(l,Wd/2,y+4); y+=84; });
-  ctx.shadowBlur=0; ctx.fillStyle="rgba(255,255,255,.85)"; ctx.font=`700 28px ${PX}`; ctx.fillText("90 DAY ONE PERSON BUSINESS BOOTCAMP · WRAPPED",Wd/2,Hd-70); ctx.font=`26px ${TH}`; ctx.fillText(`${m.p.name} · By Benz Arnun`,Wd/2,Hd-30);
+/* ---------------------------------------------------------------- การ์ดแชร์รูป (canvas) — จัดวางแบบเดียวกับหน้าจอ */
+const FONT='"Prompt","IBM Plex Sans Thai","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const SEG=(typeof Intl!=="undefined"&&Intl.Segmenter)?new Intl.Segmenter("th",{granularity:"word"}):null;
+function toks(t){ return SEG?[...SEG.segment(t)].map(x=>x.segment):String(t).split(/(\s+)/); }
+function wrapLines(ctx,text,maxW){ const out=[]; String(text).split("\n").forEach(par=>{ let line=""; toks(par).forEach(w=>{ const t=line+w; if(ctx.measureText(t).width>maxW&&line.trim()){ out.push(line.trim()); line=w.trimStart(); } else line=t; }); out.push(line.trim()); }); return out; }
+function dryCtx(real){ return new Proxy({},{ get:(_,p)=>{ if(p==="measureText") return t=>real.measureText(t); const v=real[p]; return typeof v==="function"?(()=>{}):v; }, set:(_,p,v)=>{ if(p==="font"||p==="textAlign"||p==="textBaseline") real[p]=v; return true; } }); }
+function rr(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r); c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h); c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r); c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); }
+function layoutCard(c,sl,W,L,y0,Wd,u,dry){
+  const m=W.m, p=PAL[sl.sec]||PAL.intro, padX=8*u, maxW=Wd-2*padX; let y=y0; c.textAlign="left"; c.textBaseline="alphabetic";
+  /* tag */
+  c.font=`800 ${3*u}px ${FONT}`; const tag=String(sl.kick||"").toUpperCase(), tw=c.measureText(tag).width+6.4*u; if(!dry){ c.fillStyle=p.fg; rr(c,padX,y,tw,5.6*u,2.8*u); c.fill(); c.fillStyle=p.bg; c.fillText(tag,padX+3.2*u,y+3.95*u); } y+=5.6*u+4*u;
+  /* sprite */
+  if(sl.viz&&sl.viz.t==="sprite"&&typeof drawSpriteCanvas==="function"){ const r=(typeof S!=="undefined"?S.runners:[]).find(x=>x.id===m.id); if(r){ const px=Math.round(2.2*u); if(!dry) drawSpriteCanvas(c,padX-2*u,y,px,avOf(r),"normal"); y+=px*27+2*u; } }
+  /* head */
+  const hf=7.6*u; c.font=`800 ${hf}px ${FONT}`; wrapLines(c,sl.head||"",maxW).forEach(l=>{ if(!dry){ c.fillStyle=p.fg; c.fillText(l,padX,y+hf*0.95); } y+=hf*1.32; }); y+=2*u;
+  /* big */
+  if(sl.big!==undefined&&sl.big!==""){ const b=String(sl.big), n=b.length; let bs=(sl.bigEmoji?30:n<=3?36:n===4?28:n===5?23:17)*u; c.font=`800 ${bs}px ${FONT}`; while(c.measureText(b).width>maxW&&bs>6*u){ bs-=u*0.6; c.font=`800 ${bs}px ${FONT}`; } if(!dry){ c.fillStyle=p.fg; c.fillText(b,padX,y+bs*0.86); } y+=bs*1.02; }
+  if(sl.unit){ const uf=5.6*u; c.font=`700 ${uf}px ${FONT}`; wrapLines(c,sl.unit,maxW).forEach(l=>{ if(!dry){ c.fillStyle=p.fg; c.fillText(l,padX,y+uf*1.0); } y+=uf*1.35; }); }
+  y+=3*u;
+  /* viz */
+  const v=sl.viz; if(v&&v.t==="strip"){ const cols=15, gap=0.9*u, cell=(maxW-(cols-1)*gap)/cols; for(let d=1; d<=90; d++){ const n=m.days[d]||0, cx=padX+((d-1)%cols)*(cell+gap), cy=y+Math.floor((d-1)/cols)*(cell+gap); if(!dry){ c.globalAlpha=d>W.raw.today?0.16:n>=3?1:n===2?0.8:n?0.55:0.16; c.fillStyle=p.fg; rr(c,cx,cy,cell,cell,0.7*u); c.fill(); c.globalAlpha=1; } } y+=6*(cell+gap)+3*u; }
+  if(v&&v.t==="hours"){ const mx=Math.max(1,...m.hours), gap=0.7*u, bw=(maxW-23*gap)/24, hh=22*u; m.hours.forEach((h,i)=>{ const bh=Math.max(0.9*u,h/mx*hh); if(!dry){ c.globalAlpha=i===m.topHour?1:0.32; c.fillStyle=p.fg; c.fillRect(padX+i*(bw+gap),y+hh-bh,bw,bh); c.globalAlpha=1; } }); y+=hh+3*u; }
+  if(v&&v.t==="weeks"){ const mx=Math.max(1,...m.wk.map(x=>Math.max(x.t,x.done))), hh=24*u, gw=maxW/Math.max(1,m.wk.length); m.wk.forEach((x,i)=>{ const bw=(gw-1.8*u)/2, x0=padX+i*gw; if(!dry){ c.globalAlpha=0.28; c.fillStyle=p.fg; c.fillRect(x0,y+hh-x.t/mx*hh,bw,x.t/mx*hh); c.globalAlpha=1; c.fillStyle=x.hit?p.ac:p.fg; c.fillRect(x0+bw+0.5*u,y+hh-Math.max(3,x.done/mx*hh),bw,Math.max(3,x.done/mx*hh)); } }); y+=hh+3*u; }
+  if(v&&v.t==="badges"){ const bs=v.data.slice(0,18), cw=maxW/6; c.font=`${7*u}px ${FONT}`; c.textAlign="center"; bs.forEach((b,i)=>{ if(!dry) c.fillText(b.e,padX+cw*(i%6)+cw/2,y+7*u+Math.floor(i/6)*10*u); }); c.textAlign="left"; y+=Math.ceil(bs.length/6)*10*u+3*u; }
+  if(v&&v.t==="summary"){ const cells=[[tr(L,"ชิ้นรวม","pieces"),m.n],[tr(L,"วันที่ส่ง","active days"),m.activeDays],[tr(L,"streak สูงสุด","best streak"),m.longestStreak],[tr(L,"ครบเป้า","goals hit"),m.weeksTotal?`${m.weeksHit}/${m.weeksTotal}`:"—"]], cw=(maxW-2.2*u)/2, chh=15*u;
+    cells.forEach(([l,x],i)=>{ const cx=padX+(i%2)*(cw+2.2*u), cy=y+Math.floor(i/2)*(chh+2.2*u); if(!dry){ c.globalAlpha=0.14; c.fillStyle=p.fg; rr(c,cx,cy,cw,chh,3*u); c.fill(); c.globalAlpha=1; c.fillStyle=p.fg; c.font=`800 ${8*u}px ${FONT}`; c.fillText(String(x),cx+3*u,cy+8.2*u); c.font=`600 ${3.2*u}px ${FONT}`; c.fillText(l,cx+3*u,cy+12.6*u); } }); y+=2*(chh+2.2*u)+2*u;
+    c.font=`${5.2*u}px ${FONT}`; m.badges.slice(0,14).forEach((k,i)=>{ if(!dry) c.fillText(badgeMeta(k).e,padX+i*6.2*u,y+5.2*u); }); y+=9*u; if(m.style){ c.font=`800 ${4.6*u}px ${FONT}`; if(!dry){ c.fillStyle=p.fg; c.fillText(`${m.style.e} ${m.style.n}`,padX,y+4*u); } y+=7*u; } }
+  /* list */
+  (sl.lines||[]).forEach(([e,t])=>{ const lf=4.4*u; c.font=`600 ${lf}px ${FONT}`; const ls=wrapLines(c,t,maxW-9.5*u); const hgt=ls.length*lf*1.5+4.2*u; if(!dry){ c.globalAlpha=0.24; c.fillStyle=p.fg; c.fillRect(padX,y,maxW,0.35*u); c.globalAlpha=1; c.font=`${lf}px ${FONT}`; c.fillText(e,padX+0.4*u,y+2.1*u+lf*1.05); c.font=`600 ${lf}px ${FONT}`; ls.forEach((l,k)=>c.fillText(l,padX+9.5*u,y+2.1*u+lf*1.05+k*lf*1.5)); } y+=hgt; });
+  return y-y0;
+}
+function drawCard(sl,W,L,all){
+  const Wd=1080, Hd=1920, u=Wd/100, cv=document.createElement("canvas"); cv.width=Wd; cv.height=Hd; const ctx=cv.getContext("2d"), p=PAL[sl.sec]||PAL.intro, idx=W.idx||0;
+  ctx.fillStyle=p.bg; ctx.fillRect(0,0,Wd,Hd);
+  if(sl.rec){ ctx.save(); ctx.translate(Wd*0.15,Hd*0.12); for(let a=0;a<360;a+=18){ ctx.save(); ctx.rotate(a*Math.PI/180); ctx.globalAlpha=0.28; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Wd*1.3,-Wd*0.07); ctx.lineTo(Wd*1.3,Wd*0.07); ctx.closePath(); ctx.fill(); ctx.restore(); } ctx.restore(); ctx.globalAlpha=1; }
+  SHAPES[idx%SHAPES.length].forEach(([w,x,y,c,r,rot])=>{ ctx.save(); ctx.globalAlpha=c==="ac"?0.9:1; ctx.fillStyle=p[c]; const S0=w*u, X=x*u*(Hd/1920>0?1:1), Y=y*u; ctx.translate(X+S0/2,Y+S0/2); ctx.rotate(rot*Math.PI/180); if(r==="50%"){ ctx.beginPath(); ctx.arc(0,0,S0/2,0,Math.PI*2); ctx.fill(); } else rr(ctx,-S0/2,-S0/2,S0,S0,S0*parseFloat(r)/100), ctx.fill(); ctx.restore(); });
+  if(sl.sticker){ ctx.save(); ctx.translate(Wd-17*u,26*u+13*u); ctx.rotate(10*Math.PI/180); ctx.font=`${17*u}px ${FONT}`; ctx.textAlign="center"; ctx.fillText(sl.sticker,0,0); ctx.restore(); }
+  const dry=dryCtx(ctx); ctx.textBaseline="alphabetic"; const hgt=layoutCard(dry,sl,W,L,0,Wd,u,true); const top=Math.max(9*u,(Hd-hgt)/2-4*u);
+  layoutCard(ctx,sl,W,L,top,Wd,u,false);
+  ctx.textAlign="left"; ctx.fillStyle=p.fg; ctx.globalAlpha=0.8; ctx.font=`700 ${2.8*u}px ${FONT}`; ctx.fillText("90 DAY ONE PERSON BUSINESS BOOTCAMP · WRAPPED",8*u,Hd-8.4*u); ctx.font=`500 ${2.6*u}px ${FONT}`; ctx.fillText(`${W.m.p.name} · By Benz Arnun`,8*u,Hd-4.8*u); ctx.globalAlpha=1;
   return cv;
 }
 async function shareSlide(all){
-  if(!ST) return; const sl=all?ST.slides[ST.slides.length-1]:ST.slides[ST.i], cv=drawCard(sl,ST.W,all?true:null);
+  if(!ST) return; try{ await document.fonts.load('800 60px "Prompt"'); await document.fonts.load('600 40px "Prompt"'); await document.fonts.load('700 40px "Prompt"'); }catch(e){}
+  const idx=all?ST.slides.length-1:ST.i, sl=ST.slides[idx], W=Object.assign({},ST.W,{idx}), cv=drawCard(sl,W,ST.lang,all?true:null);
   const blob=await new Promise(r=>cv.toBlob(r,"image/png")), name=`wrapped-${ST.W.m.p.name}-${sl.id}.png`;
-  try{ const f=new File([blob],name,{type:"image/png"}); if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],text:"Wrapped 90 วันของฉัน 🎁"}); return; } }catch(e){ if(e.name==="AbortError") return; }
+  try{ const f=new File([blob],name,{type:"image/png"}); if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],text:tr(ST.lang,"Wrapped 90 วันของฉัน 🎁","My 90-day Wrapped 🎁")}); return; } }catch(e){ if(e.name==="AbortError") return; }
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  if(typeof toast==="function") toast("เซฟรูปแล้ว 💾<br>เอาไปโพสต์ได้เลย");
+  if(typeof toast==="function") toast(tr(ST.lang,"เซฟรูปแล้ว 💾<br>เอาไปโพสต์ได้เลย","Saved 💾<br>Go post it!"));
 }
 
-/* ตัวช่วยตรวจ (dev): คืน HTML ของทุกสไลด์ของคนหนึ่ง เอาไปจัดเป็นแผ่นรวมดู */
-function _sheet(id){ const all=ALL, m=all.P[id]; const W={m,P:all.P,raw:all.raw,hideNames:false}; return slides(W).map(sl=>({id:sl.id,html:slideHTML(sl,W)})); }
-function _card(id,idx){ const all=ALL, m=all.P[id], W={m,P:all.P,raw:all.raw,hideNames:false}, sl=slides(W); const i=idx<0?sl.length-1:idx; return drawCard(sl[i],W,i===sl.length-1?true:null); }
+/* ตัวช่วยตรวจ (dev) */
+function _sheet(id,L){ L=L||"th"; const all=ALL, m=all.P[id], W={m,P:all.P,raw:all.raw,hideNames:false,L}; return slides(W,L).map((sl,i)=>({id:sl.id,html:slideHTML(sl,W,i)})); }
+async function _card(id,idx,L){ L=L||"th"; try{ await document.fonts.load('800 60px "Prompt"'); await document.fonts.load('600 40px "Prompt"'); await document.fonts.load('700 40px "Prompt"'); }catch(e){} const all=ALL, m=all.P[id], W={m,P:all.P,raw:all.raw,hideNames:false,L}, sl=slides(W,L), i=idx<0?sl.length-1:idx; W.idx=i; return drawCard(sl[i],W,L,i===sl.length-1?true:null); }
 window.WRAP={open,close,build,slides,rawFromDemo,RECS,STYLES,_all:()=>ALL,_sheet,_card};
 })();
