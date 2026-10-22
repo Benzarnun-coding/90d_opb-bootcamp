@@ -1337,7 +1337,7 @@ function renderFilters(){
     .concat(S.runners.some(r=>roleOf(r)!=="student") ? [`<button class="fBtn ${cur==="ta"?"on":""}" data-f="ta"
       style="${cur==="ta"?"background:linear-gradient(180deg,#5ef08c,#1f8a4a);color:#0d0a22":"color:#5ef08c"}">🎓 เฉพาะโค้ช</button>`] : [])
     .concat([`<button class="fBtn ${cur==="promax"?"on":""}" data-f="promax"
-      style="${cur==="promax"?"background:linear-gradient(180deg,#8dffa8,#1f9a52);color:#07301a":"color:#6dfa8a"}">💚 PRO MAX <small>${proMaxN}</small></button>`]).join("");
+      style="${cur==="promax"?"background:linear-gradient(180deg,#8dffa8,#1f9a52);color:#07301a":"color:#6dfa8a"}" title="เป้า 14 ชิ้น/สัปดาห์ · ${proMaxN} คนในสัปดาห์นี้">💚 PRO MAX 14</button>`]).join("");
   const meBtn = S.spectator ? "" : `<button class="fBtn goMe" data-me="1">📍 ตัวฉัน</button>`;
   $("raceFilters").innerHTML=mk(S.raceFilter,"r")+meBtn;
   $("boardFilters").innerHTML=mk(S.boardFilter,"b");
