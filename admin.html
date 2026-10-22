@@ -258,6 +258,22 @@
       </div>
     </section>
 
+    <section class="panel bevel" id="wrapPanel">
+      <div class="titlebar"><h2>🎁 Wrapped · สรุป 90 วันของนักเรียน</h2><span>คำนวณตอนจบรุ่น · นักเรียนห้ามเห็นจนกว่าจะกดเปิด</span></div>
+      <div class="body">
+        <div class="hint" id="wrStatus" style="margin:0 0 10px">กำลังโหลด…</div>
+        <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn" id="wrBuild" disabled>⚙️ คำนวณและอัปโหลดสถิติทั้งรุ่น</button>
+          <a class="btn" href="/#wrapped" target="_blank" rel="noopener">👁 พรีวิว (เปิดในหน้าเกม · เฉพาะหัวหน้าโค้ช)</a>
+          <button class="btn gold" id="wrToggle" disabled>เปิดให้นักเรียนดู</button>
+        </div>
+        <div class="hint" id="wrLog" style="margin:10px 0 0"></div>
+        <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--dim)">ขั้นตอนเปิดจริง (อ่านก่อนกด)</summary>
+          <div class="hint" style="margin:10px 0;line-height:1.7">1) <b>คำนวณ</b> หลังรุ่นจบ (วันที่ 90) หรือกดซ้ำได้ทุกเมื่อ (ทับของเดิม) · 2) <b>พรีวิว</b> ดูของตัวเองและสุ่มดูคนอื่นที่ลิงก์ด้านบน · 3) บอกผู้ช่วยให้ตั้ง <code>WRAPPED_ENABLED:true</code> แล้ว deploy · 4) กด <b>เปิดให้นักเรียนดู</b> ตรงนี้ (สองชั้นพร้อมกันถึงจะขึ้น) · ปิดกลับได้ทุกเมื่อ</div>
+        </details>
+      </div>
+    </section>
+
     <section class="panel bevel" id="heartPanel">
       <div class="titlebar"><h2>💛 กำลังใจจากอาจารย์ · ส่งเองอัตโนมัติ</h2><span>ทุกวัน 19:00 ระบบสุ่มส่งให้คนที่กำลังกลับมา · ดู log ด้านล่าง</span></div>
       <div class="body">

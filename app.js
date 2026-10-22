@@ -2029,6 +2029,7 @@ function renderAll(){
   try{ bgmSync(); }catch(e){}                       // เปลี่ยนเพลงตามสถานการณ์ (ดวล/บอสใกล้ล้ม)
   try{ nudgeWatch(); }catch(e){}
   try{ buddyWatch(); }catch(e){}
+  try{ wrappedEntryInit(); }catch(e){}
   /* แถบเตือนโหมดทดลอง — กันคนเข้าใจผิดว่าส่งงานจริงแล้ว */
   $("demoBar").style.display = DB.mode==="demo" ? "" : "none";
   renderFilters(); renderPledge(); renderBoss(); renderTrack(); renderFeed(); renderHud(); renderQuests();
@@ -4207,6 +4208,33 @@ function bootWithRetry(){
   });
 }
 bootWithRetry();
+
+/* ---- 🎁 WRAPPED ของจริง: ทางเข้า (ซ่อนสองชั้น) ----
+   นักเรียนจะเห็นแบนเนอร์ก็ต่อเมื่อ (1) config.js ตั้ง WRAPPED_ENABLED:true (ต้อง deploy) และ
+   (2) สวิตช์ฝั่งเซิร์ฟเวอร์ cohort.wrapped_open = true (หัวหน้าโค้ชกดเปิดในหน้า admin) และ (3) มีสถิติของคนนั้นแล้ว
+   หัวหน้าโค้ชพรีวิวได้เสมอที่ /#wrapped (แม้ยังปิดอยู่) */
+var _wrapChecked=false;
+async function wrappedEntryInit(){
+  if(_wrapChecked || DB.mode!=="live" || S.spectator || !meR()) return;
+  const wantPreview = /#wrapped/.test(location.hash||"");
+  if(!C.WRAPPED_ENABLED && !wantPreview) return;
+  _wrapChecked=true;
+  try{
+    const sbc=DB._sb(), isHead=((await sbc.rpc("is_head_coach")).data===true);
+    if(wantPreview && isHead){ addWrapFab("🎁 Wrapped (พรีวิวโค้ช)"); return; }
+    if(!C.WRAPPED_ENABLED) return;
+    const {data}=await sbc.rpc("wrapped_me"); if(!data || !data.open || !data.data) return;
+    const el=document.createElement("section"); el.id="wrapBanner"; el.className="panel bevel";
+    el.style.cssText="margin:0 0 14px;padding:16px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#1ed760,#509bf5 55%,#b06bff);color:#0a0a0a;border:3px solid #fff";
+    el.innerHTML=`<div style="font-size:34px">🎁</div><div style="flex:1 1 220px"><b style="font-size:18px">Wrapped 90 วันของคุณพร้อมแล้ว!</b><br><span style="font-size:13px;opacity:.85">ดูว่า 90 วันที่ผ่านมาคุณทำอะไรไว้บ้าง · Your 90 days, wrapped</span></div><button class="btn" id="wrapGo" style="background:#0a0a0a;color:#fff;border-color:#fff;font-weight:800">ดูเลย ▶</button>`;
+    const host=$("pgRace"); host.insertBefore(el,host.firstChild); $("wrapGo").onclick=()=>openWrapped();
+  }catch(e){ console.warn("wrapped entry", e); }
+}
+function addWrapFab(label){
+  const b=document.createElement("button"); b.textContent=label;
+  b.style.cssText="position:fixed;left:10px;bottom:10px;z-index:350;padding:10px 14px;font:700 13px var(--f-px,monospace);background:#ffd76b;color:#3a2400;border:3px solid #fff0b3;border-radius:8px;cursor:pointer";
+  b.onclick=()=>openWrapped(); document.body.appendChild(b);
+}
 
 /* ---- 🎁 WRAPPED (พรีวิว) — นักเรียนห้ามเห็นจนกว่า Benz สั่งเปิด ----
    ไม่มีปุ่ม/เมนูไหนในเว็บเรียกมัน: ใช้ได้ทางเดียวคือเปิด /?demo&wrapped (โหมดทดลองในเครื่อง) แล้วกดปุ่มลอยมุมซ้ายล่าง

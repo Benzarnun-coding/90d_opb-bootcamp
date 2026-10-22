@@ -106,6 +106,8 @@ window.CFG = {
     { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@cafb4a1b69bf9094c8804b0aff7a41fad1e0756d/music/hypnotized.mp3", title:"Lofi Jazzhop Chillhop (Hypnotized)", credit:"Back_Drop · Pixabay" },
     { url:"https://cdn.jsdelivr.net/gh/Benzarnun-coding/90d_opb-bootcamp@cafb4a1b69bf9094c8804b0aff7a41fad1e0756d/music/cozy-cafe-moments.mp3", title:"Cozy Cafe Moments", credit:"DesiFreeMusic · Pixabay" },
   ],
+  /* 🎁 Wrapped (สรุป 90 วัน): ปิดไว้ · นักเรียนจะเห็นแบนเนอร์ก็ต่อเมื่อตั้งเป็น true (ต้อง deploy) และหัวหน้าโค้ชเปิดสวิตช์ในหน้า admin ด้วย */
+  WRAPPED_ENABLED: false,
   BGM_VOLUME: 0.2,                              // ความดังเริ่มต้น (0–1) เบา ๆ ไม่หนวกหู · เพลงดวล/บอสถูกลดลงอีก 40% ให้เท่ากับเพลงชิล
   BGM_CREDIT: "Pixabay Content License",
 

@@ -88,6 +88,7 @@ function build(raw){
   raw.duels.forEach(x=>{ [[x.a,x.b,x.sa,x.sb],[x.b,x.a,x.sb,x.sa]].forEach(([me,opp,ms,os],i)=>{ const m=P[me]; if(!m) return; if(x.status==="done"||x.status==="active") m.duel.fought++;
       if(x.status==="done"){ m.duel.done++; if(x.winner===me){ m.duel.won++; m.duel.margin=Math.max(m.duel.margin,ms-os); } else if(x.winner) m.duel.lost++; else m.duel.draw++; }
       if(i===1) m.duel.challenged++; m.duel.rivals[opp]=(m.duel.rivals[opp]||0)+1; }); });
+  M.forEach(m=>{ const e=Object.entries(m.duel.rivals).sort((a,b)=>b[1]-a[1])[0]; m.duel.rival=e&&P[e[0]]?{name:P[e[0]].p.name,n:e[1]}:null; });
   raw.cheers.forEach(c=>{ if(P[c.from]) P[c.from].given++; if(P[c.to]){ P[c.to].recv++; const w=wk(c.day||1); P[c.to].cheerWeek[w]=(P[c.to].cheerWeek[w]||0)+1; } });
   raw.nudges.forEach(n=>{ if(P[n.from]) P[n.from].nSent++; if(P[n.to]) P[n.to].nRecv++; });
   raw.buddies.forEach(b=>{ [[b.a,b.b],[b.b,b.a]].forEach(([me,o])=>{ if(!P[me]||!P[o]) return; P[me].buddies.push({id:o,name:P[o].p.name,best:b.best}); P[me].buddyBest=Math.max(P[me].buddyBest,b.best); }); });
@@ -281,8 +282,8 @@ function slides(W,L){
       add("boss","boss",{kick:T("สนามบอส","BOSS ARENA"),head:T("ดาเมจที่คุณใส่บอส","Damage you dealt"),big:m.damage,unit:T("ดาเมจ","damage"),lines:l,sticker:"🗡️"});
     }
     if(m.duel.fought>0){
-      const d=m.duel, rv=Object.entries(d.rivals).sort((a,b)=>b[1]-a[1])[0], rvName=rv&&W.P[rv[0]]?W.P[rv[0]].p.name:null, l=[];
-      if(rvName&&rv[1]>=2) l.push(["🦊",T(`คู่ปรับตลอดกาล: ${rvName} (${rv[1]} ครั้ง)`,`Arch rival: ${rvName} (${rv[1]} duels)`)]); if(d.margin>0) l.push(["💥",T(`ชนะห่างสุด ${d.margin} ชิ้น`,`Biggest win: by ${d.margin} pieces`)]); l.push(["⚔️",T(`ลงดวลทั้งหมด ${d.fought} ครั้ง`,`${d.fought} duels in total`)]);
+      const d=m.duel, rv=d.rival, l=[];
+      if(rv&&rv.n>=2) l.push(["🦊",T(`คู่ปรับตลอดกาล: ${rv.name} (${rv.n} ครั้ง)`,`Arch rival: ${rv.name} (${rv.n} duels)`)]); if(d.margin>0) l.push(["💥",T(`ชนะห่างสุด ${d.margin} ชิ้น`,`Biggest win: by ${d.margin} pieces`)]); l.push(["⚔️",T(`ลงดวลทั้งหมด ${d.fought} ครั้ง`,`${d.fought} duels in total`)]);
       add("pvp","pvp",{kick:T("สังเวียนดวล","THE ARENA"),head:T("สถิติดวลของคุณ","Your duel record"),big:`${d.won}-${d.lost}`+(d.draw?`-${d.draw}`:""),unit:T(d.draw?"ชนะ – แพ้ – เสมอ":"ชนะ – แพ้",d.draw?"wins – losses – draws":"wins – losses"),lines:l,sticker:"⚔️"});
     }
     if(m.given+m.recv+m.hearts>0||m.buddies.length){
@@ -430,13 +431,68 @@ function setLang(L,keep){
   stage.querySelector(".wCtl").outerHTML=ctlHTML(); stage.querySelector(".wrapBars").innerHTML=ST.slides.map(()=>`<i><b></b></i>`).join(""); stage.querySelector(".wrapBars").style.display="";
   show(keep?ST.i:0);
 }
+/* ---------------------------------------------------------------- ข้อมูลจริง: serialize / อ่านกลับ / ดึงทั้งรุ่น / อัปโหลด */
+const KEEP=["id","n","activeDays","days","hours","dow","topHour","topDow","topPlat","platN","bestDay","bestWeek","longestStreak","perfectWeeks","wk","weeksHit","weeksTotal","maxHitRun","revived","laser","promax","favTarget","damage","fb","lh","slain","c3","c5","c10","given","recv","nSent","nRecv","buddies","buddyBest","hearts","houseCups","kingWeeks","houseShare","badges","topPct","firstTs","lastTs","t30","t90","c","score","exact","swing","holiday","views","kudos"];
+function serialize(m,all){
+  const D={}; KEEP.forEach(k=>{ D[k]=m[k]; });
+  D.p={id:m.p.id,name:m.p.name,handle:m.p.handle,role:m.p.role,house:m.p.house,color:m.p.color};
+  const d=m.duel; D.duel={fought:d.fought,won:d.won,lost:d.lost,draw:d.draw,done:d.done,challenged:d.challenged,margin:d.margin,rival:d.rival};
+  D.style=m.style?{k:m.style.k,e:m.style.e,n:m.style.n,th:m.style.th}:null; D.tier=m.tier;
+  D.records=m.records.map(r=>({k:r.def.k,value:r.value,rank:r.rank,same:r.same}));
+  D.cohort=all.raw.cohort; D.holders=all.raw._holders; D.students=all.raw._students; D.today=all.raw.today; D.v=1;
+  return D;
+}
+function wFromD(D){
+  const m=Object.assign({},D); m.records=(D.records||[]).map(r=>{ const def=RECS.find(x=>x.k===r.k); return def?{def,value:r.value,rank:r.rank,same:r.same,cat:def.cat,m}:null; }).filter(Boolean);
+  return {m,P:{},raw:{today:D.today,cohort:D.cohort,_holders:D.holders,_students:D.students},hideNames:false,L:"th"};
+}
+async function pageAll(make){ let out=[],from=0; for(;;){ const r=await make(from,from+999); if(r.error) throw new Error(r.error.message); const d=r.data||[]; out=out.concat(d); if(d.length<1000) break; from+=1000; } return out; }
+async function gatherLive(sb,prog){
+  const say=t=>{ if(prog) prog(t); }, tbl=(t,cols,ord)=>pageAll((a,b)=>{ let q=sb.from(t).select(cols); if(ord) q=q.order(ord); return q.range(a,b); });
+  say("สถานะรุ่น…"); const cr=await sb.rpc("cohort_status"); if(cr.error) throw new Error(cr.error.message); const cs=Array.isArray(cr.data)?cr.data[0]:cr.data;
+  const today=Math.min(90,N(cs.day_index)), vac=new Set(); if(cs.vacation_from_day!=null&&cs.vacation_to_day!=null) for(let d=N(cs.vacation_from_day); d<=N(cs.vacation_to_day); d++) vac.add(d);
+  say("รายชื่อ…"); const board=await tbl("v_leaderboard","id,name,handle,color,role,house_id,avatar","id");
+  const people=board.map(b=>({id:b.id,name:b.name,handle:b.handle,color:b.color,av:b.avatar||{},house:b.house_id||0,role:b.role==="coach"?(b.house_id?"ta":"head"):"student",pledges:{}})); const byId={}; people.forEach(p=>{ byId[p.id]=p; });
+  say("เป้ารายสัปดาห์…"); (await tbl("pledges","profile_id,week_no,target","profile_id")).forEach(x=>{ if(byId[x.profile_id]) byId[x.profile_id].pledges[x.week_no]=x.target; });
+  say("งานที่นับ…"); const subs=(await tbl("v_counted","id,profile_id,day_index,created_at,platform","id")).map(x=>({pid:x.profile_id,day:x.day_index,ts:Date.parse(x.created_at),plat:x.platform||"?",note:"",crit:1}));
+  say("บอสและคริ…"); const bosses=await tbl("v_boss_progress","*"), bossHits=await tbl("v_boss_hits","*"), crit=(await tbl("v_crit_log","boss_id,profile_id,crit")).map(c=>({pid:c.profile_id,crit:+c.crit,boss:c.boss_id}));
+  say("ดวล…"); const duels=(await tbl("v_duels","*")).map(x=>({a:x.challenger,b:x.opponent,status:x.status,winner:x.winner,sa:N(x.challenger_score),sb:N(x.opponent_score)}));
+  say("เชียร์/สะกิด…"); const cheers=(await tbl("cheers","from_id,to_id,day_index","id")).map(c=>({from:c.from_id,to:c.to_id,day:c.day_index})), nudges=(await tbl("nudges","from_id,to_id","id")).map(n=>({from:n.from_id,to:n.to_id}));
+  say("บัดดี้…"); const bd=await tbl("v_buddies","a,b,best,status"); const buddies=bd.filter(b=>b.status==="active").map(b=>({a:b.a,b:b.b,best:N(b.best)}));
+  say("King/ถ้วย…"); const kings=(await tbl("v_week_kings","*")).concat(await tbl("v_week_ta_kings","*")), cups=await tbl("v_house_cup","*"); let houseWeeks=[]; try{ houseWeeks=await tbl("v_house_week","*"); }catch(e){}
+  say("กำลังใจ/KUDOS…"); const heartN={}, kudos={}, reach={}; (await tbl("v_coach_heart_counts","profile_id,n")).forEach(x=>{ heartN[x.profile_id]=N(x.n); }); (await tbl("v_kudos","profile_id,n")).forEach(x=>{ kudos[x.profile_id]=N(x.n); }); (await tbl("v_reach","profile_id,total_views")).forEach(x=>{ reach[x.profile_id]=N(x.total_views); });
+  return {preview:false,synthetic:false,people,subs,today,curWeek:wk(today),final:today>=90,bosses,bossHits,critLog:crit,duels,cheers,nudges,buddies,kings,cups,houseWeeks,kudos,reach,heartN,vacDays:vac,heartsSent:0};
+}
+async function buildAndUpload(sb,prog){
+  const raw=await gatherLive(sb,prog); if(prog) prog("คำนวณสถิติทั้งรุ่น…"); const all=build(raw);
+  const rows=all.M.filter(m=>m.n>0||m.p.role!=="student").map(m=>({pid:m.id,data:serialize(m,all)})); let done=0;
+  for(let i=0;i<rows.length;i+=15){ const chunk=rows.slice(i,i+15), r=await sb.rpc("wrapped_put",{rows:chunk}); if(r.error) throw new Error(r.error.message); done+=chunk.length; if(prog) prog("อัปโหลด "+done+"/"+rows.length); }
+  return {uploaded:rows.length, people:all.M.length, students:raw.cohort.students, pieces:raw.cohort.pieces, withRecords:all.M.filter(m=>m.records.length).length};
+}
+
+/* ---------------------------------------------------------------- เปิดดู */
 function open(who){
   injectCss();
+  if(typeof DB!=="undefined" && DB.mode==="live") return openLive(who);
   return ensureAll().then(all=>{
     const ppl=all.M.slice().sort((a,b)=>b.n-a.n); let m=all.P[who]||ppl.find(x=>x.p.name===who);
     if(!m){ const me=(typeof meId==="function")?meId():null; m=(me&&all.P[me]&&all.P[me].n>0)?all.P[me]:ppl.find(x=>x.p.role==="student"&&x.records.length>=2)||ppl[0]; }
-    mount(all,m);
+    const mk=mm=>({m:mm,P:all.P,raw:all.raw,hideNames:false,L:"th"});
+    mountW(mk(m),{picker:{cur:m.id,note:"พรีวิว"+(all.raw.synthetic?" (ข้อมูลตัวอย่าง)":""),list:ppl.map(x=>({id:x.id,label:x.p.name+" · "+(x.p.role==="student"?"นักเรียน":x.p.role==="ta"?"TA":"โค้ช")+" · "+x.n+" ชิ้น · สถิติเด็ด "+x.records.length})),load:async id=>mk(all.P[id])}});
   });
+}
+async function openLive(pid){
+  const sb=DB._sb(), head=((await sb.rpc("is_head_coach")).data===true), tst=t=>{ if(typeof toast==="function") toast(t); };
+  const getW=async id=>{ const r=(head&&id)?await sb.rpc("wrapped_for",{pid:id}):await sb.rpc("wrapped_me"); if(r.error) throw new Error(r.error.message); const x=r.data||{};
+    if(!head&&!x.open) return {closed:true}; if(!x.data) return {empty:true}; return wFromD(x.data); };
+  const me=(typeof meId==="function")?meId():null, id0=pid||(head?me:null), W=await getW(id0);
+  if(W.closed){ tst("Wrapped ยังไม่เปิด"); return; }
+  if(W.empty&&!head){ tst("ยังไม่มีสถิติ Wrapped ของคุณ"); return; }
+  const opt={}; if(head){ const rs=(typeof S!=="undefined"?S.runners:[]).slice().sort((a,b)=>N(b.st&&b.st.contents)-N(a.st&&a.st.contents));
+    opt.picker={cur:id0,note:"พรีวิวโค้ช",list:rs.map(r=>({id:r.id,label:r.name+" · "+(r.role==="coach"?(r.house?"TA":"โค้ช"):"นักเรียน")+" · "+N(r.st&&r.st.contents)+" ชิ้น"})),
+      load:async id=>{ const w=await getW(id); if(w.empty){ tst("คนนี้ไม่มีข้อมูล Wrapped (ไม่เคยส่ง หรือยังไม่ได้กดคำนวณ)"); return null; } return w; }}; }
+  if(W.empty) tst("ยังไม่มีข้อมูลของคุณ · เลือกคนอื่นจากรายชื่อ หรือกดคำนวณในหน้า admin ก่อน");
+  mountW(W.empty?null:W,opt);
 }
 let ALL=null;
 function ensureAll(){ if(ALL) return Promise.resolve(ALL);
@@ -444,22 +500,24 @@ function ensureAll(){ if(ALL) return Promise.resolve(ALL);
   if(DB.mode==="demo") return DB.fetchAll().then(d=>{ ALL=build(rawFromDemo(d)); return ALL; });
   return Promise.reject(new Error("Wrapped ของจริงยังไม่เปิด"));
 }
-function mount(all,m,lang){
-  close(); const ov=document.createElement("div"); ov.id="wrapOv";
+function mountW(W,opt,lang){
+  opt=opt||{}; close(); const ov=document.createElement("div"); ov.id="wrapOv";
   ov.innerHTML=`<div class="wrapStage"><div class="wrapBars" style="display:none"></div><div class="wCtl"></div><div class="wBtns"></div></div>`;
   document.body.appendChild(ov);
-  const W={m,P:all.P,raw:all.raw,hideNames:false,L:"th"}; ST={W,slides:[],i:0,lang:null,stage:ov.querySelector(".wrapStage"),all,timer:null,hold:false};
-  if(all.raw.preview){ const sel=all.M.slice().sort((a,b)=>b.n-a.n).map(x=>`<option value="${esc(x.id)}" ${x.id===m.id?"selected":""}>${esc(x.p.name)} · ${x.p.role==="student"?"นักเรียน":x.p.role==="ta"?"TA":"โค้ช"} · ${x.n} ชิ้น · สถิติเด็ด ${x.records.length}</option>`).join("");
-    ST.stage.insertAdjacentHTML("beforeend",`<div class="wPrev">👁 พรีวิว${all.raw.synthetic?" (ข้อมูลตัวอย่าง)":""} ดูในมุมของ <select data-w="who">${sel}</select></div>`); }
-  ST.stage.insertAdjacentHTML("beforeend",langScreen());
+  ST={W:W||{m:null},slides:[],i:0,lang:null,stage:ov.querySelector(".wrapStage"),timer:null,hold:false,opt};
+  if(opt.picker){ const pk=opt.picker, sel=pk.list.map(x=>`<option value="${esc(x.id)}" ${x.id===pk.cur?"selected":""}>${esc(x.label)}</option>`).join("");
+    ST.stage.insertAdjacentHTML("beforeend",`<div class="wPrev">👁 ${esc(pk.note||"พรีวิว")} ดูในมุมของ <select data-w="who">${sel}</select></div>`); }
+  if(W) ST.stage.insertAdjacentHTML("beforeend",langScreen());
+  if(!W) ST.stage.querySelector(".wCtl").innerHTML='<span></span><div class="r"><button class="x" data-w="close" aria-label="close">✕</button></div>';
   ov.addEventListener("pointerdown",e=>{ if(!ST||!ST.lang||e.target.closest("button,select")) return; ST.hold=false; ST.holdT=setTimeout(()=>{ ST.hold=true; ST.stage.classList.add("paused"); },220); });
   ov.addEventListener("pointerup",e=>{ if(!ST||!ST.lang) return; clearTimeout(ST.holdT); const held=ST.hold; ST.hold=false; ST.stage.classList.remove("paused"); if(e.target.closest("button,select")) return; if(held){ show(ST.i); return; }
     const r=ST.stage.getBoundingClientRect(); (e.clientX-r.left)<r.width*0.3 ? show(ST.i-1) : (ST.i<ST.slides.length-1?show(ST.i+1):null); });
   ov.addEventListener("click",e=>{ const b=e.target.closest("[data-w]"); if(!b||!ST) return; const a=b.dataset.w;
     if(a==="close") close(); else if(a==="prev"){ if(ST.lang) show(ST.i-1); } else if(a==="share") shareSlide(false); else if(a==="shareAll") shareSlide(true); else if(a==="pick") setLang(b.dataset.l,false); else if(a==="lang"){ if(ST.lang!==b.dataset.l) setLang(b.dataset.l,true); } });
-  ov.addEventListener("change",e=>{ if(e.target.dataset&&e.target.dataset.w==="who"){ const mm=all.P[e.target.value]; if(mm){ const L=ST.lang; mount(all,mm); if(L) setLang(L,false); } } });
+  ov.addEventListener("change",async e=>{ if(e.target.dataset&&e.target.dataset.w==="who"){ const id=e.target.value, pk=ST.opt.picker, L=ST.lang; let W2=null; try{ W2=await pk.load(id); }catch(er){ if(typeof toast==="function") toast(er.message); }
+    if(!W2){ e.target.value=pk.cur; return; } const o2=Object.assign({},ST.opt,{picker:Object.assign({},pk,{cur:id})}); mountW(W2,o2,L); } });
   document.addEventListener("keydown",keys);
-  if(lang) setLang(lang,false);
+  if(W&&lang) setLang(lang,false);
 }
 function keys(e){ if(!ST) return; if(e.key==="Escape") close(); else if(ST.lang&&(e.key==="ArrowRight"||e.key===" ")) show(ST.i+1); else if(ST.lang&&e.key==="ArrowLeft") show(ST.i-1); }
 function close(){ const o=document.getElementById("wrapOv"); if(o) o.remove(); if(ST&&ST.timer) clearTimeout(ST.timer); ST=null; document.removeEventListener("keydown",keys); }
@@ -518,5 +576,5 @@ async function shareSlide(all){
 /* ตัวช่วยตรวจ (dev) */
 function _sheet(id,L){ L=L||"th"; const all=ALL, m=all.P[id], W={m,P:all.P,raw:all.raw,hideNames:false,L}; return slides(W,L).map((sl,i)=>({id:sl.id,html:slideHTML(sl,W,i)})); }
 async function _card(id,idx,L){ L=L||"th"; try{ await document.fonts.load('800 60px "Prompt"'); await document.fonts.load('600 40px "Prompt"'); await document.fonts.load('700 40px "Prompt"'); }catch(e){} const all=ALL, m=all.P[id], W={m,P:all.P,raw:all.raw,hideNames:false,L}, sl=slides(W,L), i=idx<0?sl.length-1:idx; W.idx=i; return drawCard(sl[i],W,L,i===sl.length-1?true:null); }
-window.WRAP={open,close,build,slides,rawFromDemo,RECS,STYLES,_all:()=>ALL,_sheet,_card};
+window.WRAP={open,close,build,slides,rawFromDemo,gatherLive,buildAndUpload,serialize,wFromD,RECS,STYLES,_all:()=>ALL,_sheet,_card};
 })();

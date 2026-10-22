@@ -47,7 +47,7 @@ async function boot(){
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
-  loadFeedback(); loadHearts();
+  loadFeedback(); loadHearts(); wrapRefresh();
   loadRisk(); loadSessions(); loadRetention(); loadAudit(); loadEngagement(); loadCohortStats();
 }
 /* ---- กลุ่มเสี่ยง ---- */
@@ -293,6 +293,33 @@ $("lcSave").onclick = async ()=>{
   if(error) return toast(error.message);
   $("lcCode").value = ""; toast("บันทึกรหัสรวมแล้ว"); await loadLoginCode();
 };
+
+/* ---- 🎁 WRAPPED (063): คำนวณสถิติทั้งรุ่น → อัปโหลด · เปิด/ปิดให้นักเรียนดู ---- */
+function wrapLoadLib(){ return new Promise((res,rej)=>{ if(window.WRAP&&window.WRAP.buildAndUpload) return res(); const s=document.createElement("script"); s.src="wrapped.js?v=1"; s.onload=()=>res(); s.onerror=()=>rej(new Error("โหลด wrapped.js ไม่ได้ (ยังไม่ได้ deploy ไฟล์นี้?)")); document.head.appendChild(s); }); }
+async function wrapRefresh(){
+  const st=$("wrStatus"); if(!st) return;
+  const {data,error}=await sb.rpc("wrapped_status");
+  if(error){ st.innerHTML=/wrapped_status|schema cache|does not exist/i.test(error.message)?"ยังไม่ได้รัน migration 063a/063b":esc(error.message); $("wrToggle").disabled=true; $("wrBuild").disabled=true; return; }
+  const built=data.built_at?new Date(data.built_at).toLocaleString("th-TH"):"ยังไม่เคยคำนวณ";
+  st.innerHTML=`สถานะ: <b style="color:${data.open?"var(--green)":"var(--gold)"}">${data.open?"🟢 เปิดให้นักเรียนดูแล้ว":"🔒 ปิดอยู่ (นักเรียนยังไม่เห็น)"}</b> · มีสถิติ ${data.rows} คน · คำนวณล่าสุด ${esc(built)}`;
+  $("wrToggle").textContent=data.open?"🔒 ปิดไม่ให้นักเรียนดู":"🟢 เปิดให้นักเรียนดู"; $("wrToggle").dataset.open=data.open?"1":"0"; $("wrToggle").disabled=false; $("wrBuild").disabled=false;
+}
+async function wrapBuild(){
+  const btn=$("wrBuild"), log=$("wrLog"); btn.disabled=true; log.textContent="เริ่ม…";
+  try{
+    await wrapLoadLib(); const r=await window.WRAP.buildAndUpload(sb,t=>{ log.textContent=t; });
+    log.innerHTML=`✅ เสร็จ · อัปโหลด ${r.uploaded} คน (นักเรียนที่ส่งงาน ${r.students} คน · รวม ${r.pieces} ชิ้น · มีสถิติเด็ด ${r.withRecords} คน)`;
+    toast("คำนวณ Wrapped เสร็จแล้ว ✅");
+  }catch(e){ log.innerHTML=`<span style="color:var(--red)">ผิดพลาด: ${esc(e.message)}</span>`; }
+  btn.disabled=false; wrapRefresh();
+}
+async function wrapToggle(){
+  const open=$("wrToggle").dataset.open==="1", to=!open;
+  if(to && !confirm("เปิดให้นักเรียนดู Wrapped ตอนนี้?\n\n(นักเรียนจะเห็นแบนเนอร์ก็ต่อเมื่อเว็บที่ deploy ตั้ง WRAPPED_ENABLED:true ด้วย — สวิตช์นี้เป็นอีกชั้นฝั่งเซิร์ฟเวอร์)")) return;
+  const {error}=await sb.rpc("wrapped_set_open",{o:to}); if(error){ toast(esc(error.message)); return; }
+  toast(to?"เปิด Wrapped ให้นักเรียนแล้ว":"ปิด Wrapped แล้ว"); wrapRefresh();
+}
+document.addEventListener("click",e=>{ if(e.target.id==="wrBuild") wrapBuild(); else if(e.target.id==="wrToggle") wrapToggle(); });
 
 /* ---- 💛 ส่งกำลังใจ (054) — ระบบคัดคนที่กำลังกลับมา Benz สุ่ม/เลือกแล้วกดส่ง ---- */
 const HR_TH = {comeback:"🌱 กลับมาแล้ว", first:"🐣 เริ่มครั้งแรก", steady:"🔁 สม่ำเสมอ ยังไม่เคยได้"};
