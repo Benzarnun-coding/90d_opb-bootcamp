@@ -46,7 +46,7 @@ function metrics(m, raw){
   const c={threeAM:0, midnight:0, lunch:0, pretty:0, sunday:0, monday:0, lastMin:0, early:0, late:0};
   subs.forEach(s=>{
     days[s.day]=(days[s.day]||0)+1; const w=wk(s.day); weeks[w]=(weeks[w]||0)+1;
-    const dt=new Date(s.ts), h=dt.getHours(), mi=dt.getMinutes(), g=dt.getDay();
+    const dt=new Date(s.ts+7*3600e3), h=dt.getUTCHours(), mi=dt.getUTCMinutes(), g=dt.getUTCDay();   /* เวลาไทย (UTC+7) เสมอ ไม่ขึ้นกับเครื่องที่กดคำนวณ */
     hours[h]++; dow[g]++; plats[s.plat]=(plats[s.plat]||0)+1;
     if(h===2||h===3) c.threeAM++; if(h===0&&mi<10) c.midnight++; if(h===12) c.lunch++;
     if(mi>0 && (mi%11===0 || h===mi)) c.pretty++; if(g===0) c.sunday++; if(g===1) c.monday++;
@@ -185,8 +185,8 @@ function computeRecords(stu){
     if(!vals.length) return;
     vals.sort((a,b)=>b.v-a.v);
     vals.forEach(x=>{ x.rank=vals.filter(y=>y.v>x.v).length+1; });
-    vals.filter(x=>x.rank<=3).forEach(x=>{ const same=vals.filter(y=>y.v===x.v).length;
-      (out[x.m.id]=out[x.m.id]||[]).push({def, value:x.v, rank:x.rank, same, cat:def.cat, m:x.m, score:(4-x.rank)*100+def.w*10-Math.min(same,9)}); });
+    vals.filter(x=>x.rank<=5).forEach(x=>{ const same=vals.filter(y=>y.v===x.v).length;
+      (out[x.m.id]=out[x.m.id]||[]).push({def, value:x.v, rank:x.rank, same, cat:def.cat, m:x.m, score:(6-x.rank)*100+def.w*10-Math.min(same,9)}); });
   });
   Object.keys(out).forEach(id=>{ const arr=out[id].sort((a,b)=>b.score-a.score), pick=[], cats={};
     arr.forEach(r=>{ if(pick.length>=3) return; if((cats[r.cat]||0)>=2) return; cats[r.cat]=(cats[r.cat]||0)+1; pick.push(r); }); out[id]=pick; });
@@ -212,7 +212,7 @@ function pickTier(m){
 
 /* ================================================================ ชั้นแสดงผล: 2 ภาษา (ไทย/English) + ดีไซน์สไตล์ Wrapped ================================================================ */
 const DOW={th:["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสฯ","ศุกร์","เสาร์"], en:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]};
-function fd(ts,L,long){ if(!ts) return "—"; const d=new Date(ts); return L==="en"?d.toLocaleDateString("en-GB",{day:"numeric",month:long?"long":"short"}):d.toLocaleDateString("th-TH",{day:"numeric",month:long?"long":"short"}); }
+function fd(ts,L,long){ if(!ts) return "—"; const d=new Date(ts); return L==="en"?d.toLocaleDateString("en-GB",{timeZone:"Asia/Bangkok",day:"numeric",month:long?"long":"short"}):d.toLocaleDateString("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:long?"long":"short"}); }
 const RECS_EN={duelWins:["Duel Champion","duels won"],duelFought:["Duel Addict","duels fought"],challenged:["Most Wanted","times you were challenged"],margin:["Landslide Victory","pieces — your biggest winning margin"],rival:["Arch Rival","duels against the same person"],lostHat:["The Brave Loser","losses — and you never ran away"],
  night:["Night Owl","posts between 10 PM and 4 AM"],earlyBird:["Early Bird","posts before 6 AM"],lastMin:["Beat the Buzzer","posts in the last 10 minutes before the weekly cut"],bestDay:["One-Day Wonder","pieces in a single day"],bestWeek:["Lightning Week","pieces in a single week"],firstPost:["First One In","your first post of the cohort"],first30:["First to 30","you reached 30 pieces"],first90:["First to the Finish","you reached 90 pieces"],
  damage:["Top Damage Dealer","damage dealt to bosses"],firstBlood:["First Blood Hunter","bosses you hit first"],lastHit:["The Closer","bosses you finished off"],critN:["Crit King","critical hits"],x10:["×10 Legend","×10 crits (a free book!)"],luck:["Lucky Charm","% of your posts were crits"],

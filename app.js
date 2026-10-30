@@ -2455,6 +2455,7 @@ function myEvents(){
   { const ng=(S.nudges||[]).filter(n=>n.to_id===id && n.day_index===S.today);
     if(ng.length && !S.postedToday){ const nn=[...new Set(ng.map(n=>(S.runners.find(r=>r.id===n.from_id)||{}).name).filter(Boolean))];
       ev.push({k:"ng"+S.today+":"+ng.length, i:"👉", t:`${nn.length} คนสะกิดให้คุณส่งงานวันนี้`, s:nn.slice(0,5).join(", "), go:goSubmit}); } }
+  if(window._wrapReady) ev.push({k:"wrap", i:"🎁", t:"Wrapped 90 วันของคุณพร้อมแล้ว", s:"กดเพื่อดู", go:()=>openWrapped()});
   (S.hearts||[]).forEach(h=>ev.push({k:"heart"+h.id, i:"💛", t:"อาจารย์ส่งกำลังใจให้คุณ", s:String(h.message||"").split("\n")[0], go:maybeShowHeart}));
   buddyInvitesToMe().forEach(b=>{ const r=S.runners.find(x=>x.id===b.a); if(r) ev.push({k:"bi"+b.id, i:"🤝", t:`${r.name} ชวนคุณเป็นบัดดี้`, s:"กดรับที่การ์ดวันนี้ของฉัน", go:()=>showPage("pgRace")}); });
   myBuddies().forEach(x=>{ if(x.themToday && !x.meToday && !S.postedToday) ev.push({k:"bw"+x.row.id+"-"+S.today, i:"🤝", t:`${x.r.name} ส่งแล้ว รอคุณอยู่`, s:`ส่งวันนี้ = streak คู่ ×${x.streak+1}`, go:goSubmit});
@@ -4226,8 +4227,8 @@ async function wrappedEntryInit(){
     const {data}=await sbc.rpc("wrapped_me"); if(!data || !data.open || !data.data) return;
     const el=document.createElement("section"); el.id="wrapBanner"; el.className="panel bevel";
     el.style.cssText="margin:0 0 14px;padding:16px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#1ed760,#509bf5 55%,#b06bff);color:#0a0a0a;border:3px solid #fff";
-    el.innerHTML=`<div style="font-size:34px">🎁</div><div style="flex:1 1 220px"><b style="font-size:18px">Wrapped 90 วันของคุณพร้อมแล้ว!</b><br><span style="font-size:13px;opacity:.85">ดูว่า 90 วันที่ผ่านมาคุณทำอะไรไว้บ้าง · Your 90 days, wrapped</span></div><button class="btn" id="wrapGo" style="background:#0a0a0a;color:#fff;border-color:#fff;font-weight:800">ดูเลย ▶</button>`;
-    const host=$("pgRace"); host.insertBefore(el,host.firstChild); $("wrapGo").onclick=()=>openWrapped();
+    el.innerHTML=`<div style="font-size:34px">🎁</div><div style="flex:1 1 220px"><b style="font-size:18px">🎓 Wrapped 90 วันของคุณพร้อมแล้ว!</b><br><span style="font-size:13px;opacity:.85">ดูว่า 90 วันที่ผ่านมาคุณทำอะไรไว้บ้าง · Your 90 days, wrapped</span></div><button class="btn" id="wrapGo" style="background:#0a0a0a;color:#fff;border-color:#fff;font-weight:800">ดูเลย ▶</button>`;
+    const host=$("pgRace"); host.insertBefore(el,host.firstChild); $("wrapGo").onclick=()=>openWrapped(); window._wrapReady=true; try{ renderHud(); }catch(e){}
   }catch(e){ console.warn("wrapped entry", e); }
 }
 function addWrapFab(label){
