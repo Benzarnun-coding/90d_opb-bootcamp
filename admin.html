@@ -274,6 +274,23 @@
       </div>
     </section>
 
+    <section class="panel bevel" id="arcPanel">
+      <div class="titlebar"><h2>📦 Snapshot รุ่น · เก็บประวัติรายคนไว้ข้ามรุ่น</h2><span>ถ่ายหลังจบรุ่น · ศิษย์เก่าที่กลับมาเรียนซ้ำจะถูกจำได้จากอีเมล</span></div>
+      <div class="body">
+        <div class="hint" id="arcStatus" style="margin:0 0 10px">กำลังโหลด…</div>
+        <div class="row" style="gap:10px;flex-wrap:wrap;align-items:end">
+          <div style="flex:0 0 200px"><label>ชื่อรุ่น</label><input id="arcLabel" maxlength="40" value="รุ่น 1"></div>
+          <button class="btn" id="arcTake" disabled>📦 ถ่าย Snapshot ตอนนี้</button>
+          <button class="btn" id="arcDown" disabled>💾 ดาวน์โหลดไฟล์ JSON</button>
+          <label class="btn" style="cursor:pointer;margin:0">📥 นำเข้าไฟล์ของรุ่นเก่า<input id="arcFile" type="file" accept="application/json,.json" style="display:none"></label>
+        </div>
+        <div class="hint" id="arcLog" style="margin:10px 0 0"></div>
+        <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--dim)">อ่านก่อนกด</summary>
+          <div class="hint" style="margin:10px 0;line-height:1.7">1) กด <b>คำนวณ Wrapped</b> ก่อน (ด้านบน) แล้วค่อย <b>ถ่าย Snapshot</b> จะได้สถิติ Wrapped รวมอยู่ด้วย · 2) ถ่ายซ้ำชื่อเดิม = แทนที่ของเดิมทั้งรุ่น · 3) <b>ดาวน์โหลด JSON</b> เก็บไว้นอก Supabase เสมอ (ไฟล์เป็น hash ของอีเมล ไม่มีอีเมลจริง/รหัส/เว็บฮุก) · 4) รุ่นใหม่: นำไฟล์เข้าที่หน้านี้ในโปรเจกต์ใหม่ แล้วตารางรายชื่อจะขึ้นป้าย 🎓 ให้คนที่เคยเรียน</div>
+        </details>
+      </div>
+    </section>
+
     <section class="panel bevel" id="heartPanel">
       <div class="titlebar"><h2>💛 กำลังใจจากอาจารย์ · ส่งเองอัตโนมัติ</h2><span>ทุกวัน 19:00 ระบบสุ่มส่งให้คนที่กำลังกลับมา · ดู log ด้านล่าง</span></div>
       <div class="body">

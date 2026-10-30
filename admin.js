@@ -28,7 +28,7 @@ if(!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY)){
 const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
 
 /* ================= STATE ================= */
-let roster = [], names = {}, filter = "all", houseFilter = 0, q = "";
+let alumni = {}, roster = [], names = {}, filter = "all", houseFilter = 0, q = "";
 
 /* ================= AUTH ================= */
 async function boot(){
@@ -47,7 +47,7 @@ async function boot(){
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
-  loadFeedback(); loadHearts(); wrapRefresh();
+  loadFeedback(); loadHearts(); wrapRefresh(); arcRefresh();
   loadRisk(); loadSessions(); loadRetention(); loadAudit(); loadEngagement(); loadCohortStats();
 }
 /* ---- กลุ่มเสี่ยง ---- */
@@ -321,6 +321,42 @@ async function wrapToggle(){
 }
 document.addEventListener("click",e=>{ if(e.target.id==="wrBuild") wrapBuild(); else if(e.target.id==="wrToggle") wrapToggle(); });
 
+function alumniTag(em){ const a=alumni[em]||alumni[(em||"").toLowerCase()]; return a&&a.length?` <span class="tag ok" title="${esc(a.map(r=>r.label+" · "+r.house+" · "+r.posts+" โพสต์").join(" | "))}">🎓 เคยเรียน ${esc(a.map(r=>r.label).join(", "))}</span>`:""; }
+/* ---- 📦 SNAPSHOT รุ่น (065): ถ่าย · ดาวน์โหลด · นำเข้า ---- */
+async function arcRefresh(){
+  const st=$("arcStatus"); if(!st) return;
+  const {data,error}=await sb.rpc("archive_list");
+  if(error){ st.innerHTML=/archive_list|schema cache|does not exist/i.test(error.message)?"ยังไม่ได้รัน migration 065":esc(error.message); $("arcTake").disabled=true; $("arcDown").disabled=true; return; }
+  st.innerHTML=data.length?"Snapshot ที่เก็บไว้: "+data.map(a=>`<b>${esc(a.label)}</b> (${a.people} คน · ${a.posts} โพสต์ · ${esc(new Date(a.taken_at).toLocaleString("th-TH"))})`).join(" · "):"ยังไม่เคยถ่าย Snapshot";
+  $("arcTake").disabled=false; $("arcDown").disabled=!data.length;
+}
+async function arcTake(){
+  const lb=$("arcLabel").value.trim(), log=$("arcLog"); if(!lb){ toast("ตั้งชื่อรุ่นก่อน"); return; }
+  if(!confirm(`ถ่าย Snapshot ชื่อ "${lb}" ตอนนี้?\n(ถ้ามีชื่อนี้อยู่แล้ว จะถูกแทนที่ทั้งรุ่น)`)) return;
+  $("arcTake").disabled=true; log.textContent="กำลังถ่าย…";
+  const {data,error}=await sb.rpc("archive_take",{p_label:lb});
+  log.innerHTML=error?`<span style="color:var(--red)">ผิดพลาด: ${esc(error.message)}</span>`:`✅ เสร็จ · ${data.people} คน · ${data.posts} โพสต์ · มีสถิติ Wrapped ${data.with_wrapped} คน${data.with_wrapped?"":" (ยังไม่ได้คำนวณ Wrapped — คำนวณแล้วถ่ายใหม่ได้)"} · อย่าลืมกดดาวน์โหลดไฟล์เก็บไว้`;
+  arcRefresh();
+}
+async function arcDown(){
+  const lb=$("arcLabel").value.trim(), log=$("arcLog"); log.textContent="กำลังดึงข้อมูล…";
+  const {data,error}=await sb.rpc("archive_export",{p_label:lb});
+  if(error||!data){ log.innerHTML=`<span style="color:var(--red)">${esc(error?error.message:'ไม่พบ Snapshot ชื่อ "'+lb+'" (ถ่ายก่อน หรือพิมพ์ชื่อให้ตรง)')}</span>`; return; }
+  const blob=new Blob([JSON.stringify(data)],{type:"application/json"}), a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=`opb-snapshot-${lb.replace(/[^\wก-๙-]+/g,"_")}.json`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000); log.textContent=`💾 ดาวน์โหลดแล้ว · ${data.records.length} คน`;
+}
+async function arcImport(file){
+  const log=$("arcLog"); let doc; try{ doc=JSON.parse(await file.text()); }catch(e){ log.innerHTML='<span style="color:var(--red)">ไฟล์ไม่ใช่ JSON</span>'; return; }
+  if(!doc||!doc.label||!Array.isArray(doc.records)){ log.innerHTML='<span style="color:var(--red)">ไม่ใช่ไฟล์ Snapshot ของระบบนี้</span>'; return; }
+  if(!confirm(`นำเข้า "${doc.label}" · ${doc.records.length} คน?\n(ถ้ามีรุ่นชื่อนี้อยู่แล้ว จะถูกแทนที่)`)) return;
+  log.textContent="กำลังนำเข้า…"; const {data,error}=await sb.rpc("archive_import",{doc});
+  log.innerHTML=error?`<span style="color:var(--red)">ผิดพลาด: ${esc(error.message)}</span>`:`✅ นำเข้า ${esc(data.label)} · ${data.people} คน · ${data.posts} โพสต์`;
+  arcRefresh(); load();
+}
+document.addEventListener("click",e=>{ if(e.target.id==="arcTake") arcTake(); else if(e.target.id==="arcDown") arcDown(); });
+document.addEventListener("change",e=>{ if(e.target.id==="arcFile"&&e.target.files[0]){ arcImport(e.target.files[0]); e.target.value=""; } });
+
 /* ---- 💛 ส่งกำลังใจ (054) — ระบบคัดคนที่กำลังกลับมา Benz สุ่ม/เลือกแล้วกดส่ง ---- */
 const HR_TH = {comeback:"🌱 กลับมาแล้ว", first:"🐣 เริ่มครั้งแรก", steady:"🔁 สม่ำเสมอ ยังไม่เคยได้"};
 const hrWhy = c => c.reason==="comeback" ? `เห็นนะว่ากลับมาลงงาน 2 วันติดแล้ว หลังหายไป ${c.gap_days} วัน`
@@ -537,6 +573,7 @@ async function load(){
   if(e1){ toast("อ่านรายชื่อไม่ได้: "+e1.message); return; }
   roster = r || [];
   names = {}; (p||[]).forEach(x=>{ names[x.id] = x; });
+  alumni = {}; try{ const {data:al}=await sb.rpc("alumni_match",{p_emails:roster.map(x=>x.email)}); if(al) alumni=al; }catch(e){}
   render();
 }
 
@@ -548,7 +585,7 @@ function renderTAs(){
   $("taRows").innerHTML = tas.length ? tas.map(x=>{
     const pr = names[x.claimed_by];
     return `<tr>
-      <td>${esc(x.email)}</td>
+      <td>${esc(x.email)}${alumniTag(x.email)}</td>
       <td>${pr ? `<span class="tag ok" style="color:#5ef08c">${esc(pr.name)}</span>` : '<span class="tag no">ยังไม่สมัคร</span>'}</td>
       <td><select data-move="${esc(x.email)}">${HOUSES.map(h=>`<option value="${h.id}" ${h.id===x.house_id?"selected":""}>${h.emoji} ${h.name}</option>`).join("")}</select></td>
       <td><button class="btn xs danger" data-unta="${esc(x.email)}">ถอด TA</button></td></tr>`; }).join("")
