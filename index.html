@@ -1265,6 +1265,19 @@
     .dmid{min-width:46px; font-size:10px}
     .dmid b{font-size:16px}
   }
+  /* ---- มือถือ: ป้าย "Powered by Netlify" (แพ็กเกจฟรี ซ่อนไม่ได้) ลอยมุมขวาล่างทับเมนูล่าง → ยกเมนูและปุ่มลอยทั้งหมดขึ้นเหนือป้าย
+     (--nfy = ความสูงที่เว้นให้ป้าย · แถบใต้เมนู ::after ถมสีเดียวกับเมนูเพื่อให้ป้ายลอยบนพื้นเข้มไม่ทับปุ่ม) ---- */
+  @media(max-width:700px){
+    :root{--nfy:58px}
+    .nav{bottom:var(--nfy)}
+    .nav::after{content:""; position:absolute; left:0; right:0; top:100%; height:var(--nfy); background:#0e0a29}
+    #toast{bottom:calc(84px + var(--nfy) + env(safe-area-inset-bottom))}
+    .fab{bottom:calc(84px + var(--nfy) + env(safe-area-inset-bottom))}
+    .toTop{bottom:calc(74px + var(--nfy) + env(safe-area-inset-bottom))}
+    .bgmFab{bottom:calc(118px + var(--nfy) + env(safe-area-inset-bottom))}
+    .bellMenu.bgmPop.fromFab{bottom:calc(200px + var(--nfy) + env(safe-area-inset-bottom))}
+    .wrap{padding-bottom:calc(110px + var(--nfy))}
+  }
 </style>
 </head>
 <body>
