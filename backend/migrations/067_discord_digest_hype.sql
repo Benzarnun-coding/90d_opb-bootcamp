@@ -2,7 +2,7 @@
 -- เปลี่ยนแค่ข้อความของ digest_text() (ฟังก์ชันเดียว) — cron 'discord-daily' / send_daily_digest() ยังเรียกตัวเดิม ไม่แตะเวลา/กุญแจ/webhook
 -- ข้อความใหม่:  1) วันนี้ส่งการบ้านไปแล้วกี่ชิ้น จากกี่คน (ไม่มีชื่อคนที่ยังไม่ส่ง, ไม่มีเตือนเลือกเป้า)
 --              2) เลือดบอสสัปดาห์นี้ + แถบ HP + MVP + เหลือกี่วัน + รางวัล + ชวนช่วยกันตี
---              3) PVP: คู่ที่กำลังสู้กัน (สกอร์สด) + ผลคู่ที่เพิ่งจบ  ·  ตารางบ้านเอาออก
+--              3) PVP: คู่ที่กำลังสู้กัน (สกอร์สด) + ผลคู่ที่เพิ่งจบ (เฉพาะชื่อผู้ชนะ — สกอร์ของคู่ที่จบแล้วคิดสดจากโพสต์ จึงอาจไม่ตรงกับผลตัดสิน)  ·  ตารางบ้านเอาออก
 -- รันทั้งไฟล์ได้เลย · ย้อนกลับ: รัน 017 ช่วง digest_text ซ้ำ (ตัวเดิม)
 create or replace function public.digest_text()
 returns text language plpgsql security definer set search_path = public as $fn$
@@ -54,7 +54,7 @@ begin
   select string_agg(x.line, E'\n') into duel_done from (
     select '• 🏆 ' || case when winner = challenger then challenger_name when winner = opponent then opponent_name end
            || ' ชนะ ' || case when winner = challenger then opponent_name else challenger_name end
-           || ' (' || challenger_score || '–' || opponent_score || ')' as line
+           as line
     from public.v_duels
     where status = 'done' and winner is not null and end_day >= d - 1
     order by end_day desc limit 5) x;
