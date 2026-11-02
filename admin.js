@@ -47,7 +47,7 @@ async function boot(){
   if(co && co.discord_webhook) $("dcHook").value = co.discord_webhook;
   await loadBosses();
   await loadLoginCode();
-  loadFeedback(); loadHearts(); wrapRefresh(); arcRefresh();
+  loadFeedback(); loadHearts(); wrapRefresh(); arcRefresh(); c10Refresh();
   loadRisk(); loadSessions(); loadRetention(); loadAudit(); loadEngagement(); loadCohortStats();
 }
 /* ---- กลุ่มเสี่ยง ---- */
@@ -356,6 +356,27 @@ async function arcImport(file){
 }
 document.addEventListener("click",e=>{ if(e.target.id==="arcTake") arcTake(); else if(e.target.id==="arcDown") arcDown(); });
 document.addEventListener("change",e=>{ if(e.target.id==="arcFile"&&e.target.files[0]){ arcImport(e.target.files[0]); e.target.value=""; } });
+
+/* ---- 📚 รางวัลคริ ×10 (068): รายชื่อคนที่เลือกหนังสือ + ที่อยู่จัดส่ง · ติ๊กว่าส่งแล้ว ---- */
+async function c10Refresh(){
+  const st=$("c10Status"); if(!st) return;
+  const {data,error}=await sb.rpc("crit10_claims_list");
+  if(error){ st.innerHTML=/crit10_claims_list|schema cache|does not exist/i.test(error.message)?"ยังไม่ได้รัน migration 068":esc(error.message); return; }
+  const left=data.filter(x=>!x.shipped_at).length;
+  st.innerHTML=data.length?`ทั้งหมด <b>${data.length}</b> คน · ยังไม่ได้ส่ง <b style="color:var(--gold)">${left}</b> คน`:"ยังไม่มีใครรับรางวัล (คนที่ติด ×10 แล้วกรอกที่อยู่ในเว็บจะขึ้นที่นี่)";
+  $("c10List").innerHTML=data.map(x=>`<div style="border:2px solid var(--line);padding:10px 12px;background:rgba(0,0,0,.25);${x.shipped_at?"opacity:.6":""}">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>${esc(x.name)}</b> <small style="color:var(--dim)">${esc(x.email||"")}</small>
+      <span style="margin-left:auto;font-size:12px;color:var(--dim)">${esc(new Date(x.claimed_at).toLocaleString("th-TH"))}</span></div>
+    <div style="margin:4px 0;color:var(--gold)">📖 ${esc(x.book)}</div>
+    <div style="font-size:13px;line-height:1.6">${esc(x.recipient)} · ${esc(x.phone)}<br>${esc(x.address)}</div>
+    <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+      <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-c10ship="${x.id}" ${x.shipped_at?"checked":""}> ส่งแล้ว${x.shipped_at?" ("+esc(new Date(x.shipped_at).toLocaleDateString("th-TH"))+")":""}</label>
+      <button class="btn xs" data-c10copy="${x.id}">คัดลอกที่อยู่</button></div></div>`).join("");
+  window._c10Rows=data;
+}
+document.addEventListener("change",async e=>{ const c=e.target.closest("[data-c10ship]"); if(!c) return; const {error}=await sb.rpc("crit10_set_shipped",{p_id:+c.dataset.c10ship,p_shipped:c.checked}); if(error) toast(esc(error.message)); c10Refresh(); });
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-c10copy]"); if(!b) return; const x=(window._c10Rows||[]).find(r=>String(r.id)===b.dataset.c10copy); if(!x) return;
+  const t=`${x.recipient}\n${x.phone}\n${x.address}\n(${x.book})`; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("คัดลอกแล้ว"),()=>toast("คัดลอกไม่ได้ — ลากคลุมข้อความเอง")); });
 
 /* ---- 💛 ส่งกำลังใจ (054) — ระบบคัดคนที่กำลังกลับมา Benz สุ่ม/เลือกแล้วกดส่ง ---- */
 const HR_TH = {comeback:"🌱 กลับมาแล้ว", first:"🐣 เริ่มครั้งแรก", steady:"🔁 สม่ำเสมอ ยังไม่เคยได้"};

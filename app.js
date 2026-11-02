@@ -2030,6 +2030,7 @@ function renderAll(){
   try{ nudgeWatch(); }catch(e){}
   try{ buddyWatch(); }catch(e){}
   try{ wrappedEntryInit(); }catch(e){}
+  try{ crit10Init(); }catch(e){}
   /* แถบเตือนโหมดทดลอง — กันคนเข้าใจผิดว่าส่งงานจริงแล้ว */
   $("demoBar").style.display = DB.mode==="demo" ? "" : "none";
   renderFilters(); renderPledge(); renderBoss(); renderTrack(); renderFeed(); renderHud(); renderQuests();
@@ -2244,7 +2245,7 @@ $("pushBtn").onclick=async()=>{
     S.submitting=false;
     const after=stats(meR());
     sprintMe();
-    if(mult>1 && curBosses().length && bossFighter(meR())) setTimeout(()=>{ if(mult>=10) showCritCard(curBosses()[0], Date.now()); else bigPop(`💥 CRITICAL ×${mult}!`, `ดาเมจใส่บอส +${mult} ในชิ้นเดียว · โชคดีมาก!`, "pass"); try{ SFX.fanfare(); }catch(e){} }, 450);
+    if(mult>1 && curBosses().length && bossFighter(meR())) setTimeout(()=>{ if(mult>=10) c10OnHit(); else bigPop(`💥 CRITICAL ×${mult}!`, `ดาเมจใส่บอส +${mult} ในชิ้นเดียว · โชคดีมาก!`, "pass"); try{ SFX.fanfare(); }catch(e){} }, 450);
     const todayN=Math.max(S.todayCount||0, (after.byDay||{})[S.today]||0);
     if(todayN>=2) setTimeout(()=>comboPop(todayN), 350);
     const passed=(S.lastPass&&S.lastPass.iPassed)||[];
@@ -2449,6 +2450,7 @@ $("installBtn").onclick=async()=>{ $("moreMenu").hidden=true; if(!deferredInstal
 function myEvents(){
   const me=meR(); if(!me || S.spectator) return [];
   const ev=[], id=me.id, cw=curWeek();
+  (S.c10||[]).forEach(p=>ev.push({k:"c10"+p.sub_id, i:"🎁", t:"คุณติดคริ ×10! เลือกหนังสือรับรางวัล", s:"กรอกที่อยู่จัดส่งเมื่อพร้อม · กดเพื่อกรอก", go:()=>openCrit10(p.sub_id)}));
   const ch=(S.cheers||[]).filter(c=>c.to_id===id && c.day_index===S.today);
   if(ch.length){ const names=[...new Set(ch.map(c=>(S.runners.find(r=>r.id===c.from_id)||{}).name).filter(Boolean))];
     ev.push({k:"cheer"+ch.length, i:"👏", t:`วันนี้มีคนเชียร์คุณ ${ch.length} คน`, s:names.slice(0,5).join(", "), go:()=>showPage("pgRace")}); }
@@ -3802,6 +3804,92 @@ function showCritCard(b, at){
   $("critModal").classList.add("on");
 }
 $("critOk").onclick=()=>$("critModal").classList.remove("on");
+
+/* ---- 🎁 คริ ×10 = เลือกหนังสือ 1 เล่ม (ฉบับแปลไทย) + กรอกที่อยู่จัดส่ง (migration 068) ----
+   ที่อยู่ส่งเข้า RPC crit10_claim เท่านั้น (ตารางปิดสิทธิ์ตรง · เห็นเฉพาะหัวหน้าโค้ช) · กรอกทีหลังได้จากกระดิ่ง 🔔
+   เช็คว่าติด ×10 จริงฝั่งเซิร์ฟเวอร์ · โหมด DEMO จำลองในเครื่อง ไม่ส่งอะไรออกไป */
+const C10_BOOKS=[
+  {k:"mdw",   t:"Million Dollar Weekend",          s:"สุดสัปดาห์ล่าเงินล้าน",                              a:"Noah Kagan",          c:"#ff6b35"},
+  {k:"naval", t:"The Almanack of Naval Ravikant",  s:"คู่มือสร้างความมั่งคั่งและความสุข ฉบับนายนาวาล",      a:"Eric Jorgenson",      c:"#2d6cdf"},
+  {k:"sae",   t:"Same as Ever",                    s:"จิตวิทยาเอาชนะอนาคต",                                 a:"Morgan Housel",       c:"#12a594"},
+  {k:"coo",   t:"Company of One",                  s:"บริษัทตัวคนเดียว",                                    a:"Paul Jarvis",         c:"#e5484d"},
+  {k:"bsb",   t:"Building a Second Brain",         s:"พลังแห่งสมองที่สอง",                                  a:"Tiago Forte",         c:"#8e4ec6"},
+  {k:"dw",    t:"Deep Work",                       s:"ดำดิ่งท่ามกลางสิ่งรบกวน",                             a:"Cal Newport",         c:"#374151"},
+  {k:"tiny",  t:"Tiny Experiments",                s:"ชีวิตนี้คือเวอร์ชั่นทดลอง",                           a:"Anne-Laure Le Cunff", c:"#e0a100"}
+];
+const c10Book=k=>C10_BOOKS.find(b=>b.k===k||(k==="te"&&b.k==="tiny"));
+const c10Cover=(b,cls)=>`<button type="button" class="c10Book ${cls||""}" data-k="${b.k}" style="--bc:${b.c}" aria-label="${b.t} ${b.s}"><b>${b.t}</b><span>${b.s}</span><small>${b.a}</small></button>`;
+function c10FormHTML(p){
+  const me=meR();
+  return `<div class="crtBook">🎁</div><div class="crtHd">🎉 CONGRATULATIONS!</div>
+    <div class="crtWho">${me.name}</div>
+    <div class="crtSub">คุณติดคริติคอล ×10${p.boss?` ใส่ “${p.boss}”`:""} · เลือกหนังสือได้ 1 เล่ม (ฉบับแปลไทย)</div>
+    <div class="c10Shelf" id="c10Shelf">${C10_BOOKS.map(b=>c10Cover(b)).join("")}</div>
+    <div class="c10Form">
+      <div><label for="c10Name">ชื่อผู้รับ</label><input id="c10Name" maxlength="80" autocomplete="name" placeholder="ชื่อ-นามสกุล"></div>
+      <div><label for="c10Phone">เบอร์โทร (ไว้ให้ขนส่งติดต่อ)</label><input id="c10Phone" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="0812345678"></div>
+      <div><label for="c10Addr">ที่อยู่จัดส่ง</label><textarea id="c10Addr" maxlength="400" autocomplete="street-address" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"></textarea></div>
+      <div class="c10Note">🔒 ที่อยู่และเบอร์โทรเห็นเฉพาะหัวหน้าโค้ชคนเดียว · ยังไม่สะดวกกรอก? กด “ไว้กรอกทีหลัง” แล้วกลับมากรอกได้จากกระดิ่ง 🔔</div>
+    </div>
+    <div class="c10Btns"><button class="btn gold" id="c10Go">ยืนยันรับรางวัล 🎁</button><button class="btn sm" id="c10Later">ไว้กรอกทีหลัง</button></div>`;
+}
+function openCrit10(subId){
+  const p=(S.c10||[]).find(x=>String(x.sub_id)===String(subId))||(S.c10||[])[0]; if(!p || !meR()) return;
+  S._c10={sub:p.sub_id, book:"", p};
+  $("c10Body").innerHTML=c10FormHTML(p); $("c10Modal").classList.add("on"); $("c10Modal").scrollTop=0;
+}
+function c10Congrats(p, bookKey){
+  const me=meR(), b=c10Book(bookKey);
+  $("c10Body").innerHTML=`<div class="crtBook">📖</div><div class="crtHd">🎉 CONGRATULATIONS!</div>
+    <div class="crtWho">${me.name}</div>
+    <div class="crtSub">ติดคริติคอล ×10${p.boss?` ใส่ “${p.boss}”`:""}</div>
+    <div class="c10Won">${c10Cover(b,"")}<div><small>หนังสือที่ได้รับ</small><strong>${b.t}</strong><em>${b.s}</em></div></div>
+    <div class="crtReward">🎁 รางวัล: หนังสือ 1 เล่ม · จัดส่งถึงบ้าน</div>
+    <div class="crtStamp">${p.at?critWhen(p.at)+" · ":""}${p.boss||"บอส"}${p.week?" · สัปดาห์ "+p.week:""}</div>
+    <div class="crtCap">(Capture ภาพนี้ลงกลุ่ม Discord ได้เลย)</div>
+    <div class="c10Btns"><button class="btn sm" id="c10Done">ปิด</button></div>`;
+}
+async function c10Submit(){
+  const st=S._c10; if(!st) return;
+  const val=id=>($(id).value||"").trim(), f={name:val("c10Name"), phone:val("c10Phone"), addr:val("c10Addr")};
+  if(!st.book) return toast("เลือกหนังสือก่อน 📖");
+  if(f.name.length<2) return toast("กรอกชื่อผู้รับ");
+  if(!/^[0-9+() -]{8,20}$/.test(f.phone)) return toast("เบอร์โทรไม่ถูกต้อง");
+  if(f.addr.length<10) return toast("กรอกที่อยู่ให้ครบ");
+  const btn=$("c10Go"); btn.disabled=true;
+  try{
+    if(DB.mode==="live"){
+      const {data,error}=await DB._sb().rpc("crit10_claim",{p_sub:st.sub, p_book:st.book==="tiny"?"te":st.book, p_name:f.name, p_phone:f.phone, p_address:f.addr});
+      if(error) throw new Error(error.message);
+      if(!data||!data.ok) throw new Error("รับรางวัลไม่สำเร็จ ลองใหม่อีกครั้ง");
+    }
+    S.c10=(S.c10||[]).filter(x=>String(x.sub_id)!==String(st.sub)); S._c10=null;
+    c10Congrats(st.p, st.book); try{ renderBell(); }catch(e){} try{ SFX.fanfare(); }catch(e){}
+  }catch(e){ toast(String(e.message||e)); btn.disabled=false; }
+}
+async function loadCrit10(){
+  if(DB.mode!=="live" || S.spectator || !meR()) return;
+  try{ const {data,error}=await DB._sb().rpc("crit10_pending"); if(!error && Array.isArray(data)){ S.c10=data; try{ renderBell(); }catch(e){} } }catch(e){}
+}
+async function c10OnHit(){
+  if(DB.mode==="live") await loadCrit10();
+  else { (S.c10=S.c10||[]).push({sub_id:-Date.now(), at:Date.now(), week:curWeek(), boss:(curBosses()[0]||{}).name||""}); try{ renderBell(); }catch(e){} }
+  openCrit10();
+}
+var _c10Checked=false;
+async function crit10Init(){
+  if(_c10Checked || DB.mode!=="live" || S.spectator || !meR()) return;
+  _c10Checked=true; await loadCrit10();
+  let shown=false; try{ shown=sessionStorage.getItem("c10Shown")==="1"; }catch(e){}
+  if((S.c10||[]).length && !shown){ try{ sessionStorage.setItem("c10Shown","1"); }catch(e){} setTimeout(()=>openCrit10(), 1200); }
+}
+$("c10Modal").addEventListener("click",e=>{
+  const bk=e.target.closest(".c10Book[data-k]");
+  if(bk && S._c10){ S._c10.book=bk.dataset.k; $("c10Shelf").querySelectorAll(".c10Book").forEach(x=>x.classList.toggle("on",x===bk)); return; }
+  if(e.target.closest("#c10Go")) return c10Submit();
+  if(e.target.closest("#c10Later")){ $("c10Modal").classList.remove("on"); toast("เก็บรางวัลไว้ที่กระดิ่ง 🔔 แล้ว กลับมากรอกได้ทุกเมื่อ"); return; }
+  if(e.target.closest("#c10Done")) $("c10Modal").classList.remove("on");
+});
 
 /* ห้องบอส: สถิติว่าใครตีไปกี่ดาเมจ + ฉายาประจำรอบ */
 function bossRoomHTML(){
