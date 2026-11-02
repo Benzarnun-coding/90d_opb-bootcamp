@@ -367,7 +367,7 @@ async function c10Refresh(){
   $("c10List").innerHTML=data.map(x=>`<div style="border:2px solid var(--line);padding:10px 12px;background:rgba(0,0,0,.25);${x.shipped_at?"opacity:.6":""}">
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>${esc(x.name)}</b> <small style="color:var(--dim)">${esc(x.email||"")}</small>
       <span style="margin-left:auto;font-size:12px;color:var(--dim)">${esc(new Date(x.claimed_at).toLocaleString("th-TH"))}</span></div>
-    <div style="margin:4px 0;color:var(--gold)">📖 ${esc(x.book)}</div>
+    <div style="margin:4px 0;color:var(--gold)">${x.draw?"🎲 สลากบอส":"💥 คริ ×10"} · 📖 ${esc(x.book)}</div>
     <div style="font-size:13px;line-height:1.6">${esc(x.recipient)} · ${esc(x.phone)}<br>${esc(x.address)}</div>
     <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
       <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-c10ship="${x.id}" ${x.shipped_at?"checked":""}> ส่งแล้ว${x.shipped_at?" ("+esc(new Date(x.shipped_at).toLocaleDateString("th-TH"))+")":""}</label>

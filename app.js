@@ -2450,7 +2450,7 @@ $("installBtn").onclick=async()=>{ $("moreMenu").hidden=true; if(!deferredInstal
 function myEvents(){
   const me=meR(); if(!me || S.spectator) return [];
   const ev=[], id=me.id, cw=curWeek();
-  (S.c10||[]).forEach(p=>ev.push({k:"c10"+p.sub_id, i:"🎁", t:"คุณติดคริ ×10! เลือกหนังสือรับรางวัล", s:"กรอกที่อยู่จัดส่งเมื่อพร้อม · กดเพื่อกรอก", go:()=>openCrit10(p.sub_id)}));
+  (S.c10||[]).forEach(p=>ev.push({k:"c10"+p.sub_id, i:"🎁", t:p.kind==="draw"?`คุณคือผู้โชคดีสลากบอส “${p.boss||""}”! เลือกหนังสือรับรางวัล`:"คุณติดคริ ×10! เลือกหนังสือรับรางวัล", s:"กรอกที่อยู่จัดส่งเมื่อพร้อม · กดเพื่อกรอก", go:()=>openCrit10(p.sub_id)}));
   const ch=(S.cheers||[]).filter(c=>c.to_id===id && c.day_index===S.today);
   if(ch.length){ const names=[...new Set(ch.map(c=>(S.runners.find(r=>r.id===c.from_id)||{}).name).filter(Boolean))];
     ev.push({k:"cheer"+ch.length, i:"👏", t:`วันนี้มีคนเชียร์คุณ ${ch.length} คน`, s:names.slice(0,5).join(", "), go:()=>showPage("pgRace")}); }
@@ -3823,7 +3823,7 @@ function c10FormHTML(p){
   const me=meR();
   return `<div class="crtBook">🎁</div><div class="crtHd">🎉 CONGRATULATIONS!</div>
     <div class="crtWho">${me.name}</div>
-    <div class="crtSub">คุณติดคริติคอล ×10${p.boss?` ใส่ “${p.boss}”`:""} · เลือกหนังสือได้ 1 เล่ม (ฉบับแปลไทย)</div>
+    <div class="crtSub">${p.kind==="draw"?`🎲 รอบ “${p.boss||"บอส"}” ไม่มีใครติดคริ ×10 · ระบบจับสลากแล้วคุณคือผู้โชคดี! · เลือกหนังสือได้ 1 เล่ม (ฉบับแปลไทย)`:`คุณติดคริติคอล ×10${p.boss?` ใส่ “${p.boss}”`:""} · เลือกหนังสือได้ 1 เล่ม (ฉบับแปลไทย)`}</div>
     <div class="c10Shelf" id="c10Shelf">${C10_BOOKS.map(b=>c10Cover(b)).join("")}</div>
     <div class="c10Form">
       <div><label for="c10Name">ชื่อผู้รับ</label><input id="c10Name" maxlength="80" autocomplete="name" placeholder="ชื่อ-นามสกุล"></div>
@@ -3842,7 +3842,7 @@ function c10Congrats(p, bookKey){
   const me=meR(), b=c10Book(bookKey);
   $("c10Body").innerHTML=`<div class="crtBook">📖</div><div class="crtHd">🎉 CONGRATULATIONS!</div>
     <div class="crtWho">${me.name}</div>
-    <div class="crtSub">ติดคริติคอล ×10${p.boss?` ใส่ “${p.boss}”`:""}</div>
+    <div class="crtSub">${p.kind==="draw"?`ผู้โชคดีจากสลากบอส “${p.boss||"บอส"}” 🎲`:`ติดคริติคอล ×10${p.boss?` ใส่ “${p.boss}”`:""}`}</div>
     <div class="c10Won">${c10Cover(b,"")}<div><small>หนังสือที่ได้รับ</small><strong>${b.t}</strong><em>${b.s}</em></div></div>
     <div class="crtReward">🎁 รางวัล: หนังสือ 1 เล่ม · จัดส่งถึงบ้าน</div>
     <div class="crtStamp">${p.at?critWhen(p.at)+" · ":""}${p.boss||"บอส"}${p.week?" · สัปดาห์ "+p.week:""}</div>
