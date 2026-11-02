@@ -3818,7 +3818,7 @@ const C10_BOOKS=[
   {k:"tiny",  t:"Tiny Experiments",                s:"ชีวิตนี้คือเวอร์ชั่นทดลอง",                           a:"Anne-Laure Le Cunff", c:"#e0a100"}
 ];
 const c10Book=k=>C10_BOOKS.find(b=>b.k===k||(k==="te"&&b.k==="tiny"));
-const c10Cover=(b,cls)=>`<button type="button" class="c10Book ${cls||""}" data-k="${b.k}" style="--bc:${b.c}" aria-label="${b.t} ${b.s}"><b>${b.t}</b><span>${b.s}</span><small>${b.a}</small></button>`;
+const c10Cover=(b,cls)=>`<button type="button" class="c10Book ${cls||""}" data-k="${b.k}" aria-label="${b.t} ${b.s}"><img src="books/${b.k}.jpg" alt="${b.t} ${b.s}" width="290" height="420" decoding="async"><span>${b.s}</span></button>`;
 function c10FormHTML(p){
   const me=meR();
   return `<div class="crtBook">🎁</div><div class="crtHd">🎉 CONGRATULATIONS!</div>
