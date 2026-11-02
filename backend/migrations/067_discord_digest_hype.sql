@@ -66,5 +66,26 @@ begin
 end $fn$;
 grant execute on function public.digest_text() to authenticated;
 
+-- ตัวส่งเข้า Discord (ต่อจาก 058a): 1) allowed_mentions = ไม่ให้ข้อความปิงใครเลย — ชื่อนักเรียนยาวได้ถึง 10 ตัวอักษร ตั้งเป็น "@everyone" (9 ตัว) ได้
+--   แล้วชื่อนั้นโผล่ใน MVP/ผู้ชนะ PVP/รางวัลรายสัปดาห์ = ปิงทั้งเซิร์ฟเวอร์ · 2) ข้อความยาวเกิน 1900 ตัวอักษรตัดที่ท้ายบรรทัด (เดิมตัดกลางคำ ลิงก์ท้ายข้อความหายเงียบ ๆ)
+create or replace function public.notify_discord(msg text)
+returns bigint language plpgsql security definer set search_path = public as $fn$
+declare url text; rid bigint; body text := msg;
+begin
+  if auth.uid() is not null and not public.is_head_coach() then raise exception 'เฉพาะหัวหน้าโค้ชเท่านั้น'; end if;
+  select value into url from public.private_config where key = 'discord_webhook';
+  if url is null or url = '' then raise exception 'ยังไม่ได้ใส่ Discord webhook ในหน้า admin'; end if;
+  if length(body) > 1900 then
+    body := left(body, 1900);
+    body := regexp_replace(body, E'\n[^\n]*$', '');           -- ตัดทิ้งบรรทัดที่ขาดครึ่ง
+    body := body || E'\n…';
+  end if;
+  select net.http_post(url := url,
+    body := jsonb_build_object('content', body, 'allowed_mentions', jsonb_build_object('parse', '[]'::jsonb)),
+    headers := '{"Content-Type":"application/json"}'::jsonb) into rid;
+  insert into public.notifications (kind, payload, sent_at) values ('daily_digest', jsonb_build_object('text', msg, 'request_id', rid), now());
+  return rid;
+end $fn$;
+
 -- ตัวอย่างข้อความ (ไม่ได้ส่งจริง)
 select public.digest_text() as preview;
