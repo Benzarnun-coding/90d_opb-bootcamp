@@ -1299,6 +1299,10 @@
     .bgmFab{bottom:calc(118px + var(--nfy) + env(safe-area-inset-bottom))}
     .bellMenu.bgmPop.fromFab{bottom:calc(200px + var(--nfy) + env(safe-area-inset-bottom))}
     .wrap{padding-bottom:calc(110px + var(--nfy))}
+    /* หน้าต่างป๊อปอัปไม่ให้ปุ่มล่างถูกป้ายบังได้ · ชั้นหนังสือ 8 เล่มบนจอแคบ = 3 คอลัมน์ เห็นเยอะขึ้นไม่ต้องเลื่อนไกล */
+    .modal{padding-bottom:var(--nfy)}
+    .c10Shelf{grid-template-columns:repeat(3,1fr); gap:10px 8px}
+    .c10Book span{font-size:10px}
   }
 </style>
 </head>

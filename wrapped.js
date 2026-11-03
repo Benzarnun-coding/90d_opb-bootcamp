@@ -361,7 +361,7 @@ const CSS=`#wrapOv{position:fixed;inset:0;z-index:400;background:#000;display:fl
 .wSum{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.2)}.wSum div{background:color-mix(in srgb,var(--fg) 12%,transparent);border-radius:calc(var(--u)*3);padding:calc(var(--u)*2.6) calc(var(--u)*3);font-size:calc(var(--u)*3.4);font-weight:600}.wSum b{display:block;font-weight:800;font-size:calc(var(--u)*9);line-height:1.15}
 .wSprite{display:flex;justify-content:flex-start;margin:calc(var(--u)*-2) 0}.wSprite .runner{position:relative!important;transform:none!important;width:auto!important}.wSprite svg{width:calc(var(--u)*36)!important;height:auto!important;image-rendering:pixelated;filter:drop-shadow(0 calc(var(--u)*1.4) 0 rgba(0,0,0,.35))}
 .wSlide-final .wHead{font-size:calc(var(--u)*11)}.wSlide-intro .wHead{font-size:calc(var(--u)*12);line-height:1.2}.wSlide-intro .wUnit{font-size:calc(var(--u)*6)}
-.wBtns{position:absolute;left:calc(var(--u)*8);right:calc(var(--u)*8);bottom:calc(var(--u)*7);display:flex;gap:calc(var(--u)*2.4);z-index:9}
+.wBtns{position:absolute;left:calc(var(--u)*8);right:calc(var(--u)*8);bottom:calc(var(--u)*7 + var(--nfy,0px));display:flex;gap:calc(var(--u)*2.4);z-index:9}
 .wBtns button{flex:1;font-family:inherit;font-weight:800;font-size:calc(var(--u)*3.8);padding:calc(var(--u)*3) calc(var(--u)*2);border:0;border-radius:99px;cursor:pointer;background:#fff;color:#000}
 .wBtns button.g{background:#000;color:#fff}
 .wLangScr{position:absolute;inset:0;z-index:10;background:#121212;display:flex;flex-direction:column;justify-content:center;gap:calc(var(--u)*5);padding:0 calc(var(--u)*9);overflow:hidden;animation:wFade .4s both}
