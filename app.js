@@ -3815,7 +3815,8 @@ const C10_BOOKS=[
   {k:"coo",   t:"Company of One",                  s:"บริษัทตัวคนเดียว",                                    a:"Paul Jarvis",         c:"#e5484d"},
   {k:"bsb",   t:"Building a Second Brain",         s:"พลังแห่งสมองที่สอง",                                  a:"Tiago Forte",         c:"#8e4ec6"},
   {k:"dw",    t:"Deep Work",                       s:"ดำดิ่งท่ามกลางสิ่งรบกวน",                             a:"Cal Newport",         c:"#374151"},
-  {k:"tiny",  t:"Tiny Experiments",                s:"ชีวิตนี้คือเวอร์ชั่นทดลอง",                           a:"Anne-Laure Le Cunff", c:"#e0a100"}
+  {k:"tiny",  t:"Tiny Experiments",                s:"ชีวิตนี้คือเวอร์ชั่นทดลอง",                           a:"Anne-Laure Le Cunff", c:"#e0a100"},
+  {k:"unfair", t:"The Unfair Advantage",             s:"เล่นแบบผู้ชนะ",                                      a:"Ash Ali & Hasan Kubba", c:"#0f9d58"}
 ];
 const c10Book=k=>C10_BOOKS.find(b=>b.k===k||(k==="te"&&b.k==="tiny"));
 const c10Cover=(b,cls)=>`<button type="button" class="c10Book ${cls||""}" data-k="${b.k}" aria-label="${b.t} ${b.s}"><img src="books/${b.k}.jpg" alt="${b.t} ${b.s}" width="290" height="420" decoding="async"><span>${b.s}</span></button>`;
