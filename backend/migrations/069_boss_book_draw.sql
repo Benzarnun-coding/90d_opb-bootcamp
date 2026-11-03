@@ -1,5 +1,5 @@
 -- 069: บอสทุกตัวต้องมีคนได้หนังสือ (Benz 3 พ.ย.: "ทุกการตีบอสมันต้องมีคนได้หนังสือเล่มนึง ๆ") · รันหลัง 068
--- กติกา: เมื่อสัปดาห์ของบอสจบ (หลังตัดรอบพุธ 20:30) ถ้า "ไม่มีใครติดคริ ×10" ในบอสตัวนั้นเลย → จับสลากหา 1 คนจากนักสู้ของบอสตัวนั้น
+-- กติกา: จับทันทีที่บอสล้ม หรือเมื่อสัปดาห์ของบอสจบ (หลังตัดรอบพุธ 20:30) แล้วแต่อย่างไหนมาก่อน ถ้า "ไม่มีใครติดคริ ×10" ในบอสตัวนั้นเลย → จับสลากหา 1 คนจากนักสู้ของบอสตัวนั้น
 --   น้ำหนักสลาก = ดาเมจที่ตีไป (ตีมากโอกาสมาก แต่ทุกคนที่ตีมีสิทธิ์) · ไม่รวมหัวหน้าโค้ช · ใช้ได้กับบอสรวมรุ่น (house_id ว่าง) ตัวที่ id >= 4 เท่านั้น (บอสเก่าไม่ย้อนหลัง)
 --   ผู้โชคดีได้ป๊อปอัป/กระดิ่งเลือกหนังสือ + กรอกที่อยู่แบบเดียวกับคริ ×10 · แจ้งช่องน้องเขียวปั่นทันที
 --   ถ้ามีคนติด ×10 อยู่แล้ว = มีผู้ได้หนังสือแล้ว ไม่จับเพิ่ม
@@ -15,12 +15,13 @@ revoke all on public.boss_draws from public, anon, authenticated;
 
 create or replace function public.boss_book_draw() returns int
 language plpgsql security definer set search_path = public as $fn$
-declare b record; w record; total int; pick numeric; acc int; n int := 0; who text; win uuid;
+declare b record; w record; total int; pick numeric; acc int; n int := 0; who text; win uuid; dead boolean;
 begin
   for b in
     select bs.* from public.bosses bs
     where bs.id >= 4 and bs.house_id is null
-      and public.week_end_at(bs.week_no) <= now()
+      and (public.week_end_at(bs.week_no) <= now()
+           or exists (select 1 from public.v_boss_progress bp where bp.id = bs.id and bp.damage >= bp.hp))
       and not exists (select 1 from public.boss_draws d where d.boss_id = bs.id)
       and not exists (select 1 from public.v_crit_log l where l.boss_id = bs.id and l.crit = 10)
   loop
@@ -38,7 +39,8 @@ begin
     end loop;
     insert into public.boss_draws (boss_id, profile_id, pool) values (b.id, win, total) on conflict do nothing;
     select name into who from public.profiles where id = win;
-    perform public.discord_send('🎁 **' || b.name || '** จบรอบแล้ว · รอบนี้ไม่มีใครติดคริ ×10 เลยจับสลากแจกหนังสือ!' || E'\n🎊 ผู้โชคดีคือ **' || who || '** ได้เลือกหนังสือไปเลย 1 เล่ม 📖 (เข้าเว็บไปเลือกหนังสือ + กรอกที่อยู่ได้เลย)');
+    select (bp.damage >= bp.hp) into dead from public.v_boss_progress bp where bp.id = b.id;
+    perform public.discord_send('🎁 **' || b.name || '** ' || case when dead then 'ล้มแล้ว!' else 'จบรอบแล้ว' end || ' · รอบนี้ไม่มีใครติดคริ ×10 เลยจับสลากแจกหนังสือ!' || E'\n🎊 ผู้โชคดีคือ **' || who || '** ได้เลือกหนังสือไปเลย 1 เล่ม 📖 (เข้าเว็บไปเลือกหนังสือ + กรอกที่อยู่ได้เลย)');
     n := n + 1;
   end loop;
   return n;
