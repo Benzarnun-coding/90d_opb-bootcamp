@@ -229,6 +229,7 @@ const PAL={
  path:{bg:"#509bf5",fg:"#08142e",ac:"#ffffff",s1:"#a9d0ff",s2:"#7fb3f5"},
  streak:{bg:"#ff6437",fg:"#1a0800",ac:"#ffffff",s1:"#ffcd3c",s2:"#ff8a5e"},
  rhythm:{bg:"#b49bc8",fg:"#1a0f2a",ac:"#ffffff",s1:"#e3d3f0",s2:"#9a7fb3"},
+ letter:{bg:"#1a1030",fg:"#fff4e6",ac:"#ffb86b",s1:"#3a1f5c",s2:"#ff8a5e"},
  goal:{bg:"#ffcd3c",fg:"#1a1200",ac:"#ffffff",s1:"#ffe27a",s2:"#ffb400"},
  boss:{bg:"#e8115b",fg:"#ffffff",ac:"#ffcd3c",s1:"#7a0030",s2:"#ff5c93"},
  pvp:{bg:"#121212",fg:"#ffffff",ac:"#ffcd3c",s1:"#e8115b",s2:"#ffcd3c"},
@@ -311,6 +312,14 @@ function slides(W,L){
   }
   const co=raw.cohort, lc=[["👥",T(`${co.students} คนร่วมเดินทาง`,`${co.students} people on the journey`)]]; if(co.slain) lc.push(["🗡️",T(`ล้มบอสไปทั้งหมด ${co.slain} ตัว`,`${co.slain} bosses slain`)]); if(co.duels) lc.push(["⚔️",T(`ดวลกัน ${co.duels} ครั้ง`,`${co.duels} duels fought`)]); if(co.crit10) lc.push(["📖",T(`ติดคริ ×10 ไป ${co.crit10} ครั้ง`,`${co.crit10} ×10 crits landed`)]);
   add("cohort","cohort",{kick:T("ทั้งรุ่น","THE COHORT"),head:T("ทั้งรุ่นร่วมกันปล่อย","Together we published"),big:co.pieces,unit:T("ชิ้น","pieces"),lines:lc,sticker:"🌏"});
+  /* จดหมายจากเบ้น (ร่างเขียนด้วยภาษาเบ้น · แก้ถ้อยคำได้ที่ก้อนนี้) */
+  [
+   [T("90 วันที่แล้ว\nมันเป็นแค่ตารางว่างๆ\nกับคำถามเดียว","90 days ago\nit was an empty calendar\nand one question"),T("จะลงมือทำได้จริงไหม","Could you actually follow through?")],
+   [T("แล้วคุณก็ส่งชิ้นแรก\nชิ้นที่สอง ชิ้นที่สิบ","Then you shipped the first one.\nThe second. The tenth."),T("ทั้งวันที่มีแรง\nและวันที่แค่อยากนอน","On the days with energy,\nand the days you just wanted to sleep.")],
+   [T("ไม่มีใครปรบมือให้ทุกชิ้น\nไม่มีใครเห็นทุกครั้ง\nที่คุณเกือบหยุด","Nobody clapped for every piece.\nNobody saw every time\nyou almost stopped."),T("แต่ตัวเลขเห็น\nและมันไม่เคยโกหก","But the numbers saw.\nAnd they never lie.")],
+   [T("สิ่งที่คุณได้ไป\nไม่ใช่แค่คอนเทนต์","What you take with you\nis not just content."),T("แต่คือหลักฐานว่า\n“ฉันเป็นคนที่กลับมาทำต่อ”\nซึ่งไม่มีใครเอาไปจากคุณได้","It's proof that\n“I'm someone who comes back.”\nAnd nobody can take that away.")],
+   [T("90 วันนี้จบแล้ว\nแต่ขอให้มันไม่ใช่วันสุดท้าย\nที่คุณลงมือ","These 90 days are over.\nMay they not be the last day\nyou take action."),T("ขอบคุณที่ไว้ใจ\nให้เบ้นเดินไปด้วยกัน 💚\n— เบ้น","Thank you for trusting me\nto walk this with you 💚\n— Benz")]
+  ].forEach(([h,sub],i)=>add("letter"+i,"letter",{kick:i===0?T("จดหมายจากเบ้น","A LETTER FROM BENZ"):"",head:h,lines:[["",sub]]}));
   add("final","final",{kick:T("สรุป 90 วัน","YOUR 90 DAYS")+rl,head:m.p.name,big:m.tier&&role==="student"?`${m.tier.e} ${m.tier.n}`:"",unit:role==="student"&&m.tier?T("ระดับของคุณ","your tier"):"",lines:[["💚",T("ขอบคุณที่ร่วมเดินทางด้วยกัน 90 วัน","Thanks for the 90 days together.")]],viz:{t:"summary"},final:true});
   return S;
 }
@@ -360,7 +369,7 @@ const CSS=`#wrapOv{position:fixed;inset:0;z-index:400;background:#000;display:fl
 .wBadges{display:grid;grid-template-columns:repeat(6,1fr);gap:calc(var(--u)*2);font-size:calc(var(--u)*8);text-align:center}
 .wSum{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.2)}.wSum div{background:color-mix(in srgb,var(--fg) 12%,transparent);border-radius:calc(var(--u)*3);padding:calc(var(--u)*2.6) calc(var(--u)*3);font-size:calc(var(--u)*3.4);font-weight:600}.wSum b{display:block;font-weight:800;font-size:calc(var(--u)*9);line-height:1.15}
 .wSprite{display:flex;justify-content:flex-start;margin:calc(var(--u)*-2) 0}.wSprite .runner{position:relative!important;transform:none!important;width:auto!important}.wSprite svg{width:calc(var(--u)*36)!important;height:auto!important;image-rendering:pixelated;filter:drop-shadow(0 calc(var(--u)*1.4) 0 rgba(0,0,0,.35))}
-.wSlide-final .wHead{font-size:calc(var(--u)*11)}.wSlide-intro .wHead{font-size:calc(var(--u)*12);line-height:1.2}.wSlide-intro .wUnit{font-size:calc(var(--u)*6)}
+.wSlide-letter .wHead{font-size:calc(var(--u)*7.2);line-height:1.4;font-weight:700}.wSlide-letter .wList li b{display:none}.wSlide-letter .wList li span{font-size:calc(var(--u)*5.2);line-height:1.5;font-weight:600;color:var(--ac);white-space:pre-line}.wSlide-final .wHead{font-size:calc(var(--u)*11)}.wSlide-intro .wHead{font-size:calc(var(--u)*12);line-height:1.2}.wSlide-intro .wUnit{font-size:calc(var(--u)*6)}
 .wBtns{position:absolute;left:calc(var(--u)*8);right:calc(var(--u)*8);bottom:calc(var(--u)*7 + var(--nfy,0px));display:flex;gap:calc(var(--u)*2.4);z-index:9}
 .wBtns button{flex:1;font-family:inherit;font-weight:800;font-size:calc(var(--u)*3.8);padding:calc(var(--u)*3) calc(var(--u)*2);border:0;border-radius:99px;cursor:pointer;background:#fff;color:#000}
 .wBtns button.g{background:#000;color:#fff}
@@ -422,8 +431,8 @@ function show(i){
   stage.querySelectorAll(".wrapSlide").forEach(e=>e.remove()); stage.insertAdjacentHTML("afterbegin",slideHTML(sl,ST.W,ST.i));
   stage.querySelectorAll(".wBig[data-count]").forEach(countUp);
   const bars=stage.querySelectorAll(".wrapBars i"); bars.forEach((b,k)=>{ b.className=k<ST.i?"done":k===ST.i?"cur":""; const cur=b.querySelector("b"); if(k===ST.i){ cur.style.animation="none"; void cur.offsetWidth; cur.style.animation=""; } });
-  musLevel(sl.final); stage.style.setProperty("--dur",(sl.final?3600:7)+"s"); clearTimeout(ST.timer); ST.timer=null;
-  if(!sl.final) ST.timer=setTimeout(()=>{ if(!ST.hold) show(ST.i+1); },7000);
+  musLevel(sl.final); stage.style.setProperty("--dur",(sl.final?3600:sl.sec==="letter"?10:7)+"s"); clearTimeout(ST.timer); ST.timer=null;
+  if(!sl.final) ST.timer=setTimeout(()=>{ if(!ST.hold) show(ST.i+1); },sl.sec==="letter"?10000:7000);
   stage.querySelector(".wBtns").innerHTML=sl.final?`<button class="g" data-w="share">${tr(ST.lang,"📸 แชร์สไลด์นี้","📸 Share this slide")}</button><button data-w="shareAll">${tr(ST.lang,"💾 เซฟการ์ดสรุป","💾 Save summary card")}</button>`:`<button class="g" data-w="share">${tr(ST.lang,"📸 แชร์สไลด์นี้","📸 Share this slide")}</button>`;
 }
 function setLang(L,keep){
