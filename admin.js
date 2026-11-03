@@ -358,6 +358,15 @@ document.addEventListener("click",e=>{ if(e.target.id==="arcTake") arcTake(); el
 document.addEventListener("change",e=>{ if(e.target.id==="arcFile"&&e.target.files[0]){ arcImport(e.target.files[0]); e.target.value=""; } });
 
 /* ---- 📚 รางวัลคริ ×10 (068): รายชื่อคนที่เลือกหนังสือ + ที่อยู่จัดส่ง · ติ๊กว่าส่งแล้ว ---- */
+/* log การส่งหนังสือ: ดาวน์โหลดเป็น CSV (BOM เพื่อให้ Excel อ่านไทยถูก · เบอร์โทรใส่ ="…" กันเลขศูนย์หน้าหาย) */
+document.addEventListener("click",e=>{ if(!e.target.closest("#c10Csv")) return;
+  const rows=window._c10Rows||[]; if(!rows.length){ toast("ยังไม่มีข้อมูล"); return; }
+  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"', d=v=>v?new Date(v).toLocaleString("sv-SE",{timeZone:"Asia/Bangkok"}):"";
+  const head=["เวลากรอก","ที่มา","นักเรียน","อีเมล","หนังสือ","ผู้รับ","โทร","ที่อยู่","ส่งแล้วเมื่อ"];
+  const body=rows.slice().sort((a,b)=>new Date(a.claimed_at)-new Date(b.claimed_at)).map(x=>[d(x.claimed_at),x.draw?"สลากบอส":"คริ ×10",x.name,x.email||"",x.book,x.recipient,'="'+String(x.phone||"").replace(/"/g,"")+'"',x.address,d(x.shipped_at)].map(q).join(","));
+  const blob=new Blob(["﻿"+[head.map(q).join(","),...body].join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="book-shipping-log-"+new Date().toISOString().slice(0,10)+".csv"; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+});
 async function c10Refresh(){
   const st=$("c10Status"); if(!st) return;
   const {data,error}=await sb.rpc("crit10_claims_list");
