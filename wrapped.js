@@ -412,7 +412,7 @@ function slideHTML(sl,W,idx){
   </div>`;
 }
 function countUp(el){ const to=+el.dataset.count; if(!to||to<10||matchMedia("(prefers-reduced-motion:reduce)").matches) return; const t0=performance.now(), dur=900; const f=t=>{ const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3); el.textContent=Math.round(to*e).toLocaleString("en-US"); if(k<1&&ST&&el.isConnected) requestAnimationFrame(f); else el.textContent=to.toLocaleString("en-US"); }; requestAnimationFrame(f); }
-function ctlHTML(){ return `<div class="wCtl"><button data-w="prev">‹ ${tr(ST.lang||"th","ย้อน","Back")}</button><div class="r"><button class="wl ${ST.lang==="th"?"on":""}" data-w="lang" data-l="th">TH</button><button class="wl ${ST.lang==="en"?"on":""}" data-w="lang" data-l="en">EN</button><button class="x" data-w="close" aria-label="close">✕</button></div></div>`; }
+function ctlHTML(){ return `<div class="wCtl"><button data-w="prev">‹ ${tr(ST.lang||"th","ย้อน","Back")}</button><div class="r">${musUrl()?`<button class="wl" data-w="mus" aria-label="music">${MUS.on?"🔊":"🔇"}</button>`:""}<button class="wl ${ST.lang==="th"?"on":""}" data-w="lang" data-l="th">TH</button><button class="wl ${ST.lang==="en"?"on":""}" data-w="lang" data-l="en">EN</button><button class="x" data-w="close" aria-label="close">✕</button></div></div>`; }
 function langScreen(){
   const dots=[["#1ed760",90,48,-14],["#7b2ff7",52,-22,122],["#f037a5",24,70,112]].map(([c,w,x,y])=>`<i style="background:${c};width:calc(var(--u)*${w});height:calc(var(--u)*${w});left:calc(var(--u)*${x});top:calc(var(--u)*${y});opacity:.95"></i>`).join("");
   return `<div class="wLangScr"><div class="sh">${dots}</div><div class="t">YOUR 90<br>DAYS,<br>WRAPPED.</div><div class="s">เลือกเวอร์ชันที่อยากดู<br>Choose your version</div><button class="th" data-w="pick" data-l="th"><span>ภาษาไทย</span><small>TH</small></button><button class="en" data-w="pick" data-l="en"><span>English</span><small>EN</small></button></div>`;
@@ -422,14 +422,14 @@ function show(i){
   stage.querySelectorAll(".wrapSlide").forEach(e=>e.remove()); stage.insertAdjacentHTML("afterbegin",slideHTML(sl,ST.W,ST.i));
   stage.querySelectorAll(".wBig[data-count]").forEach(countUp);
   const bars=stage.querySelectorAll(".wrapBars i"); bars.forEach((b,k)=>{ b.className=k<ST.i?"done":k===ST.i?"cur":""; const cur=b.querySelector("b"); if(k===ST.i){ cur.style.animation="none"; void cur.offsetWidth; cur.style.animation=""; } });
-  stage.style.setProperty("--dur",(sl.final?3600:7)+"s"); clearTimeout(ST.timer); ST.timer=null;
+  musLevel(sl.final); stage.style.setProperty("--dur",(sl.final?3600:7)+"s"); clearTimeout(ST.timer); ST.timer=null;
   if(!sl.final) ST.timer=setTimeout(()=>{ if(!ST.hold) show(ST.i+1); },7000);
   stage.querySelector(".wBtns").innerHTML=sl.final?`<button class="g" data-w="share">${tr(ST.lang,"📸 แชร์สไลด์นี้","📸 Share this slide")}</button><button data-w="shareAll">${tr(ST.lang,"💾 เซฟการ์ดสรุป","💾 Save summary card")}</button>`:`<button class="g" data-w="share">${tr(ST.lang,"📸 แชร์สไลด์นี้","📸 Share this slide")}</button>`;
 }
 function setLang(L,keep){
   ST.lang=L; ST.W.L=L; ST.slides=slides(ST.W,L); const stage=ST.stage; const ls=stage.querySelector(".wLangScr"); if(ls) ls.remove();
   stage.querySelector(".wCtl").outerHTML=ctlHTML(); stage.querySelector(".wrapBars").innerHTML=ST.slides.map(()=>`<i><b></b></i>`).join(""); stage.querySelector(".wrapBars").style.display="";
-  show(keep?ST.i:0);
+  musStart(); show(keep?ST.i:0);
 }
 /* ---------------------------------------------------------------- ข้อมูลจริง: serialize / อ่านกลับ / ดึงทั้งรุ่น / อัปโหลด */
 const KEEP=["id","n","activeDays","days","hours","dow","topHour","topDow","topPlat","platN","bestDay","bestWeek","longestStreak","perfectWeeks","wk","weeksHit","weeksTotal","maxHitRun","revived","laser","promax","favTarget","damage","fb","lh","slain","c3","c5","c10","given","recv","nSent","nRecv","buddies","buddyBest","hearts","houseCups","kingWeeks","houseShare","badges","topPct","firstTs","lastTs","t30","t90","c","score","exact","swing","holiday","views","kudos"];
@@ -471,6 +471,32 @@ async function buildAndUpload(sb,prog){
 }
 
 /* ---------------------------------------------------------------- เปิดดู */
+/* ---------------------------------------------------------------- เพลงประกอบ (ตั้ง WRAPPED_BGM_URL ใน config.js · ว่าง = เงียบ)
+   เริ่มตอนนักเรียนกดเลือกภาษา (ต้องมีการแตะก่อนเบราว์เซอร์ถึงจะยอมให้เล่นเสียง) · หยุดเพลงปกติของเว็บระหว่างดู แล้วเปิดกลับตอนปิด · สไลด์สุดท้ายเสียงฟูขึ้นเบา ๆ */
+const MUS={a:null,on:true,site:false,_f:null};
+const musUrl=()=>String((window.CFG&&window.CFG.WRAPPED_BGM_URL)||"");
+function musFade(to,ms,done){ const a=MUS.a; if(!a) return; clearInterval(MUS._f); const from=a.volume, steps=Math.max(1,Math.round((ms||1500)/50)); let i=0;
+  MUS._f=setInterval(()=>{ i++; a.volume=Math.max(0,Math.min(1,from+(to-from)*(i/steps))); if(i>=steps){ clearInterval(MUS._f); if(done) done(); } },50); }
+function musLevel(fin){ const a=MUS.a; if(a&&MUS.on&&!a.paused) musFade(fin?0.55:0.32,fin?2600:1200); }
+function musBtns(){ if(!ST) return; ST.stage.querySelectorAll('[data-w="mus"]').forEach(b=>{ b.textContent=MUS.on?"🔊":"🔇"; }); }
+function musStart(){
+  const url=musUrl(); if(!url||MUS.a) return;
+  try{ if(typeof BGM!=="undefined"&&BGM.a&&!BGM.a.paused){ MUS.site=true; BGM.a.pause(); } }catch(e){}
+  const a=new Audio(url); a.loop=true; a.volume=0; MUS.a=a;
+  a.addEventListener("error",()=>{ if(MUS.a===a){ MUS.a=null; MUS.on=false; musBtns(); } });
+  if(MUS.on) a.play().then(()=>musLevel(ST&&ST.slides[ST.i]&&ST.slides[ST.i].final)).catch(()=>{});
+}
+function musToggle(){
+  MUS.on=!MUS.on; musBtns();
+  if(!MUS.a){ if(MUS.on) musStart(); return; }
+  if(MUS.on){ MUS.a.play().then(()=>musLevel(ST&&ST.slides[ST.i]&&ST.slides[ST.i].final)).catch(()=>{}); }
+  else musFade(0,500,()=>{ if(MUS.a) MUS.a.pause(); });
+}
+function musStop(){
+  const a=MUS.a; MUS.a=null; clearInterval(MUS._f);
+  if(a){ const t0=a.volume; let i=0; const f=setInterval(()=>{ i++; a.volume=Math.max(0,t0*(1-i/12)); if(i>=12){ clearInterval(f); a.pause(); a.src=""; } },50); }
+  if(MUS.site){ MUS.site=false; try{ if(BGM.on&&BGM.a) BGM.a.play().catch(()=>{}); }catch(e){} }
+}
 function open(who){
   injectCss();
   if(typeof DB!=="undefined" && DB.mode==="live") return openLive(who);
@@ -513,14 +539,14 @@ function mountW(W,opt,lang){
   ov.addEventListener("pointerup",e=>{ if(!ST||!ST.lang) return; clearTimeout(ST.holdT); const held=ST.hold; ST.hold=false; ST.stage.classList.remove("paused"); if(e.target.closest("button,select")) return; if(held){ show(ST.i); return; }
     const r=ST.stage.getBoundingClientRect(); (e.clientX-r.left)<r.width*0.3 ? show(ST.i-1) : (ST.i<ST.slides.length-1?show(ST.i+1):null); });
   ov.addEventListener("click",e=>{ const b=e.target.closest("[data-w]"); if(!b||!ST) return; const a=b.dataset.w;
-    if(a==="close") close(); else if(a==="prev"){ if(ST.lang) show(ST.i-1); } else if(a==="share") shareSlide(false); else if(a==="shareAll") shareSlide(true); else if(a==="pick") setLang(b.dataset.l,false); else if(a==="lang"){ if(ST.lang!==b.dataset.l) setLang(b.dataset.l,true); } });
+    if(a==="mus") musToggle(); else if(a==="close") close(); else if(a==="prev"){ if(ST.lang) show(ST.i-1); } else if(a==="share") shareSlide(false); else if(a==="shareAll") shareSlide(true); else if(a==="pick") setLang(b.dataset.l,false); else if(a==="lang"){ if(ST.lang!==b.dataset.l) setLang(b.dataset.l,true); } });
   ov.addEventListener("change",async e=>{ if(e.target.dataset&&e.target.dataset.w==="who"){ const id=e.target.value, pk=ST.opt.picker, L=ST.lang; let W2=null; try{ W2=await pk.load(id); }catch(er){ if(typeof toast==="function") toast(er.message); }
     if(!W2){ e.target.value=pk.cur; return; } const o2=Object.assign({},ST.opt,{picker:Object.assign({},pk,{cur:id})}); mountW(W2,o2,L); } });
   document.addEventListener("keydown",keys);
   if(W&&lang) setLang(lang,false);
 }
 function keys(e){ if(!ST) return; if(e.key==="Escape") close(); else if(ST.lang&&(e.key==="ArrowRight"||e.key===" ")) show(ST.i+1); else if(ST.lang&&e.key==="ArrowLeft") show(ST.i-1); }
-function close(){ const o=document.getElementById("wrapOv"); if(o) o.remove(); if(ST&&ST.timer) clearTimeout(ST.timer); ST=null; document.removeEventListener("keydown",keys); }
+function close(){ musStop(); const o=document.getElementById("wrapOv"); if(o) o.remove(); if(ST&&ST.timer) clearTimeout(ST.timer); ST=null; document.removeEventListener("keydown",keys); }
 
 /* ---------------------------------------------------------------- การ์ดแชร์รูป (canvas) — จัดวางแบบเดียวกับหน้าจอ */
 const FONT='"Prompt","IBM Plex Sans Thai","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
